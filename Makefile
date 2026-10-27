@@ -7,7 +7,7 @@ BIN := bin/server
 TEST_DATABASE_URL ?= postgres://xauto:xauto@127.0.0.1:5432/postgres?sslmode=disable
 export TEST_DATABASE_URL
 
-.PHONY: setup dev dev-api dev-web db-up db-down test test-go test-web lint build web-build e2e docker-build
+.PHONY: setup dev dev-api dev-web db-up db-down test test-go test-web lint build web-build gen-thread e2e docker-build
 
 setup: ## 의존성 설치·개발 설정 안내 (비밀값은 만들지 않는다)
 	@command -v $(GO) >/dev/null || { echo "Go가 필요합니다 (go.mod의 toolchain을 자동으로 받습니다)"; exit 1; }
@@ -46,6 +46,9 @@ lint:
 
 web-build:
 	cd web && $(NPM) run build
+
+gen-thread: ## twitter-text에서 서버용 정규식·기대값 다시 만들기 (라이브러리 갱신 시)
+	cd web && $(NPM) run gen:thread
 
 build: web-build ## 프론트 빌드 후 Go 바이너리
 	CGO_ENABLED=0 $(GO) build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server

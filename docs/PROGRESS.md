@@ -12,8 +12,8 @@
 | 04 | 모바일 앱 셸·디자인 시스템 | 완료 | 626b0eb |
 | 05 | 콘텐츠·프롬프트·직접 등록 | 완료 | ccc2a45 |
 | 06 | R2·이미지 관리 | 완료 | 92caaa8 |
-| 07 | AI 생성·세 가지 생성 정책 | 완료 | (보고에 기록) |
-| 08 | 길이 검증·분할·타래 미리보기 | 대기 | |
+| 07 | AI 생성·세 가지 생성 정책 | 완료 | 38ae3f0 |
+| 08 | 길이 검증·분할·타래 미리보기 | 완료 | (보고에 기록) |
 | 09 | 시간표·예약·랜덤 추가 지연 | 대기 | |
 | 10 | X 연결·본문과 답글 게시·복구 | 대기 | |
 | 11 | 비용 제어·내부 알림·운영 홈 | 대기 | |
@@ -33,7 +33,7 @@
 | A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 진행 (게시 경로는 10단계) |
 | A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 진행 (예약 생성은 09단계) |
 | A06 | 20묶음과 실제 게시물 수 구분 | | | 대기 |
-| A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`, `web/src/lib/thread.ts` | `thread_test.go`(한글 140/141, URL 23, 이모지, 분할 내용 보존, 번호 포함 길이, 답글 상한) | 진행 (08단계 적합성 fixture) |
+| A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`(twittertext.go·url.go·twittertext_gen.go·split.go), `web/src/lib/thread.ts`, `web/scripts/gen-thread-data.mjs`, `/settings/thread` | `conformance_test.go`(공식 적합성 사례 v2·v3·방향 문자·URL 추출 전부, 라이브러리 golden 180문장·이모지 1,247×5 일치, 단위 합=전체 판정), `split_property_test.go`(무작위 150개×모드×번호: 누락·중복 없음, 부분 ≤280, URL·이모지 비분할), `thread_test.go`, `bench_test.go`(긴·악의적 입력 성능), `content_test.go`(장문 설정 변경 시 미고정 글만 재분할), Vitest(공식 라이브러리=golden, 앱 measure=적합성) | 완료 |
 | A08 | 복수 구간·30분+추가 지연·영속화 | | | 대기 |
 | A09 | 시간 부족·자정·고정·미준비·다운타임 | | | 대기 |
 | A10 | 미승인·승인 후 변경분 게시 차단 | `internal/content`(frozen revision, 승인 revision 단위), `content_overview.stage` | `TestApprovalIsInvalidatedByEdit`, 브라우저 승인 후 편집 확인 | 진행 (10단계 게시 시 revision 검사) |
@@ -142,3 +142,17 @@
 - 검증: `make lint`·`make test` 통과(Go: jobs 3·budget 2·ai 계약 5·generation 11·API 흐름 1 추가). 유료 실제 호출 없이 계약 테스트(가짜 HTTP 서버로 요청 형식·응답 해석·오류 분류). 브라우저(390px): 생성 설정 저장→계획 갱신, AI 탭 필수 변수 오류→5개 생성→진행 카드→목록, 다시 만들기→비교→적용(편집기 원문 갱신), 이미지 다시 만들기→본문에 붙이기, 지금 부족분 채우기(필수 변수 기본값 없음 안내). 360/768/1440 라이트·다크 가로 넘침 0, 콘솔 오류 0
 - 실제 AI 호출: 운영 키가 없어 미검증 (목업·가짜 서버로만 확인)
 - 다음: 08 길이 검증·분할·타래 미리보기
+
+### 08 길이 검증·분할·타래 미리보기 — 완료
+
+- 서버 가중 길이를 공식 라이브러리와 같게: 프론트가 쓰는 twitter-text 3.1.0(+twemoji-parser 11.0.2)에서 정규식 조각·설정을 생성(`web/scripts/gen-thread-data.mjs`, `make gen-thread`)하고, 생성기가 조각 조합이 라이브러리의 실제 정규식과 같은지 확인한다. Go는 parseTweet·extractUrlsWithIndices·twemoji parse를 UTF-16 단위로 그대로 옮겼다
+- URL은 Go 표준 regexp(RE2, 선형 시간)로 실행: TLD 뒤 lookahead를 같은 우선순위의 대안으로 펼치고, TLD 1,574개를 접두사 트리로 바꿈(순서가 결과에 영향을 주는 쌍은 긴 쪽 우선을 확인, 아니면 시작 시 멈춤). 처음엔 regexp2로 원문 그대로 실행했으나 "a.a.a…" 500회 입력에 2초 넘게 걸려(JS는 수 ms) 바꿨다. 지금은 2,000회 반복에 8ms
+- 이모지는 regexp2(lookahead 지원)로 코드 포인트 위에서 실행. UTF-16 단위로 실행하면 regexp2 최적화가 피부색·ZWJ 시퀀스를 놓치는 문제를 발견해 코드 포인트 표기로 바꿨다
+- 이전 자체 구현(문자소 + 휴리스틱 이모지 판정)은 공식 적합성 사례 일부와 달랐다 → 삭제
+- 분할: parseTweet이 세는 조각을 문자소 경계에서만 끊기는 단위로 묶어 URL·이모지·결합 문자를 자르지 않음. 자른 부분을 단독으로 다시 세어 문맥 때문에 넘치면 그 부분만 다시 나눔. 규칙은 docs/ARCHITECTURE.md "글자 수와 분할"
+- 정규화: 원문은 그대로 저장, 게시용으로만 CRLF→LF·NFC·줄 끝 공백·3줄 이상 빈 줄·앞뒤 공백 정리 (문서화)
+- 계정 게시 능력: `/settings/thread`에 장문 게시(기본 꺼짐, 확인 시트) — 켜고 끄면 고정되지 않은 현재 revision을 새 한도로 다시 나눔(`content.ResplitAll`). 승인·게시로 고정된 revision은 그대로 두고 게시 직전에 현재 한도로 확인(10단계)
+- 화면: 나누기·글자 수 설정(기본 방식·번호 표기·최대 답글 수·장문 게시·글자 수 세는 방식 설명), 설정 목록에 현재 값 표시. 미리보기는 기존 타래 미리보기(부분별 길이·문제·이미지·실제 게시물 수·"기본 답글 1개 → 분량 초과로 실제 답글 N개")
+- 장문·이모지 정책: 라이브러리가 모르는 최신 이모지 시퀀스는 더 길게 세어짐(한도를 넘지 않는 쪽 오차) — docs/INTEGRATIONS.md
+- 검증: `make lint`·`make test` 통과. 공식 적합성 사례 전부(가중 v2 20·v3 22·방향 문자 2·URL 91·위치 10·방향 2·t.co 5), golden 180문장(v2·v3·URL 위치) + 이모지 1,247개×5변형 일치, 무작위 분할 불변식, 성능, Vitest 11. 브라우저(360px 라이트·다크): 장문 켜기 확인→저장→재분할→끄기, 긴 글(URL·가족 이모지·국기) 저장 시 "실제 답글 4개"와 부분 272/211/272/267/28자, 번호 표기 반영. 가로 넘침 0, 콘솔 오류 0
+- 다음: 09 시간표·예약·랜덤 추가 지연

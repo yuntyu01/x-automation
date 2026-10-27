@@ -1,0 +1,162 @@
+import { useState } from 'react';
+import { ApiError, errorMessage } from '../../api/client';
+import { useSaveSettings, useSettings } from '../../api/queries';
+import { SPLIT_LABEL, type Policy, type Settings, type SplitMode } from '../../api/types';
+import { PageHeader } from '../../components/layout/AppShell';
+import { Button } from '../../components/ui/Button';
+import { Card, Section } from '../../components/ui/Card';
+import { ChoiceList } from '../../components/ui/ChoiceList';
+import { Row, RowGroup } from '../../components/ui/Row';
+import { Sheet } from '../../components/ui/Sheet';
+import { ErrorState, LoadingList } from '../../components/ui/States';
+import { Switch } from '../../components/ui/Switch';
+import { TextField } from '../../components/ui/TextField';
+import { useToast } from '../../components/ui/Toast';
+import { LONG_LIMIT, STANDARD_LIMIT } from '../../lib/thread';
+import { BackButton } from './ConnectionsPage';
+import styles from './GenerationSettingsPage.module.css';
+
+export function ThreadSettingsPage() {
+  const settings = useSettings();
+  return (
+    <>
+      <PageHeader title="나누기·글자 수" subtitle="새 글의 기본 나누기 방식과 한 게시물 한도" back={<BackButton to="/settings" />} />
+      {settings.isLoading && <LoadingList rows={3} />}
+      {settings.isError && <ErrorState error={settings.error} onRetry={() => settings.refetch()} />}
+      {settings.data && <ThreadForm key={settings.data.version} settings={settings.data} />}
+    </>
+  );
+}
+
+type Thread = Policy['thread'];
+
+const SPLIT_DESC: Record<SplitMode, string> = {
+  two_parts: '절반 부근의 문단·문장 경계에서 본문과 답글 하나로 나눠요. 한쪽이 한도를 넘으면 그쪽만 답글을 더 이어요',
+  overflow: '본문을 한도까지 채우고 넘치는 부분만 답글로 이어요',
+  manual: '원문에 --- 만 있는 줄을 넣은 곳에서 나눠요',
+};
+
+function ThreadForm({ settings }: { settings: Settings }) {
+  const save = useSaveSettings();
+  const toast = useToast();
+  const [t, setT] = useState<Thread>(settings.policy.thread);
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [confirmLong, setConfirmLong] = useState(false);
+  const dirty = JSON.stringify(t) !== JSON.stringify(settings.policy.thread);
+  const set = <K extends keyof Thread>(k: K, v: Thread[K]) => setT((p) => ({ ...p, [k]: v }));
+
+  async function submit() {
+    setFields({});
+    try {
+      await save.mutateAsync({ ...settings, policy: { ...settings.policy, thread: t } });
+      toast.show(
+        t.long_post_enabled !== settings.policy.thread.long_post_enabled ? '저장했어요. 아직 승인되지 않은 글을 새 한도로 다시 나눴어요' : '저장했어요',
+        'success',
+      );
+    } catch (e) {
+      if (e instanceof ApiError && Object.keys(e.fields).length) setFields(e.fields);
+      else toast.show(errorMessage(e), 'error');
+    }
+  }
+
+  return (
+    <div className={styles.stack}>
+      <Section title="기본 나누기 방식" description="새로 만드는 글에 쓰여요. 글마다 편집 화면에서 바꿀 수 있어요">
+        <ChoiceList
+          name="기본 나누기 방식"
+          value={t.split_mode}
+          onChange={(v) => set('split_mode', v)}
+          options={(['two_parts', 'overflow', 'manual'] as SplitMode[]).map((m) => ({ value: m, label: SPLIT_LABEL[m], description: SPLIT_DESC[m] }))}
+        />
+      </Section>
+
+      <Section title="답글">
+        <RowGroup>
+          <Row
+            label="번호 표기 (1/N)"
+            description="각 게시물 끝에 (1/3) 같은 번호를 붙여요. 번호도 글자 수에 들어가요"
+            trailing={<Switch label="번호 표기" checked={t.numbering} onChange={(v) => set('numbering', v)} />}
+          />
+        </RowGroup>
+        <Card>
+          <TextField
+            label="최대 답글 수"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={25}
+            value={String(t.max_replies)}
+            onChange={(e) => set('max_replies', e.target.value === '' ? 0 : Number(e.target.value))}
+            error={fields['thread.max_replies']}
+            hint="0이면 제한 없어요. 넘는 글은 요약하지 않고 '수정 필요'로 두고 게시하지 않아요"
+          />
+        </Card>
+      </Section>
+
+      <Section title="한 게시물 한도">
+        <RowGroup>
+          <Row
+            label="장문 게시"
+            description={
+              t.long_post_enabled
+                ? `켜짐: 한 게시물 ${LONG_LIMIT.toLocaleString()}자까지 써요`
+                : `꺼짐: X 일반 한도 ${STANDARD_LIMIT}자(가중)로 나눠요`
+            }
+            trailing={<Switch label="장문 게시" checked={t.long_post_enabled} onChange={(v) => (v ? setConfirmLong(true) : set('long_post_enabled', false))} />}
+          />
+        </RowGroup>
+        <p className={styles.muted}>
+          장문 게시는 X 계정 등급과 API 권한이 모두 허용할 때만 돼요. 웹에서 길게 써진다고 API로도 된다는 보장은 없어요. 확인되지 않았으면 끄고 쓰세요.
+        </p>
+      </Section>
+
+      <Section title="글자 수는 이렇게 세요">
+        <Card>
+          <ul className={styles.rules}>
+            <li>X와 같은 방식(공식 twitter-text)으로 세요. 한글·한자·일본어는 2자, 영문·숫자·기본 문장부호는 1자예요</li>
+            <li>링크는 길이와 관계없이 23자예요. 링크가 있으면 X 게시 단가가 달라질 수 있어요</li>
+            <li>이모지는 하나에 2자예요. 아주 최근 이모지 조합은 더 길게 세어질 수 있어요 (한도를 넘지 않는 쪽으로 계산)</li>
+            <li>원문은 그대로 보관하고, 게시할 때만 줄 끝 공백·3줄 이상 빈 줄·앞뒤 공백을 정리해요</li>
+            <li>문단 → 문장 → 줄 → 공백 순으로 자르고, 링크·이모지·글자 중간에서는 자르지 않아요. AI가 요약하거나 내용을 바꾸지 않아요</li>
+          </ul>
+        </Card>
+      </Section>
+
+      {dirty && (
+        <div className={styles.saveBar} role="region" aria-label="저장">
+          <span>저장하지 않은 변경이 있어요</span>
+          <Button variant="secondary" onClick={() => setT(settings.policy.thread)}>
+            되돌리기
+          </Button>
+          <Button busy={save.isPending} onClick={submit}>
+            저장
+          </Button>
+        </div>
+      )}
+
+      <Sheet
+        open={confirmLong}
+        onClose={() => setConfirmLong(false)}
+        title="장문 게시를 켤까요?"
+        description="X 계정과 API에서 장문 게시가 되는 것을 확인했을 때만 켜세요. 확인되지 않은 채 켜면 게시가 거부되고, 그 글은 '문제 발생'으로 남아요."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmLong(false)}>
+              취소
+            </Button>
+            <Button
+              onClick={() => {
+                set('long_post_enabled', true);
+                setConfirmLong(false);
+              }}
+            >
+              확인했어요, 켜기
+            </Button>
+          </>
+        }
+      >
+        <p className={styles.muted}>저장하면 아직 승인되지 않은 글을 새 한도로 다시 나눠요. 이미 승인된 글은 그대로이고, 게시 직전에 그때의 한도로 다시 확인해요.</p>
+      </Sheet>
+    </div>
+  );
+}

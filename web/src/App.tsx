@@ -15,6 +15,7 @@ import { SchedulePage } from './pages/schedule/SchedulePage';
 import { ConnectionsPage } from './pages/settings/ConnectionsPage';
 import { GenerationSettingsPage } from './pages/settings/GenerationSettingsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { ThreadSettingsPage } from './pages/settings/ThreadSettingsPage';
 import { SetupPage } from './pages/setup/SetupPage';
 
 function Root() {
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
           { path: '/settings', element: <SettingsPage /> },
           { path: '/settings/connections', element: <ConnectionsPage /> },
           { path: '/settings/generation', element: <GenerationSettingsPage /> },
+          { path: '/settings/thread', element: <ThreadSettingsPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/setup', element: <SetupPage /> },
           { path: '*', element: <NotFoundPage /> },

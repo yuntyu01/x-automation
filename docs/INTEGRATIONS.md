@@ -75,4 +75,7 @@ OpenAI 공식 Go SDK(openai/openai-go v3.88.0)의 생성 타입으로 확인했�
 
 - config v3: `maxWeightedTweetLength 280, scale 100, defaultWeight 200, transformedURLLength 23, emojiParsingEnabled true`,
   1로 세는 범위 U+0000–U+10FF, U+2000–U+200D, U+2010–U+201F, U+2032–U+2037 (확인)
-- npm `twitter-text` 최신 3.1.0(2020). Go 공식 포팅 없음 → 서버는 같은 규칙을 직접 구현하고 공식 적합성 fixture로 프론트와 결과를 대조한다
+- npm `twitter-text` 최신 3.1.0(2020). Go 공식 포팅 없음 → 서버는 같은 라이브러리에서 정규식을 생성해(`web/scripts/gen-thread-data.mjs` → `internal/thread/twittertext_gen.go`) 같은 알고리즘으로 실행한다
+- 이모지 인식은 라이브러리가 묶어 쓰는 `twemoji-parser` 11.0.2(이모지 11 기준). 그 뒤 나온 이모지 시퀀스(예: 🧑‍🤝‍🧑, ❤️‍🔥)는 코드 포인트마다 세어 X 실제 계산보다 길게 나올 수 있다 → 한도를 넘는 쪽이 아니라 덜 채우는 쪽의 오차라 그대로 둔다 (확인: 라이브러리 소스)
+- 공식 적합성 사례(validate.yml·extract.yml)를 `testdata/twitter-text`에 두고 Go가 전부 통과한다. 프론트와 서버의 일치는 라이브러리로 계산한 `testdata/thread/golden.json`(문장 180개, 이모지 1,247개 × 변형 5)으로 양쪽 테스트에서 대조한다
+- 장문 게시(25,000자): 계정 등급과 API 권한에 따라 다르고 이 저장소에서 확인할 수 없다 → 기본 꺼짐, 설정에서 사용자가 확인 후 켠다

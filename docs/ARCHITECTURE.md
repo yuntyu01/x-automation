@@ -42,7 +42,8 @@ Go 서버 (cmd/server)
 | PostgreSQL 작업 큐 | Redis 등 추가 의존성 없이 lease·재시도·고유키를 한 트랜잭션에서 처리 |
 | React 19 + TypeScript 6 + Vite 8 | 지시서 요구. TS 7(네이티브 포트)은 typescript-eslint가 아직 지원하지 않아 6.0을 쓴다 |
 | TanStack Query | 서버 상태 캐시·재시도·polling을 일관되게 처리. 상태 갱신은 polling(간격 조절)으로 충분 |
-| 가중 글자 수: 프론트 `twitter-text`(공식), Go는 같은 규칙의 구현 + 공식 적합성 fixture | 운영 Node 서버를 두지 않고 양쪽 결과를 같은 fixture로 대조 |
+| 가중 글자 수: 프론트 `twitter-text`(공식), Go는 그 라이브러리에서 생성한 정규식으로 같은 알고리즘 실행 | 운영 Node 서버를 두지 않고 양쪽 결과를 공식 적합성 사례 + 라이브러리 golden으로 대조 |
+| URL은 Go 표준 regexp(RE2), 이모지는 `dlclark/regexp2` | RE2는 입력 길이에 선형이라 악의적 입력에도 안전. twemoji 정규식은 lookahead가 필요해 regexp2(고정 시퀀스라 역추적이 얕음) |
 | X 인증: OAuth 2.0 Authorization Code + PKCE | 갱신 토큰(offline.access)으로 무인 운영. 토큰은 TOKEN_ENCRYPTION_KEY(AES-256-GCM)로 암호화해 DB 저장 |
 | 비밀번호: Argon2id (golang.org/x/crypto/argon2) | OWASP 권장. 해시 생성 CLI `cmd/admin` 제공 |
 | 세션: 서버 저장(DB) + HttpOnly·Secure·SameSite=Lax 쿠키 + 동기화 토큰 CSRF | OAuth 콜백이 최상위 이동이라 Lax 필요. 상태 변경 요청은 CSRF 헤더 필수 |
@@ -59,6 +60,22 @@ Go 서버 (cmd/server)
 | `migrations` | 순서 있는 SQL 마이그레이션 (embed) |
 | `web/` | React 앱 (`web/src`), Vite 설정, E2E |
 | `docs/` | 구조·API·배포·운영·진행 기록 |
+
+## 글자 수와 분할 (`internal/thread`)
+
+- 원문(`content_revisions.raw_text`)은 그대로 보관한다. 게시용 정규화(`NormalizeForPost`)는 분할·게시에만 쓴다: CRLF·CR→LF, NFC, 줄 끝 공백 제거, 빈 줄 3개 이상→2개, 앞뒤 공백 제거
+- 가중 길이는 공식 twitter-text `parseTweet`(config v3)과 같다. 프론트는 라이브러리를 직접 쓰고, 서버는 라이브러리에서 생성한 정규식으로 같은 알고리즘을 UTF-16 단위로 실행한다
+  - URL: Go 표준 `regexp`(RE2, 선형 시간). RE2에 없는 TLD 뒤 lookahead는 같은 우선순위의 대안으로 펼치고, TLD 목록(1,500여 개)은 같은 언어의 접두사 트리로 바꾼다 (`url.go`의 설명)
+  - 이모지: twemoji 정규식(lookahead 포함)을 `regexp2`로 코드 포인트 위에서 실행
+  - 구현 근거: 공식 적합성 사례 전부 통과 + 라이브러리로 계산한 golden 대조 + 단위 가중치 합 = 전체 판정 + 긴·악의적 입력 성능 테스트
+- 분할 단위: parseTweet이 세는 조각(URL 전체·이모지 전체·글자)을 문자소 경계에서만 끊기도록 묶는다. 그래서 링크·이모지·결합 문자 중간에서는 자르지 않는다
+- 경계 우선순위: 문단 > 문장(문장부호 + 공백/줄바꿈, 닫는 따옴표 허용) > 줄 > 공백 > 문자소. 공백은 앞 부분 끝에 붙이고 뒤 부분은 공백 아닌 글자로 시작한다
+- 본문 + 답글 1개: 전체 가중 길이의 절반에 가장 가까운 문단 경계(없으면 문장 경계, 가운데에서 35% 이내)에서 나누고, 한쪽이 한도를 넘으면 그쪽만 "넘칠 때만" 방식으로 더 나눈다
+- 넘칠 때만: 앞에서부터 한도까지 채우고 그 안에서 가장 좋은 경계(한도의 40% 이상 채운 위치)를 고른다
+- 번호 표기 `\n(i/N)`는 길이에 포함한다. 개수가 바뀌면 자릿수가 달라지므로 예약 길이를 늘려 다시 나눈다
+- 자른 부분은 단독으로 다시 센다(X는 게시물마다 센다). 잘린 문맥 때문에 URL 인식이 달라져 넘치면 그 부분만 다시 나눈다
+- 최대 답글 수를 넘으면 요약하지 않고 게시 불가(수정 필요)로 둔다. 요약은 사용자가 고르는 별도 동작(다시 만들기)이다
+- 장문 게시 설정을 바꾸면 고정되지 않은 현재 revision을 새 한도로 다시 나눈다. 승인·게시로 고정된 revision의 부분은 바꾸지 않고 게시 직전에 현재 한도로 확인한다
 
 ## 작업 큐와 생성
 

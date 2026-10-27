@@ -118,3 +118,13 @@
   flex-wrap: wrap;
   gap: 2px var(--space-3);
 }
+.rules {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  line-height: 1.6;
+}

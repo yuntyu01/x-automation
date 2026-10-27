@@ -194,3 +194,36 @@ func TestImportPreviewCommitAndExportSafety(t *testing.T) {
 		t.Fatalf("roundtrip parse = %v", err)
 	}
 }
+
+// 장문 게시 설정이 바뀌면 고정되지 않은 글만 새 한도로 다시 나눈다
+func TestResplitAllFollowsPostLimit(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := context.Background()
+	long := false
+	svc := content.NewService(pool, nil, func(context.Context) bool { return long })
+	text := strings.Repeat("가나다라마바사아자차카타파하 ", 60) // 한 문단, 약 1,600자(가중)
+	a, err := svc.Create(ctx, content.NewContent{RawText: text, SplitMode: thread.ModeOverflow})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := svc.Create(ctx, content.NewContent{RawText: text, SplitMode: thread.ModeOverflow})
+	if len(a.Revision.Parts) < 5 {
+		t.Fatalf("standard limit should split into many parts: %d", len(a.Revision.Parts))
+	}
+	if _, err := svc.Approve(ctx, b.ID, b.CurrentRevisionID); err != nil {
+		t.Fatal(err)
+	}
+	long = true
+	n, err := svc.ResplitAll(ctx)
+	if err != nil || n != 1 {
+		t.Fatalf("resplit = %d %v (approved revision must stay frozen)", n, err)
+	}
+	a2, _ := svc.Get(ctx, a.ID)
+	b2, _ := svc.Get(ctx, b.ID)
+	if len(a2.Revision.Parts) != 1 || a2.Revision.Validation.Limit != thread.LongPostLimit {
+		t.Fatalf("long post limit = %d parts, limit %d", len(a2.Revision.Parts), a2.Revision.Validation.Limit)
+	}
+	if len(b2.Revision.Parts) != len(b.Revision.Parts) {
+		t.Fatal("frozen approved revision must keep its parts")
+	}
+}

@@ -88,6 +88,13 @@ func (s *Server) mountSettings(mux *http.ServeMux) {
 			WriteError(w, r, err)
 			return
 		}
+		// 한 게시물 한도가 바뀌면 아직 고정되지 않은 글을 새 한도로 다시 나눈다
+		if cur.Policy.Thread.LongPostEnabled != p.Thread.LongPostEnabled && s.Contents != nil {
+			if _, err := s.Contents.ResplitAll(r.Context()); err != nil {
+				WriteError(w, r, err)
+				return
+			}
+		}
 		WriteJSON(w, http.StatusOK, st)
 	})
 	mux.HandleFunc("POST /api/setup/complete", func(w http.ResponseWriter, r *http.Request) {

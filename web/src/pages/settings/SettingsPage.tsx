@@ -1,9 +1,9 @@
-import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
 import { useIntegrations, useRuntime, useSaveSettings, useSettings } from '../../api/queries';
-import { MODE_LABEL, type OperationMode } from '../../api/types';
+import { MODE_LABEL, SPLIT_LABEL, type OperationMode } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
 import { ChoiceList } from '../../components/ui/ChoiceList';
@@ -59,6 +59,12 @@ export function SettingsPage() {
             <RowGroup>
               <Row icon={<SlidersHorizontal size={20} />} label="운영 모드" value={MODE_LABEL[settings.data.operation_mode]} onClick={() => setSheet('mode')} />
               <Row icon={<Sparkles size={20} />} label="생성 방식" value={generationSummary(settings.data.policy.generation.timing)} to="/settings/generation" />
+              <Row
+                icon={<Scissors size={20} />}
+                label="나누기·글자 수"
+                value={`${SPLIT_LABEL[settings.data.policy.thread.split_mode]}${settings.data.policy.thread.long_post_enabled ? ' · 장문' : ''}`}
+                to="/settings/thread"
+              />
               <Row icon={<FileText size={20} />} label="프롬프트" to="/prompts" />
               <Row icon={<ImageIcon size={20} />} label="이미지 보관함" description="업로드·생성 이미지, 정리 예정" to="/images" />
               <Row icon={<CalendarClock size={20} />} label="시간표" to="/schedule/rules" />

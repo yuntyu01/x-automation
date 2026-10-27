@@ -540,6 +540,48 @@ func (s *Service) Revalidate(ctx context.Context, db store.DB, revisionID string
 	return err
 }
 
+// ResplitAll은 고정되지 않은 현재 revision을 지금 설정(장문 게시 여부)으로 다시 나눈다. 다시 나눈 수를 돌려준다.
+// 승인·게시로 고정된 revision은 바꾸지 않는다 (게시 직전에 현재 한도로 다시 확인한다).
+func (s *Service) ResplitAll(ctx context.Context) (int, error) {
+	rows, err := s.pool.Query(ctx, `SELECT r.id FROM contents c JOIN content_revisions r ON r.id = c.current_revision_id
+		WHERE r.frozen_at IS NULL AND c.archived_at IS NULL`)
+	if err != nil {
+		return 0, err
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, id := range ids {
+		err := store.InTx(ctx, s.pool, func(tx pgx.Tx) error {
+			var raw, mode, imageMode string
+			var soRaw []byte
+			err := tx.QueryRow(ctx, `SELECT raw_text, split_mode, split_options, image_mode FROM content_revisions WHERE id = $1 AND frozen_at IS NULL FOR UPDATE`, id).
+				Scan(&raw, &mode, &soRaw, &imageMode)
+			if store.IsNoRows(err) {
+				return nil // 그사이 고정됐다
+			}
+			if err != nil {
+				return err
+			}
+			var so SplitOptions
+			_ = json.Unmarshal(soRaw, &so)
+			media, err := s.loadMedia(ctx, tx, id)
+			if err != nil {
+				return err
+			}
+			r, v := s.evaluate(ctx, raw, thread.Mode(mode), so, imageMode, media)
+			n++
+			return s.writeParts(ctx, tx, id, r, v)
+		})
+		if err != nil {
+			return n, err
+		}
+	}
+	return n, nil
+}
+
 func scanRevision(row pgx.Row) (Revision, error) {
 	var r Revision
 	var so, val []byte

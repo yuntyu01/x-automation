@@ -267,6 +267,7 @@ func autoSplit(text string, o Options) []string {
 		} else {
 			parts = l.overflow(0, len(l.units), limit)
 		}
+		parts = refit(parts, limit)
 		if !o.Numbering || len(parts) <= 1 {
 			return parts
 		}
@@ -275,6 +276,35 @@ func autoSplit(text string, o Options) []string {
 			return parts
 		}
 		reserve = need
+	}
+	return parts
+}
+
+// refit은 자른 부분을 단독으로 다시 세어 한도를 넘으면 그 부분만 다시 나눈다.
+// 단위 가중치는 전체 문맥에서 센 값이라, 잘린 뒤 URL 인식이 달라지면(앞 글자·TLD 뒤 글자 조건) 길이가 달라질 수 있다.
+// X는 게시물마다 따로 세므로 부분 단독 판정이 기준이다.
+func refit(parts []string, limit int) []string {
+	for iter := 0; iter < 3; iter++ {
+		changed := false
+		var out []string
+		for _, p := range parts {
+			if Parse(p, V3).WeightedLength*V3.Scale <= limit {
+				out = append(out, p)
+				continue
+			}
+			l := newLayout(p)
+			sub := l.overflow(0, len(l.units), limit)
+			if len(sub) <= 1 {
+				out = append(out, p) // 더 나눌 수 없으면 그대로 두고 문제로 표시한다
+				continue
+			}
+			out = append(out, sub...)
+			changed = true
+		}
+		parts = out
+		if !changed {
+			break
+		}
 	}
 	return parts
 }
