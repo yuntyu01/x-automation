@@ -17,6 +17,7 @@ import { Row, RowGroup } from '../../components/ui/Row';
 import { Switch } from '../../components/ui/Switch';
 import { ErrorState, LoadingList } from '../../components/ui/States';
 import { TextField } from '../../components/ui/TextField';
+import { TimeField } from '../../components/ui/TimeField';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateTime, relativeTime } from '../../lib/format';
 import { BackButton } from './ConnectionsPage';
@@ -106,7 +107,7 @@ function GenerationForm({ settings }: { settings: Settings }) {
             <div className={styles.grid}>
               {gen.prepare_strategy === 'daily_at' && (
                 <>
-                  <TextField label="지정 시각" type="time" value={gen.daily_at} onChange={(e) => g('daily_at', e.target.value)} error={fields['generation.daily_at']} hint={`시간대: ${settings.timezone}`} />
+                  <TimeField label="지정 시각" value={gen.daily_at} onChange={(v) => g('daily_at', v)} error={fields['generation.daily_at']} hint={`시간대: ${settings.timezone}`} />
                   <TextField
                     label="확보 기간 (일)"
                     type="number"
@@ -129,7 +130,7 @@ function GenerationForm({ settings }: { settings: Settings }) {
                   value={String(gen.before_minutes)}
                   onChange={(e) => g('before_minutes', num(e.target.value))}
                   error={fields['generation.before_minutes']}
-                  hint="생성이 끝나기 충분한 시간을 두세요 (이미지는 더 오래 걸려요)"
+                  hint="생성이 끝날 만큼 넉넉히 잡아 주세요. 이미지는 더 오래 걸려요"
                 />
               )}
               {gen.prepare_strategy === 'stock' && (
@@ -171,13 +172,13 @@ function GenerationForm({ settings }: { settings: Settings }) {
         </Card>
       </Section>
 
-      <Section title="모델·품질" description="비워 두면 서버 환경변수의 기본 모델을 써요. 모델 이름과 지원 옵션은 공급자 문서로 확인하세요">
+      <Section title="모델·품질" description="비워 두면 서버의 기본 모델을 써요. 쓸 수 있는 이름은 공급자 문서에 있어요">
         <Card>
           <div className={styles.grid}>
             <TextField label="글 모델" value={gen.text_model} onChange={(e) => g('text_model', e.target.value.trim())} placeholder="서버 기본값" />
             <TextField label="이미지 모델" value={img.model} onChange={(e) => i('model', e.target.value.trim())} placeholder="서버 기본값" />
             {/* 품질·크기 값은 공급자·모델마다 다르다. 흔한 값을 제안만 하고 서버가 그대로 전달한다 */}
-            <TextField label="이미지 품질" value={img.quality} onChange={(e) => i('quality', e.target.value.trim())} list="image-quality-options" hint="모델이 지원하는 값을 쓰세요 (예: low·medium·high)" />
+            <TextField label="이미지 품질" value={img.quality} onChange={(e) => i('quality', e.target.value.trim())} list="image-quality-options" hint="모델이 지원하는 값 (예: low·medium·high)" />
             <datalist id="image-quality-options">
               {['low', 'medium', 'high'].map((v) => (
                 <option key={v} value={v} />

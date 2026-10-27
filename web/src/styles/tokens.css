@@ -1,30 +1,33 @@
 /* 디자인 토큰. 라이트·다크 대비를 검증해 조정한 값 (docs/DESIGN.md) */
 :root {
   color-scheme: light;
-  --bg: #f5f6f8;
+  /* 회색 단계와 배경은 토스 TDS 공개 색 체계(grey50~900·greyBackground)에 맞추고, 파랑은 흰 글자 대비 AA를 지키도록 한 단계 어둡게 쓴다 */
+  --bg: #f2f4f6;
   --surface: #ffffff;
   --surface-2: #f2f4f6;
-  --surface-pressed: #e9ecef;
+  --surface-3: #f9fafb;
+  --surface-pressed: #e5e8eb;
   --border: #e5e8eb;
   --border-strong: #d1d6db;
   --text: #191f28;
   --text-2: #4e5968;
-  --text-3: #6b7684;
+  --text-3: #646f7c;           /* TDS grey600(#6B7684)은 회색 배경 위 4.2:1이라 조금 어둡게: 흰 5.1 · 회색 4.6 */
   --primary: #1e6ae0;          /* 흰 글자 대비 5.0:1 */
-  --primary-pressed: #1859c2;
-  --primary-soft: #e8f1fe;
-  --primary-text: #1b5fca;     /* 흰 배경 위 링크·강조 글자 */
+  --primary-pressed: #1b64da;
+  --primary-soft: #e8f3ff;
+  --primary-text: #1b64da;     /* 흰 배경 5.4:1, 연한 파랑 위 4.8:1 */
   --on-primary: #ffffff;
   --success: #0b7a52;
-  --success-soft: #e6f6ef;
+  --success-soft: #e5f7ef;
   --warning: #9a5b00;
-  --warning-soft: #fff4e0;
+  --warning-soft: #fff3e0;
   --danger: #c8283b;
-  --danger-soft: #fdecee;
-  --info-soft: #eef3ff;
+  --danger-soft: #ffeeee;
+  --info-soft: #e8f3ff;
   --overlay: rgb(0 0 0 / 0.4);
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-sm: none;
   --shadow-md: 0 8px 24px rgb(0 0 0 / 0.08);
+  --shadow-bar: 0 -1px 0 var(--border);
   --focus: #1e6ae0;
 
   --radius-card: 20px;
@@ -48,12 +51,15 @@
   --header-h: 56px;
   --touch: 48px;
 
+  /* 글자 크기는 TDS 타이포 단계(t2 26 · t4 20 · t5 17 · t6 15 · t7 13)를 따른다 */
+  --fs-display: 34px;
   --fs-title: 26px;
   --fs-h2: 20px;
   --fs-h3: 17px;
-  --fs-body: 16px;
-  --fs-small: 14px;
+  --fs-body: 17px;
+  --fs-small: 15px;
   --fs-caption: 13px;
+  --lh: 1.5;
 
   --font: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic',
     system-ui, sans-serif;
@@ -64,31 +70,33 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #121214;
-  --surface: #1c1c20;
-  --surface-2: #232328;
-  --surface-pressed: #2b2b31;
-  --border: #2c2c32;
-  --border-strong: #3a3a42;
-  --text: #ececef;
-  --text-2: #b0b3ba;
-  --text-3: #8f939c;
+  /* TDS 다크 단계: 배경 #17171C, 카드 #202027, 떠 있는 면 #2C2C35 */
+  --bg: #17171c;
+  --surface: #202027;
+  --surface-2: #2c2c35;
+  --surface-3: #1b1b21;
+  --surface-pressed: #3c3c47;
+  --border: #2c2c35;
+  --border-strong: #3c3c47;
+  --text: #e4e4e5;
+  --text-2: #c3c3c6;
+  --text-3: #9e9ea4;
   --primary: #1e6ae0;
-  --primary-pressed: #2a76ec;
-  --primary-soft: #1a2638;
-  --primary-text: #6ea2f7;
+  --primary-pressed: #1b64da;
+  --primary-soft: #202c4d;
+  --primary-text: #61b0ff;
   --on-primary: #ffffff;
   --success: #4cc790;
-  --success-soft: #163126;
+  --success-soft: #16302a;
   --warning: #f0b45a;
   --warning-soft: #33280f;
   --danger: #ff7a85;
-  --danger-soft: #3a1d21;
-  --info-soft: #1d2433;
-  --overlay: rgb(0 0 0 / 0.6);
+  --danger-soft: #3a1d24;
+  --info-soft: #202c4d;
+  --overlay: rgb(0 0 0 / 0.56);
   --shadow-sm: none;
   --shadow-md: 0 8px 24px rgb(0 0 0 / 0.4);
-  --focus: #6ea2f7;
+  --focus: #61b0ff;
 }
 
 @media (min-width: 768px) {

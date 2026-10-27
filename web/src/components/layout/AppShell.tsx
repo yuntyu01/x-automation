@@ -59,7 +59,7 @@ export function AppShell() {
       <div className={styles.main}>
         {runtime.data?.integration_mode === 'mock' && (
           <div className={styles.banner} role="note">
-            <strong>목업 모드</strong> 실제 X 게시·AI 생성·R2 저장을 하지 않아요
+            <strong>목업 모드</strong> 실제로 게시·생성·저장하지 않아요
           </div>
         )}
         {!online && (

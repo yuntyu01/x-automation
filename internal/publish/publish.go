@@ -96,7 +96,7 @@ func (s *Service) SetKick(fn func()) { s.kick = fn }
 // blockReason은 지금 새 게시를 시작하면 안 되는 이유다. 비어 있으면 시작해도 된다.
 func (s *Service) blockReason(ctx context.Context, st settings.Settings, automatic bool) (string, error) {
 	if s.Gates.Live && !s.Gates.PublishingEnabled {
-		return "서버에서 실게시가 꺼져 있어요 (PUBLISHING_ENABLED)", nil
+		return "실제 게시가 꺼져 있어요 (서버 설정)", nil
 	}
 	if automatic && !st.AutomationEnabled {
 		return "자동 운영이 꺼져 있어요", nil
@@ -124,7 +124,7 @@ func blockLink(reason string) string {
 	switch {
 	case strings.Contains(reason, "연결"):
 		return "/settings/connections"
-	case strings.Contains(reason, "PUBLISHING_ENABLED"):
+	case strings.Contains(reason, "실제 게시"):
 		return "/settings/connections"
 	}
 	return "/"

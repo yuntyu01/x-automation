@@ -209,7 +209,7 @@ export function GenerateForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       <div className={styles.summary} aria-live="polite">
         <strong>
-          {quantity > 0 ? `${quantity}개` : '수량을 입력하세요'}
+          {quantity > 0 ? `${quantity}개` : '수량을 입력해 주세요'}
           {text ? ' 글' : ''}
           {image ? (text ? ' + 이미지' : ' 이미지 묶음') : ''}
         </strong>

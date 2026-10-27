@@ -3,10 +3,8 @@
   flex-direction: column;
   gap: var(--space-3);
 }
-.mock {
-  background: var(--warning-soft);
-  color: var(--warning);
-  font-size: var(--fs-small);
+.stack > section {
+  margin-top: var(--space-3);
 }
 .row {
   display: flex;
@@ -19,7 +17,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   background: var(--surface-2);
   color: var(--text-2);
   flex: none;
@@ -60,9 +58,15 @@
   flex: none;
   margin-top: 2px;
 }
-.gate {
-  font-size: var(--fs-small);
-  color: var(--text-2);
+.env {
+  margin-top: var(--space-2);
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+.env code {
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 .facts {
   width: 100%;

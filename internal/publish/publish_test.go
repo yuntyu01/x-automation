@@ -468,7 +468,7 @@ func TestGatesBlockPublishing(t *testing.T) {
 	// 서버 실게시 스위치 꺼짐
 	e.gates.PublishingEnabled = false
 	e.restart()
-	if _, err := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid}); !errors.As(err, &ve) || !strings.Contains(ve.Fields["content_id"], "PUBLISHING_ENABLED") {
+	if _, err := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid}); !errors.As(err, &ve) || !strings.Contains(ve.Fields["content_id"], "실제 게시가 꺼져") {
 		t.Fatalf("publishing disabled = %v", err)
 	}
 	e.automation(true)
@@ -478,7 +478,7 @@ func TestGatesBlockPublishing(t *testing.T) {
 	}
 	var reason *string
 	_ = e.pool.QueryRow(e.ctx, `SELECT block_reason FROM reservations WHERE id = $1`, rid).Scan(&reason)
-	if reason == nil || !strings.Contains(*reason, "PUBLISHING_ENABLED") {
+	if reason == nil || !strings.Contains(*reason, "실제 게시가 꺼져") {
 		t.Fatalf("block reason = %v", reason)
 	}
 	// 자동 운영 꺼짐: 예약 게시는 시작하지 않는다

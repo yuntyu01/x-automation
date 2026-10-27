@@ -48,7 +48,7 @@ export function BudgetSettingsPage() {
   const usage = useUsage();
   return (
     <>
-      <PageHeader title="사용량·예산" subtitle="앱이 계산한 추정치예요. 실제 청구액은 각 서비스 콘솔에서 확인하세요" back={<BackButton to="/settings" />} />
+      <PageHeader title="사용량·예산" subtitle="기록된 사용 횟수로 계산한 추정치예요" back={<BackButton to="/settings" />} />
       {(settings.isLoading || usage.isLoading) && <LoadingList rows={4} />}
       {settings.isError && <ErrorState error={settings.error} onRetry={() => settings.refetch()} />}
       <div className={shared.stack}>
@@ -71,7 +71,7 @@ function UsageCard({ u }: { u: UsageSummary }) {
             {u.held_micros > 0 && <span className={styles.sub}> + 진행 중 예약 {formatMoney(u.held_micros, u.currency)}</span>}
           </p>
         ) : (
-          <p className={styles.warn}>요율표가 비어 있거나 확인일이 없어 금액을 계산하지 않아요. 아래 사용 횟수만 정확해요.</p>
+          <p className={styles.warn}>요율표에 확인일이 없어 금액 대신 사용 횟수만 보여요.</p>
         )}
         {u.limit_micros > 0 && (
           <div className={styles.meterBox}>
@@ -96,10 +96,10 @@ function UsageCard({ u }: { u: UsageSummary }) {
           ))}
         </dl>
         {u.uncertain_count > 0 && (
-          <p className={styles.sub}>결과를 알 수 없는 요청 {u.uncertain_count}건은 과금됐을 수 있어 보수적으로 포함했어요 (게시 기록에서 확인하면 정리돼요).</p>
+          <p className={styles.sub}>결과를 모르는 요청 {u.uncertain_count}건은 과금됐을 수 있어 포함했어요. 게시 기록에서 확인하면 정리돼요.</p>
         )}
         <p className={styles.caption}>
-          앱이 기록한 사용 횟수에 요율표 단가를 곱한 추정치예요. 환율·세금·공급자 할인·무료 크레딧은 반영하지 않아요. 서버·저장소 요금은 따로 확인하세요.
+          사용 횟수 × 요율표 단가로 계산했어요. 환율·세금·할인·무료 크레딧은 빠져 있어요. 실제 청구액은 각 서비스 콘솔에서 볼 수 있어요.
         </p>
       </Card>
     </Section>
@@ -109,7 +109,7 @@ function UsageCard({ u }: { u: UsageSummary }) {
 const PRICE_FIELDS: { key: keyof Pricing; label: string; hint: string }[] = [
   { key: 'x_post_micros', label: 'X 게시물 1개', hint: '본문·답글 각각' },
   { key: 'x_post_with_url_micros', label: 'X 링크 포함 게시물 1개', hint: '링크가 있으면 이 단가로 계산' },
-  { key: 'x_media_micros', label: 'X 미디어 업로드 1건', hint: '모르면 비워 두세요' },
+  { key: 'x_media_micros', label: 'X 미디어 업로드 1건', hint: '모르면 비워 둬도 돼요' },
   { key: 'text_input_per_mtok_micros', label: '글 생성 입력 100만 토큰', hint: '' },
   { key: 'text_output_per_mtok_micros', label: '글 생성 출력 100만 토큰', hint: '' },
   { key: 'image_per_image_micros', label: '이미지 1장', hint: '' },
@@ -151,7 +151,7 @@ function BudgetForm({ settings }: { settings: Settings }) {
 
   return (
     <>
-      <Section title="월 한도" description="한도를 넘지 않게 실행 전에 추정 비용을 먼저 확보해요. 비우면 한도 없이 기록만 해요">
+      <Section title="월 한도" description="실행 전에 추정 비용을 먼저 잡아 두어 한도를 넘지 않아요. 비우면 기록만 해요">
         <Card>
           <TextField
             label={`월 한도 (${cur})`}
@@ -160,7 +160,7 @@ function BudgetForm({ settings }: { settings: Settings }) {
             onChange={(e) => setLimit(e.target.value)}
             placeholder="예: 20"
             error={limitMicros === null ? '0 이상의 숫자를 넣어 주세요' : fields['budget.monthly_limit_micros']}
-            hint="달은 앱의 시간대 기준 1일에 바뀌어요"
+            hint="설정한 시간대 기준으로 매달 1일에 새로 시작해요"
           />
         </Card>
         <ChoiceList
@@ -174,7 +174,7 @@ function BudgetForm({ settings }: { settings: Settings }) {
         />
       </Section>
 
-      <Section title="요율표" description="추정 비용 계산에 쓰는 단가예요. 공급자 요금은 바뀔 수 있으니 확인일과 출처를 함께 적어 두세요">
+      <Section title="요율표" description="추정 비용에 쓰는 단가예요. 요금은 바뀔 수 있어 확인일과 출처를 같이 적어 둬요">
         <Card>
           {!pricing.verified_at && <p className={styles.warn}>확인일이 없으면 금액을 계산하지 않고 "단가 미확인"으로 보여요.</p>}
           <div className={styles.preset}>

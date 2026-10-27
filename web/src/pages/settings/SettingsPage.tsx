@@ -1,4 +1,4 @@
-import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send, Wallet } from 'lucide-react';
+import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, Send, ShieldCheck, SlidersHorizontal, Sparkles, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -75,7 +75,7 @@ export function SettingsPage() {
               <Row icon={<Sparkles size={20} />} label="생성 방식" value={generationSummary(settings.data.policy.generation.timing)} to="/settings/generation" />
               <Row
                 icon={<Scissors size={20} />}
-                label="나누기·글자 수"
+                label="글 나누기"
                 value={`${SPLIT_LABEL[settings.data.policy.thread.split_mode]}${settings.data.policy.thread.long_post_enabled ? ' · 장문' : ''}`}
                 to="/settings/thread"
               />
@@ -84,7 +84,7 @@ export function SettingsPage() {
               <Row
                 icon={<Archive size={20} />}
                 label="게시 후 이미지 보관"
-                description="게시가 끝난 이미지를 저장소에서 지우기까지"
+                description="게시 후 저장소에서 지우기까지"
                 value={`${settings.data.policy.retention.days}일`}
                 onClick={() => {
                   setDays(String(settings.data!.policy.retention.days));
@@ -97,8 +97,8 @@ export function SettingsPage() {
           </Section>
           <Section title="연결">
             <RowGroup>
-              <Row icon={<Link2 size={20} />} label="X·AI·이미지 저장소" description="연결 상태와 필요한 설정" value={xValue} to="/settings/connections" />
-              <Row icon={<Wallet size={20} />} label="사용량·예산" description="이번 달 추정 사용량, 월 한도, 요율표" to="/settings/budget" />
+              <Row icon={<Link2 size={20} />} label="연결 상태" description="X 계정·AI·이미지 저장소" value={xValue} to="/settings/connections" />
+              <Row icon={<Wallet size={20} />} label="사용량·예산" description="추정 사용량·월 한도·요율표" to="/settings/budget" />
             </RowGroup>
           </Section>
           <Section title="화면">
@@ -113,8 +113,8 @@ export function SettingsPage() {
                 label="실행 환경"
                 value={runtime.data ? `${runtime.data.env} · ${runtime.data.integration_mode === 'mock' ? '목업' : '실제 연동'}` : ''}
               />
-              <Row label="실제 게시 허용 (서버 설정)" value={runtime.data?.publishing_enabled ? '허용' : '차단'} />
-              <Row label="버전" value={runtime.data?.version ?? ''} />
+              <Row icon={<ShieldCheck size={20} />} label="실제 게시" description="서버 설정으로 켜고 꺼요" value={runtime.data?.publishing_enabled ? '허용' : '꺼짐'} />
+              <Row icon={<Tag size={20} />} label="버전" value={runtime.data?.version ?? ''} />
             </RowGroup>
           </Section>
           <RowGroup>

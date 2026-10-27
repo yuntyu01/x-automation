@@ -65,7 +65,7 @@ go run ./cmd/admin gen-key            # TOKEN_ENCRYPTION_KEY (한 번 만들고 
 ### 6. 배포 확인
 - `https://{앱}-api.kodeploy.com/healthz` → `{"status":"ok"}`, `/readyz` → `{"status":"ready"}`
 - 로그인 화면이 HTTPS로 뜨고 로그인되는지, 화면 상단에 "목업 모드" 띠가 **없는지**(운영은 live) 확인
-- 설정 → 정보에서 실행 환경 `production · 실제 연동`, 실제 게시 허용 `차단`
+- 설정 → 정보에서 실행 환경 `production · 실제 연동`, 실제 게시 `꺼짐`
 
 ### 7. X 앱·AI 연결
 - X 개발자 콘솔: 앱 종류 **Web App(기밀 클라이언트)**, OAuth 2.0 켬, 콜백 `https://{앱}-api.kodeploy.com/api/x/oauth/callback`, 권한 `tweet.read tweet.write users.read media.write offline.access`

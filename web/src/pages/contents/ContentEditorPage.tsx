@@ -330,7 +330,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
             {draft.split_mode === 'manual' ? (
               <ManualParts raw={draft.raw_text} limit={limit} onChange={(raw) => update({ raw_text: raw })} />
             ) : (
-              <TextArea label="원문" className={styles.raw} rows={12} value={draft.raw_text} onChange={(e) => update({ raw_text: e.target.value })} hint="원문은 그대로 보관하고, 게시용으로만 공백·줄바꿈을 정리해 나눠요." />
+              <TextArea label="원문" hideLabel className={styles.raw} rows={12} value={draft.raw_text} onChange={(e) => update({ raw_text: e.target.value })} hint="원문은 그대로 두고, 게시할 때만 공백·줄바꿈을 정리해 나눠요." />
             )}
           </Card>
 
@@ -476,7 +476,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
         open={sheet === 'delete'}
         onClose={() => setSheet(null)}
         title="이 글을 삭제할까요?"
-        description="앱의 기록만 지워요. X 게시물은 삭제되지 않아요. 예약·게시 기록이 있으면 삭제할 수 없어요."
+        description="여기 기록만 지워요. X 게시물은 그대로예요. 예약·게시 기록이 있으면 삭제할 수 없어요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setSheet(null)}>

@@ -203,7 +203,7 @@ function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChange
       <div className={styles.stack}>
         {inFlight || needsCheck ? (
           <p className={styles.muted}>
-            {inFlight ? '지금 게시 중이에요.' : '지난 게시에 확인이 필요한 부분이 있어요.'} <Link className={styles.link} to="/publish">게시 화면</Link>에서 진행·결과를 확인하세요.
+            {inFlight ? '지금 게시 중이에요.' : '지난 게시에 확인이 필요한 부분이 있어요.'} <Link className={styles.link} to="/publish">게시 화면</Link>에서 진행과 결과를 볼 수 있어요.
           </p>
         ) : content.reservation_at ? (
           <p className={styles.muted}>

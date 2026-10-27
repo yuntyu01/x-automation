@@ -43,7 +43,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = resolved;
     const meta = document.querySelector('meta[name="theme-color"]:not([media])') ?? document.createElement('meta');
     meta.setAttribute('name', 'theme-color');
-    meta.setAttribute('content', resolved === 'dark' ? '#121214' : '#F5F6F8');
+    meta.setAttribute('content', resolved === 'dark' ? '#17171C' : '#F2F4F6');
     if (!meta.parentElement) document.head.appendChild(meta);
   }, [resolved]);
 

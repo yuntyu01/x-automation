@@ -28,13 +28,13 @@ export function NewContentSheet({ open, onClose, onCreated, generateTab, initial
   const [tab, setTab] = useState<Tab>(initialTab === 'generate' && !generateTab ? 'write' : initialTab);
   const tabs: { value: Tab; label: string }[] = [
     { value: 'write', label: '직접 쓰기' },
-    { value: 'paste', label: '여러 개 붙여넣기' },
+    { value: 'paste', label: '여러 개' },
   ];
   if (generateTab) tabs.push({ value: 'generate', label: 'AI로 생성' });
   return (
     <Sheet open={open} onClose={onClose} title="새 글" size="lg">
       <div className={styles.tabs}>
-        <Segmented label="등록 방식" value={tab} onChange={setTab} options={tabs} />
+        <Segmented variant="segment" label="등록 방식" value={tab} onChange={setTab} options={tabs} />
       </div>
       {tab === 'write' && <WriteForm onCreated={onCreated} />}
       {tab === 'paste' && <PasteForm onDone={onClose} />}
@@ -71,7 +71,7 @@ function WriteForm({ onCreated }: { onCreated: (id: string) => void }) {
 
   async function save(approve: boolean) {
     if (!raw.trim()) {
-      setFields({ raw_text: '내용을 입력하세요' });
+      setFields({ raw_text: '내용을 입력해 주세요' });
       return;
     }
     setBusy(true);
@@ -109,7 +109,7 @@ function WriteForm({ onCreated }: { onCreated: (id: string) => void }) {
         rows={8}
         value={raw}
         onChange={(e) => setRaw(e.target.value)}
-        placeholder="소설·썰·명언 등 올릴 글 전체를 붙여넣으세요. 앱이 본문과 답글로 나눠요."
+        placeholder="올릴 글 전체를 붙여넣어 주세요. 본문과 답글로 알아서 나눠요."
         hint={`전체 ${total.weighted}자 (X 기준, 한글·이모지는 2자)`}
         error={fields.raw_text}
       />
@@ -185,7 +185,7 @@ function PasteForm({ onDone }: { onDone: () => void }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={'첫 번째 글\n===\n두 번째 글\n===\n세 번째 글'}
-        hint="글과 글 사이에 === 만 있는 줄을 넣어 구분해요. 각 글은 설정의 기본 방식으로 나눠져요."
+        hint="글 사이에 === 만 있는 줄을 넣으면 따로 등록돼요. 나누기는 기본 방식을 따라요."
       />
       <TextField label="카테고리 (선택)" value={category} onChange={(e) => setCategory(e.target.value)} />
       <div className={styles.summary} aria-live="polite">

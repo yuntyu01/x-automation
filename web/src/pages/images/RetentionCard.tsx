@@ -78,7 +78,7 @@ export function RetentionCard() {
         open={confirm}
         onClose={() => setConfirm(false)}
         title="저장소에만 남은 파일을 지울까요?"
-        description="업로드 중 끊겨 앱에 기록되지 않은 파일이에요. 앱 전용 경로 안에서 하루 넘게 연결되지 않은 파일만 지우고, 지우기 직전에 다시 확인해요."
+        description="업로드 중 끊겨 기록되지 않은 파일이에요. 이 서비스 전용 경로에서 하루 넘게 쓰이지 않은 파일만, 지우기 직전에 한 번 더 확인하고 지워요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirm(false)}>

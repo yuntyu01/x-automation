@@ -7,7 +7,7 @@ import type { ReservationItem, ScheduleDay } from '../../api/types';
 import { Button } from '../../components/ui/Button';
 import { Row, RowGroup } from '../../components/ui/Row';
 import { Sheet } from '../../components/ui/Sheet';
-import { TextField } from '../../components/ui/TextField';
+import { TimeField } from '../../components/ui/TimeField';
 import { useToast } from '../../components/ui/Toast';
 import { dayLabel, formatTime } from '../../lib/format';
 import { ContentPicker } from './ContentPicker';
@@ -138,7 +138,7 @@ export function ReservationSheet({ item, day, onClose }: { item: ReservationItem
           setWarnings(null);
         }}
         title="시간 지정·고정"
-        description={`${dayLabel(item.local_date)} 안에서 시각을 정해요. 다른 날로 옮기려면 '내일로 이동'이나 새 고정 예약을 쓰세요.`}
+        description={`${dayLabel(item.local_date)} 안에서 시각을 정해요. 다른 날로 옮기려면 '내일로 이동'이나 새 고정 예약을 써 주세요.`}
         footer={
           warnings ? (
             <>
@@ -156,7 +156,7 @@ export function ReservationSheet({ item, day, onClose }: { item: ReservationItem
           )
         }
       >
-        <TextField label="시각" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        <TimeField label="시각" value={time} onChange={setTime} />
         {warnings && (
           <div className={styles.warnBox} role="alert">
             <strong>규칙과 다른 점이 있어요</strong>

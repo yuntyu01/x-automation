@@ -13,10 +13,11 @@ interface Props<T extends string> {
   onChange: (v: T) => void;
   label: string;
   scroll?: boolean;
+  variant?: 'chip' | 'segment'; // segment: 회색 바탕 위 흰 칸이 움직이는 TDS 세그먼트 컨트롤 (2~4개 선택지)
 }
 
-// 탭형 선택. 화살표 키로 이동한다
-export function Segmented<T extends string>({ options, value, onChange, label, scroll }: Props<T>) {
+// 탭형 선택(칩 또는 세그먼트). 화살표 키로 이동한다
+export function Segmented<T extends string>({ options, value, onChange, label, scroll, variant = 'chip' }: Props<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   function onKey(e: KeyboardEvent, i: number) {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
@@ -26,7 +27,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
     refs.current[n]?.focus();
   }
   return (
-    <div className={[styles.wrap, scroll ? styles.scroll : ''].join(' ')} role="tablist" aria-label={label}>
+    <div className={[styles.wrap, scroll ? styles.scroll : '', variant === 'segment' ? styles.segment : ''].join(' ')} role="tablist" aria-label={label}>
       {options.map((o, i) => (
         <button
           key={o.value}

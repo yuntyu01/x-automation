@@ -195,7 +195,7 @@ function RunCard({ run }: { run: PublishRun }) {
         open={dialog?.kind === 'not_posted'}
         onClose={() => setDialog(null)}
         title="X에 정말 없나요?"
-        description="X 계정의 게시물·답글 목록에서 확인했을 때만 진행하세요. 실제로 올라가 있었다면 같은 글이 두 번 올라가요."
+        description="X 계정의 게시물·답글 목록에서 확인한 뒤에 골라 주세요. 실제로 올라가 있었다면 같은 글이 두 번 올라가요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setDialog(null)}>
@@ -217,7 +217,7 @@ function RunCard({ run }: { run: PublishRun }) {
         open={dialog?.kind === 'retry_unknown'}
         onClose={() => setDialog(null)}
         title="확인 없이 다시 보낼까요?"
-        description="결과를 모르는 부분을 그대로 다시 보내요. 이미 올라가 있었다면 X에 같은 글이 두 번 올라가요. 가능하면 먼저 X에서 확인하세요."
+        description="결과를 모르는 부분을 그대로 다시 보내요. 이미 올라가 있었다면 X에 같은 글이 두 번 올라가요. 가능하면 X에서 먼저 확인해 보세요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setDialog(null)}>

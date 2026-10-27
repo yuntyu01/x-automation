@@ -20,7 +20,7 @@ func TestHomeDashboardAPI(t *testing.T) {
 	for _, b := range auto["publish_blockers"].([]any) {
 		joined += b.(string) + "|"
 	}
-	if !strings.Contains(joined, "자동 운영") || !strings.Contains(joined, "X 계정") || strings.Contains(joined, "PUBLISHING_ENABLED") {
+	if !strings.Contains(joined, "자동 운영") || !strings.Contains(joined, "X 계정") || strings.Contains(joined, "실제 게시가 꺼져") {
 		t.Fatalf("blockers (mock ignores PUBLISHING_ENABLED) = %s", joined)
 	}
 	today := r.Body["today"].(map[string]any)

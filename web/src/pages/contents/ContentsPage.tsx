@@ -286,7 +286,7 @@ export function ContentsPage() {
         open={sheet === 'delete'}
         onClose={() => setSheet(null)}
         title={`${selected.size}개를 삭제할까요?`}
-        description="앱의 기록만 지워요. X에 올라간 게시물은 삭제되지 않아요. 예약했거나 게시한 기록이 있는 글은 삭제되지 않고 건너뛰어요 (보관을 쓰세요)."
+        description="여기 기록만 지워요. X에 올라간 게시물은 그대로예요. 예약·게시 기록이 있는 글은 건너뛰니 보관을 써 주세요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setSheet(null)}>

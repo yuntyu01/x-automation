@@ -41,7 +41,7 @@ export function PostNowSheet({ open, onClose, contentId, parts }: { open: boolea
       onClose={close}
       dismissible={!post.isPending}
       title={warnings ? '규칙과 다른 게시예요' : '지금 X에 게시할까요?'}
-      description={`본문${parts > 1 ? ` + 답글 ${parts - 1}개` : ''}를 순서대로 올려요. 올라간 게시물은 앱에서 지울 수 없어요.`}
+      description={`본문${parts > 1 ? ` + 답글 ${parts - 1}개` : ''}를 순서대로 올려요. 올라간 게시물은 여기서 지울 수 없어요.`}
       footer={
         <>
           <Button variant="secondary" onClick={close} disabled={post.isPending}>

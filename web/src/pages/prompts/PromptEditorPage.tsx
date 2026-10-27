@@ -140,12 +140,12 @@ function PromptForm({ prompt }: { prompt?: Prompt }) {
     <>
       <PageHeader
         title={prompt ? prompt.name : '새 프롬프트'}
-        subtitle={prompt ? `현재 v${prompt.current_version} · 사용 ${prompt.usage_count}번` : '쓰던 프롬프트를 그대로 붙여넣으세요'}
+        subtitle={prompt ? `현재 v${prompt.current_version} · 사용 ${prompt.usage_count}번` : '쓰던 프롬프트를 그대로 붙여넣으면 돼요'}
         back={<BackButton to="/prompts" />}
       />
       {prompt?.is_example && (
         <Card className={styles.example}>
-          <Badge tone="warning">예시</Badge> 앱이 넣은 예시 프롬프트예요. 실제로 쓰는 프롬프트로 바꿔 쓰세요.
+          <Badge tone="warning">예시</Badge> 기본으로 넣어 둔 예시예요. 실제로 쓰는 프롬프트로 바꿔 쓸 수 있어요.
         </Card>
       )}
       <div className={styles.grid}>

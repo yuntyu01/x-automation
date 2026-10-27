@@ -13,6 +13,7 @@ import { Sheet } from '../../components/ui/Sheet';
 import { ErrorState, LoadingList } from '../../components/ui/States';
 import { Switch } from '../../components/ui/Switch';
 import { TextField } from '../../components/ui/TextField';
+import { TimeField } from '../../components/ui/TimeField';
 import { useToast } from '../../components/ui/Toast';
 import { addDays, dayLabel, formatTime, localDate, minutesToHM } from '../../lib/format';
 import { BackButton } from '../settings/ConnectionsPage';
@@ -98,12 +99,11 @@ function RulesForm({ data }: { data: ScheduleSettings }) {
                 </IconButton>
               </div>
               <div className={styles.times}>
-                <TextField label="시작" type="time" value={minutesToHM(win.start_minute)} onChange={(e) => w(i, { start_minute: toMin(e.target.value) })} error={fields[`windows.${i}.start_minute`]} />
-                <TextField
+                <TimeField label="시작" value={minutesToHM(win.start_minute)} onChange={(v) => w(i, { start_minute: toMin(v) })} error={fields[`windows.${i}.start_minute`]} />
+                <TimeField
                   label="끝"
-                  type="time"
                   value={minutesToHM(win.end_minute)}
-                  onChange={(e) => w(i, { end_minute: toMin(e.target.value) || (win.start_minute > 0 ? 0 : 1440) })}
+                  onChange={(v) => w(i, { end_minute: toMin(v) || (win.start_minute > 0 ? 0 : 1440) })}
                   error={fields[`windows.${i}.end_minute`]}
                   hint={overnight ? `다음 날 ${minutesToHM(win.end_minute)}까지` : undefined}
                 />
@@ -243,7 +243,7 @@ function ReportView({ report, scope }: { report: SchedulePlanReport; scope: Rule
         </tbody>
       </table>
       {report.days.some((d) => d.shortfall > 0) && (
-        <p className={styles.warnBox}>하루 목표를 다 넣을 수 없는 날이 있어요. 구간을 늘리거나, 기본 간격·추가 지연을 줄이거나, 하루 묶음 수를 줄이세요.</p>
+        <p className={styles.warnBox}>하루 목표를 다 넣을 수 없는 날이 있어요. 구간을 늘리거나 간격·추가 지연·하루 묶음 수를 줄여 보세요.</p>
       )}
       {report.slots.length > 0 && (
         <>

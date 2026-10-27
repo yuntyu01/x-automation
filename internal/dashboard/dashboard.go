@@ -204,7 +204,7 @@ func (s *Service) automation(ctx context.Context, st settings.Settings, conn con
 	a := Automation{Enabled: st.AutomationEnabled, ChangedAt: st.AutomationChangedAt, GenerationPaused: st.GenerationPaused,
 		PublishingPaused: st.PublishingPaused, Mock: !s.Live, PublishingEnabled: s.PublishingEnabled, PublishBlockers: []string{}, GenerationBlockers: []string{}}
 	if s.Live && !s.PublishingEnabled {
-		a.PublishBlockers = append(a.PublishBlockers, "서버의 실게시 허용(PUBLISHING_ENABLED)이 꺼져 있어요")
+		a.PublishBlockers = append(a.PublishBlockers, "실제 게시가 꺼져 있어요 (서버 설정)")
 	}
 	if !st.AutomationEnabled {
 		a.PublishBlockers = append(a.PublishBlockers, "자동 운영을 시작하지 않았어요")

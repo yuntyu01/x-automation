@@ -20,7 +20,7 @@ export function ThreadSettingsPage() {
   const settings = useSettings();
   return (
     <>
-      <PageHeader title="나누기·글자 수" subtitle="새 글의 기본 나누기 방식과 한 게시물 한도" back={<BackButton to="/settings" />} />
+      <PageHeader title="글 나누기" subtitle="새 글의 기본 나누기 방식과 한 게시물 한도" back={<BackButton to="/settings" />} />
       {settings.isLoading && <LoadingList rows={3} />}
       {settings.isError && <ErrorState error={settings.error} onRetry={() => settings.refetch()} />}
       {settings.data && <ThreadForm key={settings.data.version} settings={settings.data} />}
@@ -118,7 +118,7 @@ function ThreadForm({ settings }: { settings: Settings }) {
           </p>
         )}
         <p className={styles.muted}>
-          장문 게시는 X 계정 등급과 API 권한이 모두 허용할 때만 돼요. 웹에서 길게 써진다고 API로도 된다는 보장은 없어요. 확인되지 않았으면 끄고 쓰세요.
+          장문 게시는 X 계정 등급과 API 권한이 모두 허용할 때만 돼요. 웹에서 길게 써진다고 API로도 된다는 보장은 없어요. 확인하기 전에는 꺼 두는 게 안전해요.
         </p>
       </Section>
 
@@ -150,7 +150,7 @@ function ThreadForm({ settings }: { settings: Settings }) {
         open={confirmLong}
         onClose={() => setConfirmLong(false)}
         title="장문 게시를 켤까요?"
-        description="X 계정과 API에서 장문 게시가 되는 것을 확인했을 때만 켜세요. 확인되지 않은 채 켜면 게시가 거부되고, 그 글은 '문제 발생'으로 남아요."
+        description="X 계정과 API에서 장문 게시가 되는 것을 확인했을 때만 켜 주세요. 확인되지 않은 채 켜면 게시가 거부되고, 그 글은 '문제 발생'으로 남아요."
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmLong(false)}>

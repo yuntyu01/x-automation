@@ -18,6 +18,11 @@
   min-height: 52px;
   transition: border-color var(--dur) var(--ease);
 }
+/* 검색 칸은 회색 배경 위·흰 시트 안 어디에 놓여도 보이도록 흰 바탕 + 테두리 */
+.box:has(> input[type='search']) {
+  background: var(--surface);
+  border-color: var(--border);
+}
 .box:focus-within {
   border-color: var(--primary);
   background: var(--surface);

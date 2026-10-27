@@ -25,8 +25,8 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     const f: Record<string, string> = {};
-    if (!username.trim()) f.username = '아이디를 입력하세요';
-    if (!password) f.password = '비밀번호를 입력하세요';
+    if (!username.trim()) f.username = '아이디를 입력해 주세요';
+    if (!password) f.password = '비밀번호를 입력해 주세요';
     setFields(f);
     if (Object.keys(f).length) return;
     setBusy(true);
@@ -50,7 +50,7 @@ export function LoginPage() {
           <h1 id="login-title" className={styles.title}>
             X 자동 게시
           </h1>
-          <p className={styles.sub}>관리자 계정으로 로그인하세요</p>
+          <p className={styles.sub}>관리자 계정으로 로그인해 주세요</p>
         </div>
         <TextField
           label="아이디"

@@ -1,11 +1,14 @@
+/* TDS 버튼 체계: 채움(fill)·옅은 색(weak) 두 가지 모양 × 크기. 누르면 살짝 줄어든다
+   크기는 TDS와 같게 sm 40px·15px / md 48px·17px(large) / lg 56px·17px 굵게(xlarge) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  gap: 6px;
+  border: 0;
+  border-radius: 14px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
   transition:
     background-color var(--dur) var(--ease),
@@ -14,16 +17,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 .btn:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 .lg {
   min-height: 56px;
   padding: 0 var(--space-6);
   font-size: var(--fs-h3);
+  font-weight: 700;
   border-radius: var(--radius-lg);
 }
 .md {
@@ -33,13 +37,14 @@
 }
 .sm {
   min-height: 40px;
-  padding: 0 var(--space-4);
+  padding: 0 14px;
   font-size: var(--fs-small);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
 }
 .block {
   width: 100%;
 }
+/* 채움: 화면의 주 행동 하나 */
 .primary {
   background: var(--primary);
   color: var(--on-primary);
@@ -47,16 +52,21 @@
 .primary:hover:not(:disabled) {
   background: var(--primary-pressed);
 }
+/* 회색 옅은 버튼: 취소·이전 같은 보조 행동 */
 .secondary {
   background: var(--surface-2);
-  color: var(--text);
+  color: var(--text-2);
 }
 .secondary:hover:not(:disabled) {
   background: var(--surface-pressed);
 }
+/* 파랑 옅은 버튼: 주 행동 옆의 두 번째 행동 */
 .soft {
   background: var(--primary-soft);
   color: var(--primary-text);
+}
+.soft:hover:not(:disabled) {
+  filter: brightness(0.97);
 }
 .ghost {
   background: transparent;
@@ -68,4 +78,7 @@
 .danger {
   background: var(--danger-soft);
   color: var(--danger);
+}
+.danger:hover:not(:disabled) {
+  filter: brightness(0.97);
 }

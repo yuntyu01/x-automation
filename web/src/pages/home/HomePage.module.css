@@ -1,38 +1,49 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
+.stack > section {
+  margin-top: var(--space-3);
+}
+.muted {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+
+/* 첫 설정 안내: 화면에서 가장 먼저 할 일 하나 */
 .setup {
   background: var(--primary-soft);
 }
-.muted {
+.setupTitle {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.setupBody {
   color: var(--text-2);
   font-size: var(--fs-small);
+  margin-top: 4px;
 }
-.cta {
-  display: inline-flex;
+.setupCta {
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   margin-top: var(--space-4);
-  min-height: 44px;
-  font-weight: 700;
+  min-height: var(--touch);
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
   text-decoration: none;
+  transition: transform var(--dur) var(--ease);
 }
-.inline {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+.setupCta:active {
+  transform: scale(0.97);
 }
-.reasons {
-  margin: 0;
-  padding-left: 1.2em;
-  color: var(--text-2);
-  font-size: var(--fs-small);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+
+/* 다음 게시: 큰 시각 하나로 요점을 먼저 */
 .eyebrow {
   color: var(--text-2);
   font-size: var(--fs-small);
@@ -44,25 +55,27 @@
   text-decoration: none;
 }
 .big {
-  font-size: 40px;
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 4px 0 var(--space-2);
+  font-size: var(--fs-display);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 2px 0 var(--space-2);
   font-variant-numeric: tabular-nums;
 }
 .bigDay {
   font-size: var(--fs-h3);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-2);
+  letter-spacing: -0.01em;
 }
 .bigEmpty {
   font-size: var(--fs-h2);
   font-weight: 700;
-  margin: 4px 0 var(--space-2);
+  letter-spacing: -0.02em;
+  margin: 4px 0;
 }
 .nextTitle {
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -75,7 +88,7 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   color: var(--text-3);
   font-size: var(--fs-caption);
 }
@@ -84,75 +97,155 @@
   gap: 6px;
   align-items: flex-start;
   margin-top: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
   color: var(--warning);
   font-size: var(--fs-small);
 }
 .blocked svg {
   flex: none;
-  margin-top: 2px;
+  margin-top: 3px;
+}
+
+/* 오늘: 숫자를 크게, 이름은 작게 */
+.cardHead {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  margin-bottom: var(--space-4);
 }
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4) var(--space-3);
+  gap: var(--space-5) var(--space-3);
   margin: 0;
 }
 .stats dt {
   color: var(--text-3);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-small);
 }
 .stats dd {
   margin: 2px 0 0;
-  font-size: var(--fs-body);
+  font-size: var(--fs-small);
+  color: var(--text-2);
 }
 .stats dd strong {
-  font-size: var(--fs-h2);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
-.stats dd a {
+.statLink {
   color: inherit;
+  text-decoration: none;
+}
+.statLink strong {
+  color: var(--primary-text);
 }
 .sub {
   color: var(--text-3);
   font-size: var(--fs-caption);
 }
-.crit {
-  color: var(--danger);
+
+/* 자동 운영: 상태 한 줄 + 행동 하나 */
+.autoHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--space-4);
 }
-.warnIcon {
-  color: var(--warning);
+.autoIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text-3);
+  flex: none;
 }
-.infoIcon {
-  color: var(--primary-text);
+.autoOn {
+  background: var(--success-soft);
+  color: var(--success);
 }
-.mock {
+.autoWarn {
   background: var(--warning-soft);
   color: var(--warning);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--fs-small);
-  margin-bottom: var(--space-3);
+}
+.autoText {
+  min-width: 0;
+}
+.autoTitle {
+  font-size: var(--fs-h3);
+  font-weight: 700;
 }
 .reasonBox {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 .reasonTitle {
   font-size: var(--fs-small);
   font-weight: 700;
   margin-bottom: 4px;
 }
-.automationActions {
-  margin: var(--space-3) 0 var(--space-4);
+.reasons {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
+
+/* 바로 하기 타일 */
 .quick {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
+.tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--dur) var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.tile:active {
+  transform: scale(0.97);
+}
+.tileIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  flex: none;
+}
+.tileBlue {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+
 .more {
   font-size: var(--fs-small);
   font-weight: 600;
-  color: var(--primary-text);
+  color: var(--text-2);
+  text-decoration: none;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -160,14 +253,6 @@
 .slotLabel {
   overflow-wrap: anywhere;
 }
-.usage {
-  margin-bottom: 4px;
-}
-.usage strong {
-  font-size: var(--fs-h2);
-}
-.caption {
-  margin-top: var(--space-2);
-  color: var(--text-3);
-  font-size: var(--fs-caption);
+.slotLabel strong {
+  font-variant-numeric: tabular-nums;
 }

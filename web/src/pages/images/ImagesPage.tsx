@@ -36,7 +36,7 @@ export function ImagesPage() {
     <>
       <PageHeader title="이미지 보관함" subtitle="올리거나 생성한 이미지를 다시 쓸 수 있어요" back={<BackButton />} />
       {r2 && !r2.configured && (
-        <Card className={styles.warn}>이미지 저장소(R2) 설정이 없어 올릴 수 없어요. 서버 환경변수를 설정하세요.</Card>
+        <Card className={styles.warn}>이미지 저장소가 설정되지 않아 올릴 수 없어요. 설정 → 연결에서 방법을 볼 수 있어요.</Card>
       )}
       {r2?.configured && (
         <p className={styles.notice}>

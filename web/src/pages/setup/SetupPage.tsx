@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { errorMessage, post } from '../../api/client';
@@ -6,6 +6,7 @@ import { keys, useIntegrations, useSaveSettings, useSettings } from '../../api/q
 import { MODE_LABEL, type OperationMode, type Settings } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
 import { Badge } from '../../components/ui/Badge';
+import { BottomCTA } from '../../components/ui/BottomCTA';
 import { Button } from '../../components/ui/Button';
 import { ChoiceList } from '../../components/ui/ChoiceList';
 import { ErrorState, LoadingList } from '../../components/ui/States';
@@ -68,7 +69,7 @@ export function SetupPage() {
       {settings.data && integrations.data && (
         <div className={styles.body}>
           {step === 0 && (
-            <StepCard title="연결 상태를 확인해요" desc="연결이 없어도 설정은 끝낼 수 있어요. 실제 게시 전에는 X 연결이 필요해요.">
+            <StepCard title="연결 상태를 확인해요" desc="지금 연결하지 않아도 다음으로 넘어갈 수 있어요. 게시하려면 X 연결이 있어야 해요.">
               <ul className={styles.checks}>
                 <CheckItem label="X 계정" state={xState(integrations.data)} />
                 <CheckItem
@@ -82,7 +83,7 @@ export function SetupPage() {
               </ul>
               {integrations.data.x.connection.status !== 'connected' && <XConnectActions status={integrations.data} />}
               <Link to="/settings/connections" className={styles.link}>
-                연결 자세히 보기
+                연결 자세히 보기 <ChevronRight size={18} aria-hidden />
               </Link>
             </StepCard>
           )}
@@ -94,23 +95,26 @@ export function SetupPage() {
           )}
           {step === 3 && <SetupScheduleStep />}
           {step === 4 && (
-            <StepCard title="이대로 시작할까요?" desc="설정을 마쳐도 자동 운영은 꺼진 상태로 남아요. 홈에서 직접 켜야 게시가 시작돼요.">
+            <StepCard title="이대로 마칠까요?" desc="마쳐도 바로 게시하지 않아요. 홈에서 자동 운영을 시작하면 그때부터 게시해요.">
               <dl className={styles.summary}>
                 <dt>운영 모드</dt>
                 <dd>{MODE_LABEL[settings.data.operation_mode]}</dd>
                 <dt>X 계정</dt>
                 <dd>{xState(integrations.data).label}</dd>
-                <dt>실제 게시 허용 (서버)</dt>
-                <dd>{integrations.data.publishing_enabled ? '켜짐' : '꺼짐'}</dd>
+                <dt>실제 게시 (서버 설정)</dt>
+                <dd>{integrations.data.publishing_enabled ? '허용' : '꺼짐'}</dd>
               </dl>
             </StepCard>
           )}
-          <div className={styles.footer}>
-            {step > 0 && (
-              <Button variant="secondary" size="lg" onClick={() => go(step - 1)}>
-                이전
-              </Button>
-            )}
+          <BottomCTA
+            secondary={
+              step > 0 && (
+                <Button variant="secondary" size="lg" block onClick={() => go(step - 1)}>
+                  이전
+                </Button>
+              )
+            }
+          >
             {step < STEPS.length - 1 ? (
               <Button size="lg" onClick={() => go(step + 1)}>
                 다음
@@ -120,7 +124,7 @@ export function SetupPage() {
                 설정 완료
               </Button>
             )}
-          </div>
+          </BottomCTA>
         </div>
       )}
     </>

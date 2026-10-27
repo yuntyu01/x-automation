@@ -134,7 +134,7 @@ func TestHomeReflectsDatabaseState(t *testing.T) {
 		t.Fatal("자동 운영 전에는 미연결을 조치로 띄우지 않는다")
 	}
 	joined := strings.Join(h.Automation.PublishBlockers, "|")
-	for _, want := range []string{"PUBLISHING_ENABLED", "자동 운영", "X 계정"} {
+	for _, want := range []string{"실제 게시가 꺼져", "자동 운영", "X 계정"} {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("publish blockers missing %q: %v", want, h.Automation.PublishBlockers)
 		}

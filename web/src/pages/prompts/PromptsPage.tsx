@@ -27,7 +27,7 @@ export function PromptsPage() {
     try {
       const p = await post<Prompt>('/api/prompts/example');
       await qc.invalidateQueries({ queryKey: ['prompts'] });
-      toast.show('예시 프롬프트를 추가했어요. 쓰던 프롬프트로 바꿔 쓰세요', 'success');
+      toast.show('예시 프롬프트를 추가했어요. 쓰던 내용으로 바꿔 쓸 수 있어요', 'success');
       nav(`/prompts/${p.id}`);
     } catch (e) {
       toast.show(errorMessage(e), 'error');
@@ -61,7 +61,7 @@ export function PromptsPage() {
       {q.isError && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       {q.data && q.data.items.length === 0 && (
         <Card>
-          <EmptyState icon={<ClipboardPaste size={28} aria-hidden />} title="프롬프트 입력이 필요해요" body="AI로 글을 만들려면 쓰던 프롬프트를 등록하세요. 직접 쓴 글만 올린다면 없어도 돼요.">
+          <EmptyState icon={<ClipboardPaste size={28} aria-hidden />} title="프롬프트 입력이 필요해요" body="AI로 글을 만들려면 쓰던 프롬프트를 등록해 주세요. 직접 쓴 글만 올린다면 없어도 돼요.">
             <Button icon={<ClipboardPaste size={18} />} onClick={() => nav('/prompts/new')}>
               프롬프트 붙여넣기
             </Button>

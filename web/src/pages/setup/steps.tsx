@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ApiError, errorMessage, post } from '../../api/client';
@@ -64,7 +65,7 @@ export function SetupPromptStep({ settings }: { settings: Settings }) {
   }
 
   return (
-    <StepCard title="쓰던 프롬프트를 등록해요" desc="소설·썰·명언 등 기존 프롬프트를 그대로 붙여넣으면 돼요. 직접 쓴 글만 올릴 거라면 건너뛰어도 돼요.">
+    <StepCard title="쓰던 프롬프트를 등록해요" desc="기존 프롬프트를 그대로 붙여넣으면 돼요. 직접 쓴 글만 올린다면 건너뛰어도 괜찮아요.">
       {active.length > 0 && (
         <Select
           label="자동 생성에 쓸 기본 프롬프트"
@@ -80,14 +81,14 @@ export function SetupPromptStep({ settings }: { settings: Settings }) {
         value={body}
         onChange={(e) => setBody(e.target.value)}
         error={fields.body}
-        hint="{{주제}}처럼 변수를 쓰면 프롬프트 화면에서 기본값을 정할 수 있어요"
+        hint="{{주제}} 같은 변수의 기본값은 프롬프트 화면에서 정해요"
       />
       <div className={styles.inlineActions}>
-        <Button variant="secondary" busy={busy} disabled={!name.trim() || !body.trim()} onClick={add}>
+        <Button variant="soft" busy={busy} disabled={!name.trim() || !body.trim()} onClick={add}>
           프롬프트 등록
         </Button>
         <Link to="/prompts" className={styles.link}>
-          프롬프트 자세히 관리
+          프롬프트 관리 <ChevronRight size={18} aria-hidden />
         </Link>
       </div>
     </StepCard>
@@ -99,7 +100,7 @@ export function SetupScheduleStep() {
   const s = useScheduleSettings();
   const r = s.data?.rules;
   return (
-    <StepCard title="언제 올릴지 정해요" desc="새벽과 낮처럼 여러 구간을 정할 수 있어요. 아침·저녁은 직접 운영하는 시간으로 비워 둘 수 있어요.">
+    <StepCard title="언제 올릴지 정해요" desc="새벽·낮처럼 여러 구간을 둘 수 있어요. 직접 올리는 시간은 비워 두면 돼요.">
       {s.data && r && (
         <dl className={styles.summary}>
           <dt>하루 묶음 수</dt>
@@ -121,7 +122,7 @@ export function SetupScheduleStep() {
         </dl>
       )}
       <Link to="/schedule/rules" className={styles.link}>
-        시간표 바꾸기
+        시간표 바꾸기 <ChevronRight size={18} aria-hidden />
       </Link>
     </StepCard>
   );

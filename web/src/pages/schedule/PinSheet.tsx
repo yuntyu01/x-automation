@@ -4,6 +4,7 @@ import { confirmWarnings, useScheduleAction } from '../../api/schedule';
 import { Button } from '../../components/ui/Button';
 import { Sheet } from '../../components/ui/Sheet';
 import { TextField } from '../../components/ui/TextField';
+import { TimeField } from '../../components/ui/TimeField';
 import { useToast } from '../../components/ui/Toast';
 import { ContentPicker } from './ContentPicker';
 import styles from './SchedulePage.module.css';
@@ -59,7 +60,7 @@ export function PinSheet({ open, onClose, defaultDate }: { open: boolean; onClos
       >
         <div className={styles.form}>
           <TextField label="날짜" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <TextField label="시각" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <TimeField label="시각" value={time} onChange={setTime} />
           <Button variant="secondary" onClick={() => setPicker(true)}>
             {content ? '글을 골랐어요 · 바꾸기' : '글 고르기'}
           </Button>

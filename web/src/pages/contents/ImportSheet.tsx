@@ -71,7 +71,7 @@ export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => v
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > 2 * 1024 * 1024) {
-      setError('파일이 2MB를 넘어요. 나눠서 가져오세요');
+      setError('파일이 2MB를 넘어요. 나눠서 가져와 주세요');
       return;
     }
     setFormat(f.name.toLowerCase().endsWith('.json') ? 'json' : 'csv');
@@ -207,14 +207,14 @@ export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => v
       {step === 'map' && parsed && mapping && (
         <div className={styles.stack}>
           <p className={styles.muted}>
-            {parsed.row_count}행을 찾았어요. 앱의 항목에 파일의 열을 연결하세요.
+            {parsed.row_count}행을 찾았어요. 항목마다 쓸 열을 골라 주세요.
           </p>
           {(Object.keys(FIELD_LABEL) as (keyof typeof FIELD_LABEL)[]).map((k) => (
             <Select key={k} label={FIELD_LABEL[k]} value={mapping[k]} onChange={(e) => setMapping({ ...mapping, [k]: e.target.value })} options={headerOptions} />
           ))}
           <fieldset className={styles.parts}>
             <legend>직접 나눈 부분 열 (선택)</legend>
-            <p className={styles.muted}>본문·답글이 열로 나뉘어 있으면 순서대로 고르세요. 고르면 원문 대신 이 열들로 직접 나누기 등록해요.</p>
+            <p className={styles.muted}>본문·답글이 열로 나뉘어 있으면 순서대로 골라 주세요. 고르면 원문 대신 이 열들로 직접 나누기 등록해요.</p>
             {parsed.headers.map((h) => (
               <label key={h} className={styles.partOpt}>
                 <input
