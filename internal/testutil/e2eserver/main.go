@@ -87,7 +87,7 @@ func run() error {
 	cmd.Env = append(os.Environ(),
 		"APP_ENV=development",
 		"PORT="+port,
-		"APP_BASE_URL=http://localhost:"+port,
+		"APP_BASE_URL=http://127.0.0.1:"+port, // 브라우저가 쓰는 주소와 같아야 출처 검사를 통과한다
 		"DATABASE_URL="+u.String(),
 		"ADMIN_USERNAME=admin",
 		"ADMIN_PASSWORD_HASH="+hash,
