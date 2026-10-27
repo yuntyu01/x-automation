@@ -1,0 +1,11 @@
+{
+  "name": "X 자동 게시",
+  "short_name": "자동 게시",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F6F8",
+  "theme_color": "#3182F6",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

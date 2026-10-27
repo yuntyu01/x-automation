@@ -1,0 +1,25 @@
+# 비밀·로컬 설정
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# 빌드 산출물
+/bin/
+/internal/web/dist/*
+!/internal/web/dist/.gitkeep
+/web/node_modules/
+/web/test-results/
+/web/playwright-report/
+/web/blob-report/
+/web/node_modules/.tmp/
+
+# 로컬 데이터·임시 파일
+/.data/
+/tmp/
+*.log
+*.dump
+*.sql.gz
+coverage.out
+.DS_Store
