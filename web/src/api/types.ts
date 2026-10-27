@@ -304,3 +304,129 @@ export interface Prompt {
   version: PromptVersion;
   usage_count: number;
 }
+
+// ── 생성 ──────────────────────────────────────────────────────────────
+export interface GenerationOptions {
+  text: boolean;
+  image: boolean;
+  text_model?: string;
+  image_model?: string;
+  image_quality?: string;
+  image_size?: string;
+  image_count?: number;
+  image_placement?: number;
+  image_prompt?: string;
+  length?: '' | 'short' | 'medium' | 'long';
+  tone?: string;
+  text_only_fallback: boolean;
+  target?: 'all' | 'part' | 'image';
+  part_index?: number;
+  instruction?: string;
+}
+
+export type GenerationTrigger = 'manual' | 'on_publish' | 'daily_at' | 'before_slot' | 'stock' | 'fill_now' | 'regenerate';
+export type GenerationState = 'queued' | 'running' | 'succeeded' | 'partial' | 'failed' | 'canceled' | 'unknown';
+
+export interface GenerationRequest {
+  id: string;
+  idempotency_key: string;
+  trigger: GenerationTrigger;
+  policy_version: number | null;
+  prompt_id: string | null;
+  prompt_version: number | null;
+  prompt_name: string | null;
+  variables: Record<string, string>;
+  options: GenerationOptions;
+  quantity: number;
+  reservation_id: string | null;
+  content_id: string | null;
+  place_into_slots: boolean;
+  state: GenerationState;
+  produced: number;
+  failed: number;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  running: number;
+  queued: number;
+}
+
+export const TRIGGER_LABEL: Record<GenerationTrigger, string> = {
+  manual: '버튼 생성',
+  on_publish: '게시 시각 생성',
+  daily_at: '매일 지정 시각',
+  before_slot: '예약 전 생성',
+  stock: '재고 보충',
+  fill_now: '바로 채우기',
+  regenerate: '다시 만들기',
+};
+
+export const GEN_STATE_LABEL: Record<GenerationState, string> = {
+  queued: '대기',
+  running: '생성 중',
+  succeeded: '완료',
+  partial: '일부 완료',
+  failed: '실패',
+  canceled: '취소됨',
+  unknown: '확인 필요',
+};
+
+export interface PlanCounts {
+  needed: number;
+  bound: number;
+  ready: number;
+  in_flight: number;
+  review_pending: number;
+  remaining_today: number;
+  shortfall: number;
+  capped: boolean;
+}
+
+export interface GenerationPlan {
+  active: boolean;
+  blockers: string[];
+  timing: GenerationPolicy['timing'];
+  strategy: GenerationPolicy['prepare_strategy'];
+  policy_version: number;
+  next_run_at: string | null;
+  next_run_note: string;
+  window_start: string | null;
+  window_end: string | null;
+  counts: PlanCounts;
+  stock_min: number;
+  stock_target: number;
+  upcoming: { reservation_id: string; slot_at: string; due_at: string; generating: boolean }[];
+  recent: { key: string; trigger: GenerationTrigger; shortfall: number; request_id: string | null; note: string | null; created_at: string }[];
+}
+
+export interface GenerationResult {
+  id: string;
+  request_id: string;
+  kind: 'text' | 'image';
+  target: 'all' | 'part' | 'image';
+  part_index: number | null;
+  text: string | null;
+  media_id: string | null;
+  state: 'new' | 'applied' | 'discarded';
+  created_at: string;
+  decided_at: string | null;
+  thumb_url?: string;
+  url?: string;
+  base_revision_number: number;
+}
+
+export interface UsageSummary {
+  period: string;
+  currency: string;
+  spent_micros: number;
+  held_micros: number;
+  limit_micros: number;
+  on_limit: string;
+  by_category: Record<string, number>;
+  counts: Record<string, number>;
+  uncertain_count: number;
+  pricing_known: boolean;
+  pricing_verified_at: string;
+  exceeded: boolean;
+}

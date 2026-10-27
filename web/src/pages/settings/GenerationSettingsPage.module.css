@@ -1,0 +1,120 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding-bottom: var(--space-4);
+}
+.note {
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: var(--fs-small);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+.muted {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  display: block;
+}
+.muted a {
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.warn {
+  color: var(--warning);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.saveBar {
+  position: sticky;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--space-2));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+.saveBar span {
+  margin-right: auto;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+@media (min-width: 900px) {
+  .saveBar {
+    bottom: var(--space-4);
+  }
+}
+.blockers {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-7);
+  background: var(--warning-soft);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  color: var(--text);
+}
+.planHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+.planHead svg {
+  flex: none;
+  color: var(--primary-text);
+  margin-top: 2px;
+}
+.planHead > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+.counts > div {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.counts dt {
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+.counts dd {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sub {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  margin: var(--space-4) 0 var(--space-2);
+}
+.upcoming {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--fs-small);
+}
+.upcoming li {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+}

@@ -16,11 +16,11 @@ func TestWeightedBasics(t *testing.T) {
 		{"http://test.co", 23},
 		{"가나다", 6},
 		{"abc", 3},
-		{"👨‍👩‍👧‍👦", 2},
+		{"👨\u200d👩\u200d👧\u200d👦", 2},
 		{"🇰🇷", 2},
 		{"👍🏽", 2},
 		{"1️⃣", 2},
-		{"ABC‪￿ABC￾", 12},
+		{"ABC\u202a￿ABC￾", 12},
 		{"see example.com/path now", 4 + 23 + 4},
 	}
 	for _, c := range cases {
@@ -132,13 +132,13 @@ func TestNoBoundaryLongTextUsesGraphemes(t *testing.T) {
 }
 
 func TestURLAndEmojiAreNotCut(t *testing.T) {
-	raw := strings.Repeat("ab ", 85) + "https://example.com/very/long/path?x=1 " + strings.Repeat("👨‍👩‍👧 ", 40)
+	raw := strings.Repeat("ab ", 85) + "https://example.com/very/long/path?x=1 " + strings.Repeat("👨\u200d👩\u200d👧 ", 40)
 	r := Split(raw, Options{Mode: ModeOverflow})
 	for _, p := range r.Parts {
 		if strings.Contains(p.Text, "https://") && !strings.Contains(p.Text, "https://example.com/very/long/path?x=1") {
 			t.Fatalf("url was cut: %q", p.Text)
 		}
-		if strings.HasPrefix(p.Text, "‍") || strings.HasSuffix(p.Text, "‍") {
+		if strings.HasPrefix(p.Text, "\u200d") || strings.HasSuffix(p.Text, "\u200d") {
 			t.Fatalf("emoji sequence cut: %q", p.Text)
 		}
 	}

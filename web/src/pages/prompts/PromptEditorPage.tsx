@@ -18,6 +18,7 @@ import { TextField } from '../../components/ui/TextField';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateTime } from '../../lib/format';
 import { BackButton } from '../settings/ConnectionsPage';
+import { VariablesForm } from '../../components/prompt/VariablesForm';
 import styles from './PromptEditorPage.module.css';
 
 interface Form {
@@ -364,32 +365,7 @@ function TestSheet({ open, onClose, prompt }: { open: boolean; onClose: () => vo
   return (
     <Sheet open={open} onClose={onClose} title="입력해 보기" description="AI를 호출하지 않고, 입력값이 들어간 프롬프트만 보여 줘요" footer={<Button onClick={render}>프롬프트 만들기</Button>}>
       <div className={styles.form}>
-        {prompt.version.variables.map((v) =>
-          v.type === 'select' ? (
-            <Select
-              key={v.name}
-              label={v.label}
-              value={values[v.name] ?? v.default}
-              onChange={(e) => setValues({ ...values, [v.name]: e.target.value })}
-              options={(v.options ?? []).map((o) => ({ value: o, label: o }))}
-              error={errs[v.name]}
-            />
-          ) : v.type === 'textarea' ? (
-            <TextArea key={v.name} label={v.label} value={values[v.name] ?? ''} placeholder={v.default} onChange={(e) => setValues({ ...values, [v.name]: e.target.value })} error={errs[v.name]} />
-          ) : (
-            <TextField
-              key={v.name}
-              label={v.label + (v.required ? ' *' : '')}
-              type={v.type === 'number' ? 'number' : 'text'}
-              inputMode={v.type === 'number' ? 'numeric' : undefined}
-              value={values[v.name] ?? ''}
-              placeholder={v.default}
-              onChange={(e) => setValues({ ...values, [v.name]: e.target.value })}
-              error={errs[v.name]}
-              hint={v.help}
-            />
-          ),
-        )}
+        <VariablesForm variables={prompt.version.variables} values={values} onChange={setValues} errors={errs} />
         {text && <pre className={styles.body}>{text}</pre>}
       </div>
     </Sheet>

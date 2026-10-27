@@ -11,8 +11,8 @@
 | 03 | 고정 관리자 인증 | 완료 | 129ae3d |
 | 04 | 모바일 앱 셸·디자인 시스템 | 완료 | 626b0eb |
 | 05 | 콘텐츠·프롬프트·직접 등록 | 완료 | ccc2a45 |
-| 06 | R2·이미지 관리 | 완료 | (보고에 기록) |
-| 07 | AI 생성·세 가지 생성 정책 | 대기 | |
+| 06 | R2·이미지 관리 | 완료 | 92caaa8 |
+| 07 | AI 생성·세 가지 생성 정책 | 완료 | (보고에 기록) |
 | 08 | 길이 검증·분할·타래 미리보기 | 대기 | |
 | 09 | 시간표·예약·랜덤 추가 지연 | 대기 | |
 | 10 | X 연결·본문과 답글 게시·복구 | 대기 | |
@@ -30,8 +30,8 @@
 | A01 | 지정 관리자만 로그인, 미인증 API 차단 | `internal/auth`, `internal/httpapi/server.go`(requireAuth), `web/src/auth` | `internal/app/auth_test.go`(미인증 401·CSRF·출처·만료·시도 제한·XFF 우회 불가·로그아웃), 브라우저 로그인 후 원래 경로 복귀 | 진행 (기능 API 추가 시 계속 확인) |
 | A02 | Go 한 서버에서 웹·API, 깊은 링크 새로고침 | `internal/web` | `internal/web/embed_test.go` (깊은 링크→index, 없는 자산 404) | 진행 |
 | A03 | 프롬프트·직접 작성·CSV/JSON·자동 저장·검색 | `internal/content`, `internal/prompt`, `web/src/pages/contents/*`, `web/src/pages/prompts/*` | `content_test.go`(자동 저장·충돌·검색·LIKE 이스케이프·가져오기/내보내기 왕복·수식 방어), `prompt_test.go`(버전·변수 검증·렌더), `app/content_test.go`(API), 브라우저 흐름(등록→편집→자동 저장→새로고침 유지→검색→가져오기→보관→프롬프트 v2) | 완료 |
-| A04 | 세 운영 모드, 텍스트·이미지 독립 | | | 대기 |
-| A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | | | 대기 |
+| A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 진행 (게시 경로는 10단계) |
+| A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 진행 (예약 생성은 09단계) |
 | A06 | 20묶음과 실제 게시물 수 구분 | | | 대기 |
 | A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`, `web/src/lib/thread.ts` | `thread_test.go`(한글 140/141, URL 23, 이모지, 분할 내용 보존, 번호 포함 길이, 답글 상한) | 진행 (08단계 적합성 fixture) |
 | A08 | 복수 구간·30분+추가 지연·영속화 | | | 대기 |
@@ -41,7 +41,7 @@
 | A12 | 답글부터 재개, 불명확 전송 재게시 차단 | | | 대기 |
 | A13 | 워커 2개·즉시 게시·취소 경쟁 | | | 대기 |
 | A14 | 앱 내부 알림 | `internal/notification`, `web/src/pages/NotificationsPage.tsx`, 상단·사이드 알림 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·모두 읽음) | 진행 (알림 발생원은 07·10·11·12단계) |
-| A15 | 사용량 추정·예산 한도·동시 예약 | | | 대기 |
+| A15 | 사용량 추정·예산 한도·동시 예약 | `internal/budget`(Reserve·Record·Settle·ReleaseStale·Summary), 생성 작업의 실행 전 예약 | `budget_test.go`(동시 12건 중 정확히 10건 통과, 같은 키 재예약, 생성만 중지 정책, 같은 사용 1번 기록, 기본 요율 '미확인'), `generation_test.go`(한도 초과 시 외부 호출 없이 실패) | 진행 (화면·게시 비용은 11단계) |
 | A16 | 게시 후 14일 정리·참조 보호 | | | 대기 |
 | A17 | 라이트·다크 모바일 흐름·접근성 | `web/src/styles/tokens.css`, `components/layout/AppShell.tsx`, `components/ui/*`, `docs/DESIGN.md` | 4개 폭×2테마 레이아웃 점검, 키보드·시트 포커스 점검 | 진행 (13단계 전체 흐름) |
 | A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 | 진행 |
@@ -125,3 +125,20 @@
 - 검증: `make lint`·`make test` 통과. 브라우저(390px) 업로드 3장(잘못된 파일 오류 표시)→상세·대체 텍스트·16:9 자르기→새 글에 2장 연결→순서 변경→다른 부분으로 이동, 콘솔 오류 0, 360·390px 가로 넘침 0
 - 실제 R2 연결: 운영 키가 없어 미검증 (가짜 S3 서버로 요청 형식만 검증)
 - 다음: 07 AI 생성·세 가지 생성 정책
+
+### 07 AI 생성·세 가지 생성 정책 — 완료
+
+- 작업 큐(`internal/jobs`): `FOR UPDATE SKIP LOCKED` 선점, lease 소유자·버전, heartbeat(lease/3), 소유권을 잃으면 핸들러 취소·결과 버림, 외부 호출 전 `StillOwner` 확인, 일시정지 대기는 시도 횟수를 쓰지 않음(Snooze), 만료 lease 정리 정책(생성=다시 대기, 게시=확인 필요로 10단계에서 분류), 정상 종료 시 진행 중 작업은 결과 저장까지 기다림
+- AI 어댑터(`internal/integration/ai`): OpenAI Responses API(strict JSON 스키마, `store:false`), 거절·불완전 응답은 수정 필요, 401/403/404·할당량 부족은 설정 오류, 429·5xx는 재시도(Retry-After 반영), 오류 메시지의 키 마스킹. 출력은 알 수 없는 필드 거부·제어 문자 제거 후 텍스트로만 사용. 이미지 생성은 JPEG 출력 → 이미지 처리·R2 저장. 목업은 결정적이고 "목업" 표시, 실제 모드에서 키가 없으면 설정 오류 대역(목업으로 몰래 바꾸지 않음)
+- 생성 요청(`internal/generation`): 요청 하나 = 수량만큼 작업, 고유키(`idempotency_key`)로 두 번 눌러도 하나, 진행·취소(대기 작업만, 이미 시작한 외부 과금은 취소 보장 안 함)·부분 성공, 실패 묶음 알림, 하루 생성 상한·한 글 재생성 상한·재시도 상한, 예산 예약(실행마다 다른 키, 끝나면 정산, 6시간 넘게 남은 예약은 해제)
+- 이미지 실패 정책: 사용자가 "텍스트만 게시"를 고르지 않으면 글은 저장하되 이미지 방식이 남아 게시 불가(작성 중). 고르면 텍스트만으로 준비 완료
+- 부분 재생성: 전체·한 부분·이미지. 결과는 `generation_results`에 따로 두고 현재 글과 비교 후 적용/버리기. 부분 적용은 다른 부분을 그대로 두려고 직접 나누기로 전환. 승인된 글에 적용하면 새 revision(승인 미승계)
+- 자동 생성 계획(`planner.go`, 1분 주기, 트랜잭션 잠금): 매일 지정 시각(`daily:<날짜>:v<정책>`, 오늘 남은 시간 + 확보 기간), 예약 전 N분(`before:<예약>:v<정책>`, 예약에 묶음), 재고 부족(`stock:v<정책>:<시>`, 목표까지), 게시할 때(`onpub:<예약>:v<정책>`), 바로 채우기(첫 운영 시작·버튼, 분 단위 키). 판단 결과는 부족분 0이어도 `generation_marks`에 남겨 같은 기간을 다시 판단하지 않음. 정책을 바꾸면 정책 버전이 올라 새 키로 판단
+- 부족분 규칙: 창 안의 빈 예약 − 준비 완료·미배정(예시 제외) − 진행 중 생성 − 검토 대기 AI 생성분, 일일 상한 남은 양·100으로 자름. 검토 대기 AI분을 확보로 셈하는 이유: 승인만 남은 글을 다시 생성하지 않기 위해 (docs/ARCHITECTURE.md)
+- 자동 생성이 멈추는 조건을 화면에 그대로 보여 줌: 자동 운영 꺼짐·생성 일시정지·게시만 자동·글 생성 꺼짐·버튼 생성 모드·기본 프롬프트 없음/비활성/필수 변수 기본값 없음
+- API: `GET/POST /api/generation`, `POST /api/generation/estimate`, `GET /api/generation/plan`, `POST /api/generation/fill`, `GET /api/generation/{id}`, `POST /api/generation/{id}/cancel`, `POST /api/contents/{id}/regenerate`, `GET /api/contents/{id}/generation-results`, `POST …/{rid}/apply|discard`, `GET /api/usage`, `POST /api/automation`(시작·중지·일시정지, 시작 시 바로 채우기)
+- 화면: 새 글 → AI로 생성 탭(글/이미지 스위치, 프롬프트·변수, 길이·말투, 이미지 설명·장수·실패 시 텍스트만, 1·5·20·직접 수량, 생성 후 빈 예약 배치(기본 꺼짐), 추정 비용 또는 "단가 미확인"), 콘텐츠 화면 위 진행 카드(진행률·대기 취소, 끝나면 목록 갱신), 생성 방식 설정(`/settings/generation`: 무엇·언제·전략 세부값·바로 채우기·기본 프롬프트·모델·품질·크기·장수·위치·한도, 변경 시 저장 바), 자동 생성 계획 카드(동작/멈춤 이유, 다음 생성 예정, 빈 예약·준비·생성 중·검토 대기·새로 만들 수·오늘 남은 한도, 다가오는 예약별 생성 예정 시각, 최근 자동 판단, 지금 부족분 채우기), 편집기 "다시 만들기" 카드(대상·자주 쓰는 요청 칩·남은 횟수·지금/제안 비교·적용/버리기·이미지 붙이기)
+- 모델 이름·이미지 품질·크기 값은 지어내지 않고 설정 값(빈칸=서버 환경변수)으로 두고 흔한 값만 제안
+- 검증: `make lint`·`make test` 통과(Go: jobs 3·budget 2·ai 계약 5·generation 11·API 흐름 1 추가). 유료 실제 호출 없이 계약 테스트(가짜 HTTP 서버로 요청 형식·응답 해석·오류 분류). 브라우저(390px): 생성 설정 저장→계획 갱신, AI 탭 필수 변수 오류→5개 생성→진행 카드→목록, 다시 만들기→비교→적용(편집기 원문 갱신), 이미지 다시 만들기→본문에 붙이기, 지금 부족분 채우기(필수 변수 기본값 없음 안내). 360/768/1440 라이트·다크 가로 넘침 0, 콘솔 오류 0
+- 실제 AI 호출: 운영 키가 없어 미검증 (목업·가짜 서버로만 확인)
+- 다음: 08 길이 검증·분할·타래 미리보기

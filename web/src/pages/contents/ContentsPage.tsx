@@ -21,6 +21,8 @@ import { useToast } from '../../components/ui/Toast';
 import { formatDateTime } from '../../lib/format';
 import { useDebounced, useSessionState } from '../../lib/hooks';
 import { ImportSheet } from './ImportSheet';
+import { GenerateForm } from '../../components/generation/GenerateForm';
+import { GenerationQueue } from '../../components/generation/GenerationQueue';
 import { NewContentSheet } from './NewContentSheet';
 import styles from './ContentsPage.module.css';
 
@@ -124,6 +126,7 @@ export function ContentsPage() {
         />
       </div>
 
+      <GenerationQueue activeOnly />
       {list.isLoading && <LoadingList />}
       {list.isError && <ErrorState error={list.error} onRetry={() => list.refetch()} />}
       {list.data && items.length === 0 && (
@@ -205,7 +208,12 @@ export function ContentsPage() {
         </div>
       )}
 
-      <NewContentSheet open={sheet === 'new'} onClose={() => setSheet(null)} onCreated={(id) => nav(`/contents/${id}`)} />
+      <NewContentSheet
+        open={sheet === 'new'}
+        onClose={() => setSheet(null)}
+        onCreated={(id) => nav(`/contents/${id}`)}
+        generateTab={<GenerateForm onSubmitted={() => setSheet(null)} />}
+      />
       <ImportSheet open={sheet === 'import'} onClose={() => setSheet(null)} />
       <FilterSheet open={sheet === 'filters'} onClose={() => setSheet(null)} filter={filter} setFilter={setFilter} />
       <Sheet open={sheet === 'more'} onClose={() => setSheet(null)} title="콘텐츠 관리">

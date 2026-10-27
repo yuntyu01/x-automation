@@ -98,7 +98,8 @@ export const patch = <T>(path: string, body?: unknown) => api<T>('PATCH', path, 
 export const del = <T>(path: string, body?: unknown) => api<T>('DELETE', path, { body });
 
 export function errorMessage(e: unknown): string {
-  if (e instanceof ApiError) return e.message;
+  // 입력 칸이 없는 화면에서 필드 오류를 받으면 첫 이유를 보여 준다 ("입력값을 확인해 주세요"만으로는 알 수 없다)
+  if (e instanceof ApiError) return Object.values(e.fields)[0] ?? e.message;
   if (e instanceof Error) return e.message;
   return '알 수 없는 오류가 발생했습니다';
 }

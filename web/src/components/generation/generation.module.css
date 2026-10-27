@@ -1,0 +1,113 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.notice {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.notice a {
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.summary strong {
+  color: var(--text);
+}
+.warnText {
+  color: var(--danger);
+  font-weight: 600;
+}
+.muted {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.titleIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.req {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.req:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.reqHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+.reqHead strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reqMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+.bar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: inherit;
+  transition: width var(--dur) var(--ease);
+}
+.err {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

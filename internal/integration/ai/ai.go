@@ -2,7 +2,11 @@
 // 모델 출력은 구조화 스키마로 검증하고 텍스트로만 취급한다 (명령으로 실행하지 않는다).
 package ai
 
-import "context"
+import (
+	"context"
+
+	"github.com/yuntyu01/x-automation/internal/integration"
+)
 
 // Usage는 공급자가 돌려준 사용량이다. 비용은 요율표로 따로 추정한다.
 type Usage struct {
@@ -43,4 +47,17 @@ type Provider interface {
 	GenerateThread(ctx context.Context, req ThreadRequest) (ThreadDraft, Usage, error)
 	GenerateImages(ctx context.Context, req ImageRequest) ([]Image, Usage, error)
 	Name() string
+}
+
+// Unconfigured는 실제 연동 모드인데 API 키가 없을 때 쓴다. 목업으로 바꿔 성공한 척하지 않고 설정 오류를 돌려준다.
+type Unconfigured struct{}
+
+func (Unconfigured) Name() string { return "unconfigured" }
+
+func (Unconfigured) GenerateThread(context.Context, ThreadRequest) (ThreadDraft, Usage, error) {
+	return ThreadDraft{}, Usage{}, integration.ErrNotConfigured("AI")
+}
+
+func (Unconfigured) GenerateImages(context.Context, ImageRequest) ([]Image, Usage, error) {
+	return nil, Usage{}, integration.ErrNotConfigured("AI")
 }

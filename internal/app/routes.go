@@ -10,11 +10,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yuntyu01/x-automation/internal/auth"
+	"github.com/yuntyu01/x-automation/internal/budget"
 	"github.com/yuntyu01/x-automation/internal/config"
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/content"
+	"github.com/yuntyu01/x-automation/internal/generation"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
+	"github.com/yuntyu01/x-automation/internal/integration/ai"
 	"github.com/yuntyu01/x-automation/internal/integration/storage"
+	"github.com/yuntyu01/x-automation/internal/jobs"
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
@@ -34,6 +38,10 @@ type services struct {
 	prompts       *prompt.Service
 	media         *media.Service
 	store         storage.Store
+	budget        *budget.Service
+	queue         *jobs.Queue
+	generation    *generation.Service
+	planner       *generation.Planner
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -60,7 +68,28 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 		return st.Policy.Retention.Days
 	})
 	s.contents.SetMediaLoader(s.media.ContentLoader())
+	s.budget = budget.NewService(pool, a.deps.Clock, setRepo)
+	s.queue = jobs.NewQueue(pool, a.deps.Clock)
+	s.generation = generation.NewService(generation.Deps{Pool: pool, Clock: a.deps.Clock, Queue: s.queue, Provider: a.newAIProvider(),
+		Settings: setRepo, Prompts: s.prompts, Contents: s.contents, Media: s.media, Budget: s.budget, Notify: s.notifications, Log: a.log})
+	s.planner = generation.NewPlanner(pool, a.deps.Clock, setRepo, s.generation, s.notifications, a.log)
 	return s
+}
+
+// newAIProvider는 AI 공급자를 고른다. 목업은 결정적 대역, 실제 연동은 OpenAI(키가 없으면 설정 오류를 돌려주는 대역).
+func (a *App) newAIProvider() ai.Provider {
+	if a.cfg.IntegrationMode == config.ModeMock {
+		return &ai.Mock{}
+	}
+	if !a.cfg.AI.Configured() {
+		return ai.Unconfigured{}
+	}
+	p, err := ai.NewOpenAI(a.cfg.AI.APIKey, a.cfg.AI.BaseURL, a.cfg.AI.TextModel, a.cfg.AI.ImageModel, nil)
+	if err != nil {
+		a.log.Error("ai provider unavailable", "err", err.Error())
+		return ai.Unconfigured{}
+	}
+	return p
 }
 
 // newStore는 이미지 저장소를 고른다. 목업은 로컬 파일, 실제 연동은 R2(값이 없으면 설정 오류를 돌려주는 대역).
@@ -107,13 +136,47 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Contents:      svc.contents,
 		Prompts:       svc.prompts,
 		Media:         svc.media,
+		Generation:    svc.generation,
+		Planner:       svc.planner,
+		Budget:        svc.budget,
 	}
 	return srv.Routes()
 }
 
-// startWorkers는 주기 작업을 시작한다. 단계마다 워커가 추가된다.
+// startWorkers는 주기 작업과 작업 큐 워커를 시작한다. 단계마다 워커가 추가된다.
 func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
-	a.every(ctx, "auth-cleanup", time.Hour, func(ctx context.Context) error { return a.svc.auth.Cleanup(ctx) })
+	svc := a.svc
+	a.every(ctx, "auth-cleanup", time.Hour, func(ctx context.Context) error { return svc.auth.Cleanup(ctx) })
+
+	concurrency := 2
+	if st, err := svc.settings.Get(ctx); err == nil {
+		concurrency = st.Policy.Generation.MaxConcurrent
+	}
+	gw := &jobs.Worker{Queue: svc.queue, Concurrency: concurrency, Lease: 2 * time.Minute, Poll: 5 * time.Second, Log: a.log,
+		Handlers: map[string]jobs.Handler{generation.JobKind: svc.generation.HandleItem}}
+	svc.generation.SetKick(gw.Kick)
+	a.workersWG.Add(1)
+	go func() {
+		defer a.workersWG.Done()
+		gw.Run(ctx)
+	}()
+	a.every(ctx, "generation-planner", time.Minute, svc.planner.Tick)
+	// lease가 끝난 작업 정리: 생성은 다시 해도 외부 중복이 없어 다시 대기시킨다 (게시 작업은 10단계에서 결과 확인 필요로 분류)
+	a.every(ctx, "jobs-recover", time.Minute, func(ctx context.Context) error {
+		_, _, err := svc.queue.RecoverExpired(ctx, recoverPolicy)
+		if err != nil {
+			return err
+		}
+		_, err = svc.budget.ReleaseStale(ctx, 6*time.Hour)
+		return err
+	})
+}
+
+func recoverPolicy(kind string) jobs.RecoverPolicy {
+	if kind == generation.JobKind {
+		return jobs.RecoverRequeue
+	}
+	return jobs.RecoverUnknown
 }
 
 // every는 간단한 주기 실행기다. 종료 신호를 받으면 진행 중인 실행이 끝난 뒤 멈춘다.

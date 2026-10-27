@@ -12,6 +12,7 @@ import { IconButton } from '../../components/ui/IconButton';
 import { Segmented } from '../../components/ui/Segmented';
 import { useToast } from '../../components/ui/Toast';
 import type { DraftState } from './ContentEditorPage';
+import { RegenerateCard } from './RegenerateCard';
 import styles from './EditorExtras.module.css';
 
 export interface ExtrasProps {
@@ -19,13 +20,19 @@ export interface ExtrasProps {
   draft: DraftState;
   update: (p: Partial<DraftState>) => void;
   onChanged: (d: ContentDetail) => void;
+  onReplaced: (d: ContentDetail) => void; // 원문까지 바뀐 경우 (재생성 결과 적용)
   flush: () => Promise<void>; // 진행 중인 자동 저장을 마친다 (버전 충돌 방지)
   editVersion: () => number;
 }
 
-// 편집 화면의 추가 영역: 이미지 배치 (부분 재생성·예약 카드는 이후 단계에서 붙는다)
+// 편집 화면의 추가 영역: 이미지 배치, 다시 만들기 (예약 카드는 시간표 단계에서 붙는다)
 export function EditorExtras(props: ExtrasProps) {
-  return <ImagesCard {...props} />;
+  return (
+    <>
+      <ImagesCard {...props} />
+      <RegenerateCard content={props.content} onReplaced={props.onReplaced} flush={props.flush} editVersion={props.editVersion} />
+    </>
+  );
 }
 
 const MODE_LABEL: Record<ImageMode, string> = { none: '이미지 없음', upload: '직접 업로드', ai: 'AI 생성' };
@@ -124,7 +131,7 @@ function ImagesCard({ content, draft, update, onChanged, flush, editVersion }: E
               </div>
             );
           })}
-        {draft.image_mode === 'ai' && <p className={styles.muted}>AI 이미지는 생성 기능으로 만들어 보관함에 저장한 뒤 여기서 붙여요.</p>}
+        {draft.image_mode === 'ai' && <p className={styles.muted}>AI 이미지는 아래 &lsquo;다시 만들기 → 이미지&rsquo;로 만들거나, 보관함의 생성 이미지를 붙여요.</p>}
         {media.some((m) => m.part_index >= parts.length) && (
           <p className={styles.problem}>
             분할이 바뀌어 사라진 부분에 이미지가 남아 있어요.{' '}

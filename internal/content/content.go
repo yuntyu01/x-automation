@@ -179,22 +179,23 @@ type Draft struct {
 
 // NewContent는 등록 요청이다.
 type NewContent struct {
-	Title        string          `json:"title"`
-	Category     string          `json:"category"`
-	Tags         []string        `json:"tags"`
-	RawText      string          `json:"raw_text"`
-	SplitMode    thread.Mode     `json:"split_mode"`
-	SplitOptions SplitOptions    `json:"split_options"`
-	ImageMode    string          `json:"image_mode"`
-	Source       string          `json:"-"`
-	Origin       string          `json:"-"`
-	IsDemo       bool            `json:"-"`
-	PromptID     *string         `json:"-"`
-	PromptVer    *int            `json:"-"`
-	Model        *string         `json:"-"`
-	GenOptions   json.RawMessage `json:"-"`
-	ReviewState  string          `json:"-"`
-	Approve      bool            `json:"approve"` // 저장하면서 바로 승인
+	Title               string          `json:"title"`
+	Category            string          `json:"category"`
+	Tags                []string        `json:"tags"`
+	RawText             string          `json:"raw_text"`
+	SplitMode           thread.Mode     `json:"split_mode"`
+	SplitOptions        SplitOptions    `json:"split_options"`
+	ImageMode           string          `json:"image_mode"`
+	Source              string          `json:"-"`
+	Origin              string          `json:"-"`
+	IsDemo              bool            `json:"-"`
+	PromptID            *string         `json:"-"`
+	PromptVer           *int            `json:"-"`
+	Model               *string         `json:"-"`
+	GenOptions          json.RawMessage `json:"-"`
+	ReviewState         string          `json:"-"`
+	GenerationRequestID *string         `json:"-"`
+	Approve             bool            `json:"approve"` // 저장하면서 바로 승인
 }
 
 const (
@@ -357,8 +358,8 @@ func (s *Service) Create(ctx context.Context, n NewContent) (Detail, error) {
 
 func (s *Service) createTx(ctx context.Context, tx pgx.Tx, n NewContent) (string, error) {
 	var id, revID string
-	if err := tx.QueryRow(ctx, `INSERT INTO contents (title, category, tags, source, is_demo) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-		n.Title, n.Category, n.Tags, n.Source, n.IsDemo).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, `INSERT INTO contents (title, category, tags, source, is_demo, generation_request_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		n.Title, n.Category, n.Tags, n.Source, n.IsDemo, n.GenerationRequestID).Scan(&id); err != nil {
 		return "", err
 	}
 	so, _ := json.Marshal(n.SplitOptions)

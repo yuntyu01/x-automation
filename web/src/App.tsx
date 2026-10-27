@@ -13,6 +13,7 @@ import { PromptEditorPage } from './pages/prompts/PromptEditorPage';
 import { PromptsPage } from './pages/prompts/PromptsPage';
 import { SchedulePage } from './pages/schedule/SchedulePage';
 import { ConnectionsPage } from './pages/settings/ConnectionsPage';
+import { GenerationSettingsPage } from './pages/settings/GenerationSettingsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { SetupPage } from './pages/setup/SetupPage';
 
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: '/schedule', element: <SchedulePage /> },
           { path: '/settings', element: <SettingsPage /> },
           { path: '/settings/connections', element: <ConnectionsPage /> },
+          { path: '/settings/generation', element: <GenerationSettingsPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/setup', element: <SetupPage /> },
           { path: '*', element: <NotFoundPage /> },

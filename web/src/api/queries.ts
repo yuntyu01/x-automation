@@ -28,7 +28,11 @@ export function useSaveSettings() {
         timezone: s.timezone,
         policy: s.policy,
       }),
-    onSuccess: (data) => qc.setQueryData(keys.settings, data),
+    onSuccess: (data) => {
+      qc.setQueryData(keys.settings, data);
+      // 생성 계획·한도는 설정을 따른다
+      void qc.invalidateQueries({ queryKey: ['generation'] });
+    },
   });
 }
 

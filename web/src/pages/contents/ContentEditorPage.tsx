@@ -117,6 +117,17 @@ function Editor({ initial }: { initial: ContentDetail }) {
     [qc],
   );
 
+  // 서버에서 원문이 바뀐 경우(이전 버전 복원·재생성 결과 적용) 편집 중 상태를 서버 값으로 맞춘다
+  const replaceAll = useCallback(
+    (d: ContentDetail) => {
+      const nd = toDraft(d);
+      markSaved(nd);
+      setDraft(nd);
+      apply(d);
+    },
+    [apply, markSaved],
+  );
+
   const save = useCallback(
     async (d: DraftState, force?: number) => {
       if (saving.current) return savePromise.current ?? undefined;
@@ -362,7 +373,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
             </div>
           </Card>
 
-          <EditorExtras content={server} draft={draft} update={update} onChanged={apply} flush={flush} editVersion={() => editVersion.current} />
+          <EditorExtras content={server} draft={draft} update={update} onChanged={apply} onReplaced={replaceAll} flush={flush} editVersion={() => editVersion.current} />
         </div>
 
         <div className={styles.col}>
@@ -455,10 +466,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
         onClose={() => setSheet(null)}
         content={server}
         onRestored={(d) => {
-          const nd = toDraft(d);
-          markSaved(nd);
-          setDraft(nd);
-          apply(d);
+          replaceAll(d);
           setSheet(null);
         }}
       />
