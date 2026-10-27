@@ -151,27 +151,7 @@ func (w *Worker) process(parent context.Context, j *Job) {
 
 	sctx, scancel := context.WithTimeout(context.WithoutCancel(parent), 10*time.Second)
 	defer scancel()
-	var err error
-	switch res.Outcome {
-	case Done:
-		err = w.Queue.Complete(sctx, j)
-	case RetryLater:
-		at := res.At
-		if at.IsZero() {
-			at = w.Queue.clock.Now().Add(Backoff(j.Attempts, 30*time.Second, 30*time.Minute))
-		}
-		err = w.Queue.Retry(sctx, j, orErr(res.Err), at)
-	case Snoozed:
-		err = w.Queue.Snooze(sctx, j, res.At, msg(res.Err))
-	case Unknown:
-		err = w.Queue.Unknown(sctx, j, orErr(res.Err))
-	default:
-		class := res.Class
-		if class == "" {
-			class = "config"
-		}
-		err = w.Queue.Fail(sctx, j, orErr(res.Err), class)
-	}
+	err := w.Queue.Finish(sctx, j, res)
 	if errors.Is(err, ErrLeaseLost) {
 		w.Log.Warn("job result discarded: lease lost", "job", j.ID, "kind", j.Kind)
 	} else if err != nil {
@@ -191,4 +171,27 @@ func msg(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+// Finish는 핸들러 결과를 작업 상태로 저장한다. 소유권을 잃었으면 ErrLeaseLost.
+func (q *Queue) Finish(ctx context.Context, j *Job, res Result) error {
+	switch res.Outcome {
+	case Done:
+		return q.Complete(ctx, j)
+	case RetryLater:
+		at := res.At
+		if at.IsZero() {
+			at = q.clock.Now().Add(Backoff(j.Attempts, 30*time.Second, 30*time.Minute))
+		}
+		return q.Retry(ctx, j, orErr(res.Err), at)
+	case Snoozed:
+		return q.Snooze(ctx, j, res.At, msg(res.Err))
+	case Unknown:
+		return q.Unknown(ctx, j, orErr(res.Err))
+	}
+	class := res.Class
+	if class == "" {
+		class = "config"
+	}
+	return q.Fail(ctx, j, orErr(res.Err), class)
 }

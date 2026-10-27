@@ -92,7 +92,8 @@ type ImagePolicy struct {
 	Size        string `json:"size"`
 	Style       string `json:"style"`
 	Count       int    `json:"count"`
-	Placement   int    `json:"placement"` // 0=본문, 1=첫 답글 …
+	Placement   int    `json:"placement"`    // 0=본문, 1=첫 답글 …
+	MadeWithAI  bool   `json:"made_with_ai"` // AI 생성 이미지가 붙은 게시에 X의 AI 표시(made_with_ai)를 보낸다
 }
 
 type RetentionPolicy struct {
@@ -131,7 +132,7 @@ func Defaults() Policy {
 			PolicyVersion: 1,
 		},
 		Thread:    ThreadPolicy{SplitMode: "two_parts", MaxReplies: 0},
-		Image:     ImagePolicy{DefaultMode: "none", Quality: "medium", Size: "1024x1024", Count: 1},
+		Image:     ImagePolicy{DefaultMode: "none", Quality: "medium", Size: "1024x1024", Count: 1, MadeWithAI: true},
 		Retention: RetentionPolicy{Days: 14},
 		Budget:    BudgetPolicy{Currency: "USD", OnLimit: "stop_generation"},
 		Pricing:   Pricing{Currency: "USD"},

@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarOff, MoreHorizontal, Pin, Plus, Settings2, Sparkles } from 'lucide-react';
+import { CalendarClock, CalendarOff, History, MoreHorizontal, Pin, Plus, Settings2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../../api/client';
@@ -42,6 +42,9 @@ export function SchedulePage() {
           <>
             <IconButton label="시간 지정해 넣기" onClick={() => setPinOpen(true)}>
               <Plus size={22} />
+            </IconButton>
+            <IconButton label="게시 기록" onClick={() => nav('/publish')}>
+              <History size={22} />
             </IconButton>
             <IconButton label="시간표 설정" onClick={() => nav('/schedule/rules')}>
               <Settings2 size={22} />
@@ -215,6 +218,8 @@ function ReservationRow({ item, onOpen }: { item: ReservationItem; onOpen: () =>
             {item.unapproved_change && <span>승인본으로 게시</span>}
           </span>
           {item.delay_note && <span className={styles.note}>{item.delay_note}</span>}
+          {item.block_reason && !done && <span className={styles.blocked}>시작 못 함: {item.block_reason}</span>}
+          {item.run_note && !done && <span className={styles.note}>{item.run_note}</span>}
         </span>
         {!done && <MoreHorizontal size={20} aria-hidden className={styles.more} />}
       </button>

@@ -132,13 +132,14 @@ type pending struct {
 	publishable *bool
 	problem     *string
 	boundGen    bool
+	block       *string // 게시를 막은 조건 (publish가 기록)
 }
 
 func loadPending(ctx context.Context, db store.DB, review bool, until time.Time) ([]pending, error) {
 	rows, err := db.Query(ctx, `SELECT r.id, r.slot_at, r.state, r.content_id, r.revision_id,
 		c.archived_at IS NOT NULL, c.generation_state, c.current_revision_id, c.approved_revision_id,
 		rv.publishable, rv.validation->'problems'->>0,
-		EXISTS (SELECT 1 FROM generation_requests g WHERE g.reservation_id = r.id AND g.state IN ('queued', 'running'))
+		EXISTS (SELECT 1 FROM generation_requests g WHERE g.reservation_id = r.id AND g.state IN ('queued', 'running')), r.block_reason
 		FROM reservations r
 		LEFT JOIN contents c ON c.id = r.content_id
 		LEFT JOIN content_revisions rv ON rv.id = CASE WHEN $1 THEN c.approved_revision_id ELSE c.current_revision_id END
@@ -152,7 +153,7 @@ func loadPending(ctx context.Context, db store.DB, review bool, until time.Time)
 		var p pending
 		var archived *bool
 		if err := rows.Scan(&p.id, &p.slotAt, &p.state, &p.contentID, &p.revisionID, &archived, &p.genState, &p.currentRev, &p.approvedRev,
-			&p.publishable, &p.problem, &p.boundGen); err != nil {
+			&p.publishable, &p.problem, &p.boundGen, &p.block); err != nil {
 			return nil, err
 		}
 		p.archived = archived != nil && *archived
@@ -295,7 +296,7 @@ func assign(ctx context.Context, tx pgx.Tx, reservationID, contentID string, rev
 		rev = appr
 	}
 	tag, err := tx.Exec(ctx, `UPDATE reservations SET content_id = $2, revision_id = $3, state = 'waiting', wait_reason = NULL, delay_note = NULL,
-		version = version + 1, updated_at = now() WHERE id = $1 AND state IN `+pendingStates, reservationID, contentID, rev)
+		block_reason = NULL, version = version + 1, updated_at = now() WHERE id = $1 AND state IN `+pendingStates, reservationID, contentID, rev)
 	if err != nil {
 		return err
 	}
@@ -308,7 +309,7 @@ func assign(ctx context.Context, tx pgx.Tx, reservationID, contentID string, rev
 
 // release는 예약에서 콘텐츠를 뺀다 (예약은 빈 예약으로 남는다).
 func release(ctx context.Context, tx pgx.Tx, reservationID, note string) error {
-	_, err := tx.Exec(ctx, `UPDATE reservations SET content_id = NULL, revision_id = NULL, state = 'open', wait_reason = NULL,
+	_, err := tx.Exec(ctx, `UPDATE reservations SET content_id = NULL, revision_id = NULL, state = 'open', wait_reason = NULL, block_reason = NULL,
 		delay_note = NULLIF($2, ''), version = version + 1, updated_at = now() WHERE id = $1 AND state IN `+pendingStates, reservationID, note)
 	return err
 }
@@ -442,6 +443,8 @@ func (s *Service) CloseOverdue(ctx context.Context) error {
 				note = "준비된 글이 없어 건너뛰었어요"
 			case state != "assigned":
 				note = fmt.Sprintf("%s 상태라 게시하지 않고 건너뛰었어요", *reason)
+			case p.block != nil:
+				note = fmt.Sprintf("%s — 게시하지 못하고 지나갔어요. 글은 다음 빈 예약으로 옮겨요", *p.block)
 			default:
 				note = "실행되지 못하고 지나간 예약이에요 (서버 중단 등). 글은 다음 빈 예약으로 옮겨요"
 			}
@@ -597,4 +600,50 @@ func fit(t time.Time, ivs []Interval, r Rules) time.Time {
 		return t
 	}
 	return time.Time{}
+}
+
+// ── 게시(publish)가 쓰는 도우미 ───────────────────────────────────────
+
+// LockTx는 시간표 잠금을 잡는다 ("지금 게시"처럼 예약을 만드는 다른 패키지의 작업이 배치와 겹치지 않게).
+func LockTx(ctx context.Context, tx pgx.Tx) error {
+	_, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock($1)`, lockID)
+	return err
+}
+
+// WindowInfo는 t 시점의 허용 여부·다음 허용 구간 시작·규칙이다.
+type WindowInfo struct {
+	Allowed   bool
+	Reason    string
+	NextStart time.Time // t 이후 처음으로 새 묶음을 시작할 수 있는 시각 (없으면 zero)
+	Rules     Rules
+	Loc       *time.Location
+}
+
+func (s *Service) Window(ctx context.Context, t time.Time) (WindowInfo, error) {
+	c, err := s.load(ctx, s.pool)
+	if err != nil {
+		return WindowInfo{}, err
+	}
+	ivs := Intervals(c.windows, c.loc, t.Add(-48*time.Hour), t.AddDate(0, 0, 8))
+	w := WindowInfo{Rules: c.rules, Loc: c.loc}
+	w.Allowed, w.Reason = Allowed(t, c.rules, ivs, c.excluded, c.loc)
+	for _, iv := range ivs {
+		if next := fit(t, []Interval{iv}, c.rules); !next.IsZero() && !c.excluded[next.In(c.loc).Format(dateLayout)] {
+			w.NextStart = next
+			break
+		}
+	}
+	return w, nil
+}
+
+// TodayCount는 t가 속한 현지 날짜의 진행 중·완료 묶음 수다 (수동 게시 경고용).
+func (s *Service) TodayCount(ctx context.Context, t time.Time) (int, int, error) {
+	c, err := s.load(ctx, s.pool)
+	if err != nil {
+		return 0, 0, err
+	}
+	var n int
+	err = s.pool.QueryRow(ctx, `SELECT count(*) FROM reservations WHERE state IN ('publishing', 'partial', 'unknown', 'published') AND local_date = $1::date`,
+		t.In(c.loc).Format(dateLayout)).Scan(&n)
+	return n, c.rules.DailyTarget, err
 }

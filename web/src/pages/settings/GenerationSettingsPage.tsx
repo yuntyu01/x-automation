@@ -215,6 +215,11 @@ function GenerationForm({ settings }: { settings: Settings }) {
             description="끄면 이미지가 없는 글은 게시하지 않고 '작성 중'으로 남겨요"
             trailing={<Switch label="이미지 실패 시 텍스트만 게시" checked={gen.text_only_fallback} onChange={(v) => g('text_only_fallback', v)} />}
           />
+          <Row
+            label="AI 이미지 게시에 'AI로 만듦' 표시"
+            description="AI로 만든 이미지가 붙은 게시물에 X의 AI 생성 표시(made_with_ai)를 함께 보내요. 직접 올린 이미지에는 붙이지 않아요"
+            trailing={<Switch label="AI 생성 표시" checked={img.made_with_ai} onChange={(v) => i('made_with_ai', v)} />}
+          />
         </RowGroup>
       </Section>
 

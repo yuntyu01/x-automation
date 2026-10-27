@@ -64,3 +64,23 @@
   font-size: var(--fs-small);
   color: var(--text-2);
 }
+.facts {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-small);
+}
+.facts dt {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.facts dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.bad {
+  color: var(--danger);
+}

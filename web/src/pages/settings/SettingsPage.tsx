@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -68,6 +68,7 @@ export function SettingsPage() {
               <Row icon={<FileText size={20} />} label="프롬프트" to="/prompts" />
               <Row icon={<ImageIcon size={20} />} label="이미지 보관함" description="업로드·생성 이미지, 정리 예정" to="/images" />
               <Row icon={<CalendarClock size={20} />} label="시간표" to="/schedule/rules" />
+              <Row icon={<Send size={20} />} label="게시 기록" description="진행 중·확인 필요·최근 게시" to="/publish" />
             </RowGroup>
           </Section>
           <Section title="연결">

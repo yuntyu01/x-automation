@@ -1,0 +1,129 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.run {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.run + .run {
+  margin-top: var(--space-3);
+}
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.titleBox {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.title {
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.meta {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.note {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+.parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.part {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+.part > svg {
+  flex: none;
+  margin-top: 2px;
+}
+.partBody {
+  min-width: 0;
+  flex: 1;
+}
+.partHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-2);
+  align-items: baseline;
+  font-size: var(--fs-small);
+}
+.text {
+  margin-top: 2px;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.err {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  color: var(--danger);
+}
+.xlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary-text);
+  font-size: var(--fs-caption);
+  min-height: 24px;
+}
+.ok {
+  color: var(--success);
+}
+.bad {
+  color: var(--danger);
+}
+.idle {
+  color: var(--text-3);
+}
+.spin {
+  color: var(--primary-text);
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+.help {
+  width: 100%;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}

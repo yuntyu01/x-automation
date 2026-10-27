@@ -26,7 +26,7 @@ export interface GenerationPolicy {
 export interface Policy {
   generation: GenerationPolicy;
   thread: { split_mode: 'two_parts' | 'overflow' | 'manual'; max_replies: number; numbering: boolean; long_post_enabled: boolean };
-  image: { default_mode: 'none' | 'upload' | 'ai'; model: string; quality: string; size: string; style: string; count: number; placement: number };
+  image: { default_mode: 'none' | 'upload' | 'ai'; model: string; quality: string; size: string; style: string; count: number; placement: number; made_with_ai: boolean };
   retention: { days: number };
   budget: { monthly_limit_micros: number; currency: string; on_limit: 'stop_generation' | 'stop_all' };
   pricing: {
@@ -485,6 +485,10 @@ export interface ReservationItem {
   image_count: number;
   unapproved_change: boolean;
   window: string;
+  block_reason: string | null;
+  run_id: string | null;
+  run_note: string | null;
+  post_url: string | null;
 }
 
 export interface ScheduleDay {
@@ -523,4 +527,67 @@ export const RES_STATE_LABEL: Record<ReservationState, string> = {
   published: '게시 완료',
   failed: '실패',
   canceled: '건너뜀',
+};
+
+// ── 게시 실행 ─────────────────────────────────────────────────────────
+
+export type RunState = 'pending' | 'running' | 'partial' | 'unknown' | 'completed' | 'failed' | 'canceled';
+export type PartState = 'pending' | 'sending' | 'succeeded' | 'failed' | 'unknown';
+
+export interface PublishPart {
+  position: number;
+  text: string;
+  media_count: number;
+  state: PartState;
+  x_post_id: string | null;
+  x_url: string | null;
+  in_reply_to: string | null;
+  attempts: number;
+  not_before: string | null;
+  intent_at: string | null;
+  succeeded_at: string | null;
+  error: string | null;
+  error_class: string | null;
+  made_with_ai: boolean;
+}
+
+export interface PublishRun {
+  id: string;
+  reservation_id: string;
+  content_id: string;
+  title: string;
+  trigger: 'schedule' | 'manual';
+  state: RunState;
+  note: string | null;
+  slot_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  dismissed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  parts: PublishPart[];
+}
+
+export interface PublishRunList {
+  active: PublishRun[];
+  attention: PublishRun[];
+  recent: PublishRun[];
+}
+
+export const RUN_STATE_LABEL: Record<RunState, string> = {
+  pending: '대기',
+  running: '게시 중',
+  partial: '일부 완료',
+  unknown: '확인 필요',
+  completed: '게시 완료',
+  failed: '실패',
+  canceled: '중단',
+};
+
+export const PART_STATE_LABEL: Record<PartState, string> = {
+  pending: '대기',
+  sending: '보내는 중',
+  succeeded: '올라감',
+  failed: '실패',
+  unknown: '결과 모름',
 };

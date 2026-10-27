@@ -159,6 +159,18 @@ func (s *Service) Settle(ctx context.Context, refKey string) error {
 	return err
 }
 
+// Confirm은 결과가 불명확했던 사용을 사용자가 확인했을 때 확정으로 바꾼다.
+func (s *Service) Confirm(ctx context.Context, cat Category, refKey string) error {
+	_, err := s.pool.Exec(ctx, `UPDATE usage_ledger SET certainty = 'estimated' WHERE category = $1 AND ref_key = $2`, string(cat), refKey)
+	return err
+}
+
+// Void는 실제로 일어나지 않았다고 확인된 불명확 사용을 지운다 (확정 기록은 지우지 않는다).
+func (s *Service) Void(ctx context.Context, cat Category, refKey string) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM usage_ledger WHERE category = $1 AND ref_key = $2 AND certainty = 'uncertain'`, string(cat), refKey)
+	return err
+}
+
 // ReleaseStale은 프로세스가 중간에 죽어 남은 오래된 예약을 푼다 (한도 계산이 영구히 막히지 않게).
 func (s *Service) ReleaseStale(ctx context.Context, olderThan time.Duration) (int64, error) {
 	tag, err := s.pool.Exec(ctx, `UPDATE budget_reservations SET state = 'released', closed_at = now()

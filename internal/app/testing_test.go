@@ -115,3 +115,9 @@ func errCode(r resp) string {
 	s, _ := e["code"].(string)
 	return s
 }
+
+// newHarnessClient는 같은 서버에 쿠키가 없는 다른 브라우저로 접속한다.
+func newHarnessClient(h *harness) *harness {
+	jar, _ := cookiejar.New(nil)
+	return &harness{t: h.t, srv: h.srv, clock: h.clock, jar: jar}
+}

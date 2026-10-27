@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ApiError, errorMessage } from '../../api/client';
-import { useSaveSettings, useSettings } from '../../api/queries';
+import { useIntegrations, useSaveSettings, useSettings } from '../../api/queries';
 import { SPLIT_LABEL, type Policy, type Settings, type SplitMode } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
@@ -42,6 +42,10 @@ function ThreadForm({ settings }: { settings: Settings }) {
   const [t, setT] = useState<Thread>(settings.policy.thread);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [confirmLong, setConfirmLong] = useState(false);
+  const integrations = useIntegrations();
+  const conn = integrations.data?.x.connection;
+  // 연결된 계정 등급이 None이면 장문 게시가 확실히 안 된다 (X API 문서 기준). 연결 전이면 판단을 미룬다
+  const longBlocked = conn?.status === 'connected' && conn.capabilities.long_post_possible === false;
   const dirty = JSON.stringify(t) !== JSON.stringify(settings.policy.thread);
   const set = <K extends keyof Thread>(k: K, v: Thread[K]) => setT((p) => ({ ...p, [k]: v }));
 
@@ -102,9 +106,17 @@ function ThreadForm({ settings }: { settings: Settings }) {
                 ? `켜짐: 한 게시물 ${LONG_LIMIT.toLocaleString()}자까지 써요`
                 : `꺼짐: X 일반 한도 ${STANDARD_LIMIT}자(가중)로 나눠요`
             }
-            trailing={<Switch label="장문 게시" checked={t.long_post_enabled} onChange={(v) => (v ? setConfirmLong(true) : set('long_post_enabled', false))} />}
+            trailing={
+              <Switch label="장문 게시" checked={t.long_post_enabled} disabled={longBlocked && !t.long_post_enabled} onChange={(v) => (v ? setConfirmLong(true) : set('long_post_enabled', false))} />
+            }
           />
         </RowGroup>
+        {longBlocked && (
+          <p className={styles.warn} role="note">
+            연결된 X 계정(@{conn?.username})의 구독 등급이 {String(conn?.capabilities.subscription_type || 'None')}이라 장문 게시를 쓸 수 없어요.
+            {t.long_post_enabled && ' 지금 켜져 있으면 게시가 거부될 수 있으니 끄는 것을 권해요.'}
+          </p>
+        )}
         <p className={styles.muted}>
           장문 게시는 X 계정 등급과 API 권한이 모두 허용할 때만 돼요. 웹에서 길게 써진다고 API로도 된다는 보장은 없어요. 확인되지 않았으면 끄고 쓰세요.
         </p>

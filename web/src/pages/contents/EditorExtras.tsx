@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CalendarPlus, ImagePlus, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarPlus, ImagePlus, Send, X } from 'lucide-react';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { ApiError, errorMessage, get, put } from '../../api/client';
@@ -7,6 +7,7 @@ import type { MediaAsset } from '../../api/media';
 import type { ContentDetail, ImageMode, PartMedia } from '../../api/types';
 import { MediaDetailSheet } from '../../components/media/MediaParts';
 import { MediaPicker } from '../../components/media/MediaPicker';
+import { PostNowSheet } from '../../components/publish/PostNowSheet';
 import { Button } from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { Select } from '../../components/ui/Field';
@@ -177,7 +178,10 @@ function swap<T>(arr: T[], a: number, b: number): T[] {
 function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChanged: (d: ContentDetail) => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [postNow, setPostNow] = useState(false);
   if (content.archived_at) return null;
+  const inFlight = content.last_run_state === 'pending' || content.last_run_state === 'running';
+  const needsCheck = content.last_run_state === 'partial' || content.last_run_state === 'unknown' || content.last_run_state === 'failed';
   async function place() {
     setBusy(true);
     try {
@@ -196,18 +200,38 @@ function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChange
       <CardTitle action={content.reservation_at ? <Link className={styles.link} to={`/schedule?date=${localDate(new Date(content.reservation_at))}`}>예약 보기</Link> : undefined}>
         예약
       </CardTitle>
-      {content.reservation_at ? (
-        <p className={styles.muted}>
-          <strong>{formatDateTime(content.reservation_at)}</strong>에 게시 예정이에요. 시간·순서는 예약 화면에서 바꿔요.
-        </p>
-      ) : (
-        <div className={styles.stack}>
-          <p className={styles.muted}>아직 예약되지 않았어요. 준비 완료된 글은 빈 예약에 자동으로 들어가요.</p>
-          <Button variant="secondary" icon={<CalendarPlus size={16} />} busy={busy} onClick={place}>
-            다음 빈 예약에 넣기
+      <div className={styles.stack}>
+        {inFlight || needsCheck ? (
+          <p className={styles.muted}>
+            {inFlight ? '지금 게시 중이에요.' : '지난 게시에 확인이 필요한 부분이 있어요.'} <Link className={styles.link} to="/publish">게시 화면</Link>에서 진행·결과를 확인하세요.
+          </p>
+        ) : content.reservation_at ? (
+          <p className={styles.muted}>
+            <strong>{formatDateTime(content.reservation_at)}</strong>에 게시 예정이에요. 시간·순서는 예약 화면에서 바꿔요.
+          </p>
+        ) : (
+          <>
+            <p className={styles.muted}>아직 예약되지 않았어요. 준비 완료된 글은 빈 예약에 자동으로 들어가요.</p>
+            <Button variant="secondary" icon={<CalendarPlus size={16} />} busy={busy} onClick={place}>
+              다음 빈 예약에 넣기
+            </Button>
+          </>
+        )}
+        {!inFlight && !needsCheck && (
+          <Button variant="soft" icon={<Send size={16} />} disabled={!content.revision.publishable} onClick={() => setPostNow(true)}>
+            지금 게시
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+      <PostNowSheet
+        open={postNow}
+        onClose={() => {
+          setPostNow(false);
+          void get<ContentDetail>(`/api/contents/${content.id}`).then(onChanged, () => undefined);
+        }}
+        contentId={content.id}
+        parts={content.revision.parts.length}
+      />
     </Card>
   );
 }

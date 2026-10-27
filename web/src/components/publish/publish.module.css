@@ -1,0 +1,36 @@
+.mock {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--fs-small);
+  margin-bottom: var(--space-3);
+}
+.warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.warnings li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--warning);
+  font-size: var(--fs-small);
+}
+.warnings svg {
+  flex: none;
+  margin-top: 2px;
+}
+.muted {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.muted a {
+  color: var(--primary-text);
+  text-decoration: underline;
+}

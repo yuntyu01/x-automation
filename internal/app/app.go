@@ -16,6 +16,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/config"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
 	"github.com/yuntyu01/x-automation/internal/integration/storage"
+	"github.com/yuntyu01/x-automation/internal/integration/xapi"
 	"github.com/yuntyu01/x-automation/internal/randx"
 	"github.com/yuntyu01/x-automation/internal/store"
 	"github.com/yuntyu01/x-automation/internal/web"
@@ -26,6 +27,8 @@ import (
 type Deps struct {
 	Clock clock.Clock
 	Rand  randx.Source
+	// XClient는 테스트에서 가짜 X 서버에 붙인 클라이언트를 넣을 때 쓴다. 비우면 설정으로 고른다.
+	XClient xapi.Client
 }
 
 type App struct {

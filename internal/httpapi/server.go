@@ -15,6 +15,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
+	"github.com/yuntyu01/x-automation/internal/publish"
 	"github.com/yuntyu01/x-automation/internal/schedule"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
@@ -39,6 +40,8 @@ type Server struct {
 	Planner       *generation.Planner
 	Budget        *budget.Service
 	Schedule      *schedule.Service
+	XConn         *connection.Service
+	Publish       *publish.Service
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }
@@ -66,6 +69,8 @@ func (s *Server) Routes() http.Handler {
 	public := http.NewServeMux()
 	public.HandleFunc("POST /api/auth/login", s.handleLogin)
 	public.HandleFunc("GET /api/auth/session", s.handleSession)
+	// X 인가 콜백은 브라우저 이동으로 들어온다: JSON 401 대신 화면으로 돌려보내려고 세션을 직접 확인한다
+	public.HandleFunc("GET /api/x/oauth/callback", s.handleXCallback)
 
 	protected := http.NewServeMux()
 	protected.HandleFunc("POST /api/auth/logout", s.handleLogout)
@@ -79,6 +84,7 @@ func (s *Server) Routes() http.Handler {
 	s.mountMedia(protected)
 	s.mountGeneration(protected)
 	s.mountSchedule(protected)
+	s.mountPublish(protected)
 	for _, fn := range s.extra {
 		fn(protected)
 	}

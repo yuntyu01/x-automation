@@ -245,3 +245,9 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.blocked {
+  display: block;
+  color: var(--warning);
+  font-size: var(--fs-caption);
+  margin-top: 2px;
+}

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -18,11 +19,14 @@ import (
 	"github.com/yuntyu01/x-automation/internal/httpapi"
 	"github.com/yuntyu01/x-automation/internal/integration/ai"
 	"github.com/yuntyu01/x-automation/internal/integration/storage"
+	"github.com/yuntyu01/x-automation/internal/integration/xapi"
 	"github.com/yuntyu01/x-automation/internal/jobs"
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
+	"github.com/yuntyu01/x-automation/internal/publish"
 	"github.com/yuntyu01/x-automation/internal/schedule"
+	"github.com/yuntyu01/x-automation/internal/secretbox"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
 
@@ -44,6 +48,8 @@ type services struct {
 	generation    *generation.Service
 	planner       *generation.Planner
 	schedule      *schedule.Service
+	xconn         *connection.Service
+	publish       *publish.Service
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -77,7 +83,46 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 	s.planner = generation.NewPlanner(pool, a.deps.Clock, setRepo, s.generation, s.notifications, a.log)
 	s.schedule = schedule.NewService(pool, a.deps.Clock, a.deps.Rand, setRepo, s.notifications)
 	s.generation.SetAssigner(s.schedule) // 예약에 묶인 생성·"생성 후 빈 예약에 배치"
+	s.xconn = connection.NewService(pool, a.newXClient(), a.tokenBox(), a.deps.Clock, s.notifications)
+	s.publish = publish.NewService(publish.Deps{Pool: pool, Clock: a.deps.Clock, Queue: s.queue, Conn: s.xconn, Settings: setRepo,
+		Schedule: s.schedule, Media: s.media, Budget: s.budget, Notify: s.notifications, Log: a.log,
+		Gates: publish.Gates{Live: a.cfg.IntegrationMode == config.ModeLive, PublishingEnabled: a.cfg.PublishingEnabled}})
 	return s
+}
+
+// newXClient는 X 클라이언트를 고른다. 목업은 네트워크 없는 메모리 대역(실제 게시 아님), 실제 연동은 X API v2.
+func (a *App) newXClient() xapi.Client {
+	if a.deps.XClient != nil {
+		return a.deps.XClient
+	}
+	redirect := a.cfg.X.RedirectURI
+	if a.cfg.IntegrationMode == config.ModeMock {
+		if redirect == "" && a.cfg.BaseURL != nil {
+			redirect = a.cfg.BaseURL.String() + "/api/x/oauth/callback"
+		}
+		return &xapi.Memory{RedirectURI: redirect}
+	}
+	if !a.cfg.X.Configured() {
+		return xapi.Unconfigured{}
+	}
+	return xapi.NewHTTP(xapi.HTTPConfig{ClientID: a.cfg.X.ClientID, ClientSecret: a.cfg.X.ClientSecret, RedirectURI: redirect,
+		APIBase: a.cfg.X.APIBaseURL, AuthorizeURL: a.cfg.X.AuthorizeURL, TokenURL: a.cfg.X.TokenURL})
+}
+
+// tokenBox는 X 토큰 암호화 상자다. 테스트 환경에서 키가 없으면 실행마다 새 키를 쓴다 (저장한 토큰은 그 실행에서만 유효).
+func (a *App) tokenBox() *secretbox.Box {
+	key := a.cfg.TokenKey
+	if len(key) != 32 {
+		key = make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			panic(err)
+		}
+	}
+	box, err := secretbox.New(key)
+	if err != nil {
+		panic(err) // 설정 검증에서 32바이트를 확인한다
+	}
+	return box
 }
 
 // newAIProvider는 AI 공급자를 고른다. 목업은 결정적 대역, 실제 연동은 OpenAI(키가 없으면 설정 오류를 돌려주는 대역).
@@ -144,6 +189,8 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Planner:       svc.planner,
 		Budget:        svc.budget,
 		Schedule:      svc.schedule,
+		XConn:         svc.xconn,
+		Publish:       svc.publish,
 	}
 	return srv.Routes()
 }
@@ -172,7 +219,23 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 		}
 		return svc.planner.Tick(ctx)
 	})
-	// lease가 끝난 작업 정리: 생성은 다시 해도 외부 중복이 없어 다시 대기시킨다 (게시 작업은 10단계에서 결과 확인 필요로 분류)
+	// 게시는 계정 하나에 한 묶음씩: 동시성 1. 여러 인스턴스가 떠도 DB 고유 색인이 활성 실행을 하나로 막는다
+	pw := &jobs.Worker{Queue: svc.queue, Concurrency: 1, Lease: 2 * time.Minute, Poll: 5 * time.Second, Log: a.log,
+		Handlers: map[string]jobs.Handler{publish.JobKind: svc.publish.HandleRun}}
+	svc.publish.SetKick(pw.Kick)
+	a.workersWG.Add(1)
+	go func() {
+		defer a.workersWG.Done()
+		pw.Run(ctx)
+	}()
+	a.every(ctx, "publish-dispatch", 20*time.Second, func(ctx context.Context) error {
+		if _, err := svc.publish.Reconcile(ctx); err != nil {
+			return err
+		}
+		_, err := svc.publish.Dispatch(ctx)
+		return err
+	})
+	// lease가 끝난 작업 정리
 	a.every(ctx, "jobs-recover", time.Minute, func(ctx context.Context) error {
 		_, _, err := svc.queue.RecoverExpired(ctx, recoverPolicy)
 		if err != nil {
@@ -183,8 +246,10 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 	})
 }
 
+// recoverPolicy: 생성은 다시 해도 외부 중복이 없어 다시 대기시킨다.
+// 게시 작업도 다시 대기시킨다: 핸들러가 'sending'으로 남은 부분을 결과 불명확으로 바꾸고 다시 보내지 않는다.
 func recoverPolicy(kind string) jobs.RecoverPolicy {
-	if kind == generation.JobKind {
+	if kind == generation.JobKind || kind == publish.JobKind {
 		return jobs.RecoverRequeue
 	}
 	return jobs.RecoverUnknown

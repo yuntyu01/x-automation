@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, CalendarArrowUp, Clock, ExternalLink, FilePlus2, Pin, PinOff, SkipForward, StepForward, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, CalendarArrowUp, Clock, ExternalLink, FilePlus2, Pin, PinOff, Send, SkipForward, StepForward, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { errorMessage } from '../../api/client';
@@ -65,7 +65,27 @@ export function ReservationSheet({ item, day, onClose }: { item: ReservationItem
         description={`${item.title ?? '빈 예약'} · ${b.label}${item.delay_note ? ` · ${item.delay_note}` : ''}`}
       >
         {!editable && <p className={styles.muted}>이미 게시 중이거나 끝난 예약이라 바꿀 수 없어요.</p>}
+        {item.block_reason && editable && (
+          <p className={styles.blocked} role="note">
+            시작하지 못한 이유: {item.block_reason}
+          </p>
+        )}
+        {item.run_note && <p className={styles.muted}>{item.run_note}</p>}
         <RowGroup>
+          {item.post_url && (
+            <Row
+              icon={<ExternalLink size={20} />}
+              label="X에서 본문 보기"
+              onClick={() => window.open(item.post_url!, '_blank', 'noopener,noreferrer')}
+            />
+          )}
+          {item.run_id && (
+            <Row
+              icon={<Send size={20} />}
+              label={item.state === 'partial' || item.state === 'unknown' || item.state === 'failed' ? '게시 결과 확인·처리' : '게시 기록 보기'}
+              onClick={() => nav('/publish')}
+            />
+          )}
           {editable && (
             <Row icon={<FilePlus2 size={20} />} label={item.content_id ? '다른 글로 바꾸기' : '글 고르기'} description="준비 안 된 글은 준비될 때까지 대기해요" onClick={() => setPicker(true)} />
           )}

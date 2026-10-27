@@ -293,6 +293,10 @@ type Item struct {
 	ImageCount       int        `json:"image_count"`
 	UnapprovedChange bool       `json:"unapproved_change"` // 승인 뒤 고친 내용이 있어 승인본으로 게시한다
 	Window           string     `json:"window"`
+	BlockReason      *string    `json:"block_reason"` // 시각이 됐지만 게시를 시작하지 못한 이유 (실게시 꺼짐·연결 필요 등)
+	RunID            *string    `json:"run_id"`       // 가장 최근 게시 실행
+	RunNote          *string    `json:"run_note"`
+	PostURL          *string    `json:"post_url"` // 본문 X 주소
 }
 
 type DayView struct {
@@ -338,8 +342,12 @@ func (s *Service) List(ctx context.Context, from string, days int) ([]DayView, e
 		r.content_id, c.title, left(rv.raw_text, 140), o.stage,
 		(SELECT count(*) FROM thread_parts tp WHERE tp.revision_id = r.revision_id),
 		(SELECT count(*) FROM part_media pm WHERE pm.revision_id = r.revision_id),
-		COALESCE(c.approved_revision_id IS NOT NULL AND c.current_revision_id <> c.approved_revision_id, false)
+		COALESCE(c.approved_revision_id IS NOT NULL AND c.current_revision_id <> c.approved_revision_id, false),
+		r.block_reason, lr.id, lr.note, lr.x_url
 		FROM reservations r
+		LEFT JOIN LATERAL (SELECT pr.id, pr.note, pp.x_url FROM publish_runs pr
+			LEFT JOIN publish_parts pp ON pp.run_id = pr.id AND pp.position = 0
+			WHERE pr.reservation_id = r.id ORDER BY pr.created_at DESC LIMIT 1) lr ON true
 		LEFT JOIN contents c ON c.id = r.content_id
 		LEFT JOIN content_overview o ON o.id = r.content_id
 		LEFT JOIN content_revisions rv ON rv.id = COALESCE(r.revision_id, c.current_revision_id)
@@ -355,7 +363,7 @@ func (s *Service) List(ctx context.Context, from string, days int) ([]DayView, e
 		var it Item
 		if err := rows.Scan(&it.ID, &it.SlotAt, &it.OriginalSlotAt, &it.JitterSec, &it.LocalDate, &it.Pinned, &it.Manual, &it.State, &it.WaitReason,
 			&it.DelayNote, &it.GenerationDueAt, &it.Generating, &it.ContentID, &it.Title, &it.Preview, &it.Stage, &it.PartCount, &it.ImageCount,
-			&it.UnapprovedChange); err != nil {
+			&it.UnapprovedChange, &it.BlockReason, &it.RunID, &it.RunNote, &it.PostURL); err != nil {
 			return nil, err
 		}
 		for _, iv := range ivs {

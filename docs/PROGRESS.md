@@ -14,8 +14,8 @@
 | 06 | R2·이미지 관리 | 완료 | 92caaa8 |
 | 07 | AI 생성·세 가지 생성 정책 | 완료 | 38ae3f0 |
 | 08 | 길이 검증·분할·타래 미리보기 | 완료 | 0ef9881 |
-| 09 | 시간표·예약·랜덤 추가 지연 | 완료 | (보고에 기록) |
-| 10 | X 연결·본문과 답글 게시·복구 | 대기 | |
+| 09 | 시간표·예약·랜덤 추가 지연 | 완료 | 86bf8e8 |
+| 10 | X 연결·본문과 답글 게시·복구 | 완료 | (보고에 기록) |
 | 11 | 비용 제어·내부 알림·운영 홈 | 대기 | |
 | 12 | 게시 후 14일 정리·재배포 내구성 | 대기 | |
 | 13 | 전체 사용자 흐름·모바일 품질 검증 | 대기 | |
@@ -30,21 +30,21 @@
 | A01 | 지정 관리자만 로그인, 미인증 API 차단 | `internal/auth`, `internal/httpapi/server.go`(requireAuth), `web/src/auth` | `internal/app/auth_test.go`(미인증 401·CSRF·출처·만료·시도 제한·XFF 우회 불가·로그아웃), 브라우저 로그인 후 원래 경로 복귀 | 진행 (기능 API 추가 시 계속 확인) |
 | A02 | Go 한 서버에서 웹·API, 깊은 링크 새로고침 | `internal/web` | `internal/web/embed_test.go` (깊은 링크→index, 없는 자산 404) | 진행 |
 | A03 | 프롬프트·직접 작성·CSV/JSON·자동 저장·검색 | `internal/content`, `internal/prompt`, `web/src/pages/contents/*`, `web/src/pages/prompts/*` | `content_test.go`(자동 저장·충돌·검색·LIKE 이스케이프·가져오기/내보내기 왕복·수식 방어), `prompt_test.go`(버전·변수 검증·렌더), `app/content_test.go`(API), 브라우저 흐름(등록→편집→자동 저장→새로고침 유지→검색→가져오기→보관→프롬프트 v2) | 완료 |
-| A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 진행 (게시 경로는 10단계) |
+| A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 완료 (게시 경로: 검토 모드는 승인본만, 실게시 스위치·자동 운영·일시정지·연결 게이트) |
 | A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 진행 (예약 생성은 09단계) |
 | A06 | 20묶음과 실제 게시물 수 구분 | | | 대기 |
 | A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`(twittertext.go·url.go·twittertext_gen.go·split.go), `web/src/lib/thread.ts`, `web/scripts/gen-thread-data.mjs`, `/settings/thread` | `conformance_test.go`(공식 적합성 사례 v2·v3·방향 문자·URL 추출 전부, 라이브러리 golden 180문장·이모지 1,247×5 일치, 단위 합=전체 판정), `split_property_test.go`(무작위 150개×모드×번호: 누락·중복 없음, 부분 ≤280, URL·이모지 비분할), `thread_test.go`, `bench_test.go`(긴·악의적 입력 성능), `content_test.go`(장문 설정 변경 시 미고정 글만 재분할), Vitest(공식 라이브러리=golden, 앱 measure=적합성) | 완료 |
 | A08 | 새벽·낮 복수 구간, 30분 + 추가 지연, 시간표 영속화 | `internal/schedule`(timeline.go·core.go·plan.go·manual.go), `migrations/0004_schedule.sql`, `web/src/pages/schedule` | `timeline_test.go`(12:00→12:33→13:04→13:39, 간격 30~35분, 구간 경계·끝 여유, 자정 넘김·실제 날짜 상한, 겹친 구간 합치기), `service_test.go`(미리 만들기·재시작해도 시각·지연 불변, 미리보기=적용), `app/schedule_test.go` | 완료 |
-| A09 | 시간 부족·자정·고정 예약·미준비·다운타임 | `internal/schedule`(Generate·CloseOverdue·AfterBodyStart·Pin·AddException·SaveRules) | `timeline_test.go`(억지로 채우지 않음·고정 예약과 간격·쉬는 날), `service_test.go`(부족 수 보고, 다운타임 후 지난 예약 닫고 글은 다음 빈 예약으로·알림 1건, 늦은 게시 뒤 저장된 지연으로 뒤 예약 늦춤, 고정 예약은 재배치에서 유지, 쉬는 날 추가·해제) | 진행 (게시 시점 확인은 10단계) |
-| A10 | 미승인·승인 후 변경분 게시 차단 | `internal/content`(frozen revision, 승인 revision 단위), `content_overview.stage` | `TestApprovalIsInvalidatedByEdit`, 브라우저 승인 후 편집 확인 | 진행 (10단계 게시 시 revision 검사) |
+| A09 | 시간 부족·자정·고정 예약·미준비·다운타임 | `internal/schedule`(Generate·CloseOverdue·AfterBodyStart·Pin·AddException·SaveRules) | `timeline_test.go`(억지로 채우지 않음·고정 예약과 간격·쉬는 날), `service_test.go`(부족 수 보고, 다운타임 후 지난 예약 닫고 글은 다음 빈 예약으로·알림 1건, 늦은 게시 뒤 저장된 지연으로 뒤 예약 늦춤, 고정 예약은 재배치에서 유지, 쉬는 날 추가·해제) | 완료 (게시 직전·답글마다 허용 구간 확인, 구간 밖 답글은 다음 구간으로) |
+| A10 | 미승인·승인 후 변경분 게시 차단 | `internal/content`(frozen revision, 승인 revision 단위), `content_overview.stage` | `TestApprovalIsInvalidatedByEdit`, 브라우저 승인 후 편집 확인 | 완료 (게시 직전 승인 revision·현재 한도 재검사, 게시 revision 고정) |
 | A11 | AI 이미지·업로드·재사용·부분별 첨부, R2 공개/관리 구분 | `internal/integration/storage`(R2·로컬), `internal/media`, `internal/content/media.go`, `web/src/pages/images`, `components/media` | `storage_test.go`(가짜 S3로 R2 어댑터·접두사 밖 미노출), `media_test.go`(검사·EXIF 제거·회전·축소·중복·자르기·삭제·연결·고아), `app/media_test.go`(공개 조회 무인증·관리 API 인증·디렉터리 차단), 브라우저 업로드→자르기→부분 연결→순서·이동 | 진행 (AI 이미지는 07단계) |
-| A12 | 답글부터 재개, 불명확 전송 재게시 차단 | | | 대기 |
-| A13 | 워커 2개·즉시 게시·취소 경쟁 | | | 대기 |
+| A12 | 답글부터 재개, 불명확 전송 재게시 차단 | `internal/publish`(publish.go·recovery.go), `internal/integration/xapi`(http.go 분류), `migrations/0005_publish.sql`, `web/src/pages/publish` | `publish_test.go`(가짜 X: 본문 성공→답글 403→재시작→답글만 재개·in_reply_to=본문 ID, 전송 후 시간 초과→unknown·재시작·디스패치·작업 정리 후에도 재전송 없음·중대 알림·확인 없는 재시도 경고·주소로 정리 후 남은 답글만, 의도 기록 직후 죽음→unknown→안 올라감 확인 후 재전송, 그만두기 시 자동 배치 제외), 브라우저 게시 기록 화면 | 완료 |
+| A13 | 워커 2개·즉시 게시·취소 경쟁 | 활성 실행 고유 색인(전체 1개·예약당 1개), 예약 상태 비교·교체, 작업 lease·소유권 확인 | `publish_test.go`(디스패치 6개 동시→활성 실행 1개, 게시 중 글 지금 게시 거부, 워커 2개 동시 처리→본문마다 1번, 건너뛰기 vs 디스패치 경쟁 5회 — 한쪽만 이김), `app/publish_test.go`(API 흐름) | 완료 |
 | A14 | 앱 내부 알림 | `internal/notification`, `web/src/pages/NotificationsPage.tsx`, 상단·사이드 알림 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·모두 읽음) | 진행 (알림 발생원은 07·10·11·12단계) |
 | A15 | 사용량 추정·예산 한도·동시 예약 | `internal/budget`(Reserve·Record·Settle·ReleaseStale·Summary), 생성 작업의 실행 전 예약 | `budget_test.go`(동시 12건 중 정확히 10건 통과, 같은 키 재예약, 생성만 중지 정책, 같은 사용 1번 기록, 기본 요율 '미확인'), `generation_test.go`(한도 초과 시 외부 호출 없이 실패) | 진행 (화면·게시 비용은 11단계) |
 | A16 | 게시 후 14일 정리·참조 보호 | | | 대기 |
 | A17 | 라이트·다크 모바일 흐름·접근성 | `web/src/styles/tokens.css`, `components/layout/AppShell.tsx`, `components/ui/*`, `docs/DESIGN.md` | 4개 폭×2테마 레이아웃 점검, 키보드·시트 포커스 점검 | 진행 (13단계 전체 흐름) |
-| A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 | 진행 |
+| A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 · 게시 중 재시작 시 보내던 부분은 불명확·남은 답글만 재개(`publish_test.go`) | 진행 |
 | A19 | Docker·ARM64·CI·환경변수·KoDeploy 문서 | | | 대기 |
 | A20 | 14단계 결과·main 커밋·푸시·정직한 보고 | | | 대기 |
 
@@ -171,3 +171,16 @@
 - "지금 게시"(수동 예외)는 실제 게시가 붙는 10단계에서 화면과 함께 만든다 (게시 없이 버튼만 두지 않음)
 - 검증: `make lint`·`make test` 통과(Go: 시간 계산 6·서비스 9·API 흐름 1, Vitest 12). 브라우저(390px): 내일 20/20 예약 타임라인, 예약에 글 넣기 → 구간 밖 시간 지정 경고 → 그래도 고정 → "구간 밖" 그룹, 주간 보기, 하루 12개로 미리보기 → 적용 → 12/12 확인 → 20으로 복구, 이날 쉬기 → 해제, 콘텐츠 2개 선택 → 빈 시간에 배치. 360·768·1440 라이트·다크 가로 넘침 0, 콘솔 오류 0
 - 다음: 10 X 연결·본문과 답글 게시·복구
+
+### 10 X 연결·본문과 답글 게시·복구 — 완료
+
+- X 연결(`internal/connection`, `/api/x/*`): OAuth 2.0 + PKCE(S256), state·verifier 암호화 저장·로그인 세션에 묶음·10분·1회용, 콜백은 세션을 직접 확인해 연결 화면으로 결과만 전달(코드·토큰 미노출), 필요한 권한 확인(빠지면 오류 상태, media.write 없으면 이미지 게시 불가 안내), 구독 등급·장문 가능 여부·이미지 업로드 가능 여부 저장, 다른 계정으로 덮어쓰기 방지, 연결 확인·해제(X에 해제 요청 후 토큰 삭제)
+- 토큰: AES-GCM 암호화 저장, 1회용 갱신 토큰을 잠금으로 직렬화해 새 토큰 즉시 저장, 갱신 거부 시 `expired` + 중대 알림, 게시 중 401은 한 번 갱신 후 재전송
+- X 클라이언트(`internal/integration/xapi`): 실제 HTTP(`http.go` — 토큰·해제·me·미디어 업로드·게시, 오류 분류: 연결 실패 재시도·보낸 뒤 끊김/게시 5xx 불명확·429 대기·401 갱신·403/400 실패), 목업 메모리 대역(`memory.go`, 네트워크 없음), 테스트용 가짜 X 서버(`xfake` — 1회용 갱신 토큰·모르는 필드 거부·답글 대상 확인·주입 가능한 403/429/5xx·응답 지연), 실제 연동 모드에 X 값이 없으면 설정 오류만 돌려주는 대역
+- 게시(`internal/publish`): 예약 시각이 된 준비 완료 예약을 20초마다 실행으로 넘김(지연 허용 10분), 게이트(실게시 스위치·자동 운영·일시정지·연결)·허용 구간·본문 간격 확인 후 막히면 예약에 이유 표시, 게시 직전 승인 revision·현재 한도 재검사, 부분·이미지 사본과 revision 고정, 전체 비용 예약. 부분마다 게이트·구간·소유권 확인 → 이미지 업로드 → 전송 의도 기록 → 게시 → 성공 ID 즉시 저장, 답글 간격·구간 밖 답글은 다음 구간 시작까지 대기, 본문 시작 시 뒤 예약 간격 조정, AI 이미지 부분에 `made_with_ai`
+- 복구: 실패한 답글부터 재시도(본문 재게시 없음), 결과 불명확은 X에서 확인한 주소·ID로 정리하거나 "안 올라감" 확인 후 그 부분부터, 확인 없는 재전송은 중복 위험 확인 필수, 그만두기(남은 부분 미전송·자동 배치 제외·본문이 올라갔으면 '게시됨'으로 집계), 작업이 끝났는데 진행 중으로 남은 실행 정리, 불명확 사용량은 보수적으로 추정 비용 기록 후 확인 결과로 확정·삭제
+- "지금 게시": 게이트 확인, 허용 구간 밖·직전 게시와 간격 부족·하루 목표 초과면 경고 후 확인, 같은 글의 다른 예약에서 빼고 수동 예외 예약으로 기록
+- 화면: 연결(X 계정 연결·다시 연결·연결 확인·해제 확인 시트, 계정·구독 등급·장문·이미지 업로드·빠진 권한), 게시 기록(`/publish` — 확인 필요·진행 중·최근, 부분별 상태·X 링크·오류·다음 시도 시각, 올라가 있어요(주소 입력)·안 올라갔어요·실패한 답글부터 다시·확인 없이 다시 보내기·그만두기), 편집기 "지금 게시"(확인 시트 → 경고 시 한 번 더 확인, 목업 표시), 예약 카드·시트에 시작 못 한 이유·실행 메모·X 본문 링크·게시 기록 이동, 글 길이 설정에서 None 등급이면 장문 켜기 막음, 생성 설정에 AI 생성 표시 스위치
+- 실제 X 공개 게시는 하지 않았다. 게시 경로는 실제 HTTP 클라이언트 + 가짜 X 서버로 검증했고, 브라우저 확인은 목업 메모리 대역이다 (목업 성공 ≠ 실제 게시 성공)
+- 검증: `make lint`(vet·staticcheck·tsc·eslint) 통과, Go 전체 테스트 통과(게시 10개 — 위 A12·A13, 게이트 차단·일시정지 시 취소 후 예약 복귀·구간 밖 답글 대기·토큰 갱신·만료·OAuth state 세션 결속·1회용·만료·토큰 평문 미저장·주소 파싱, API 흐름 1개 — 목업 연결·콜백 세션 확인·지금 게시·간격 경고·해제), Vitest 12. 브라우저(390px, 목업): X 계정 연결 → 연결됨 표시 → 글 지금 게시(간격 경고 → 그래도 게시) → 게시 기록에 본문·답글 2개 올라감·X 링크, 장문 막힘 안내, 320px 가로 넘침 0·다크 모드, 콘솔 오류 0
+- 다음: 11 비용 제어·내부 알림·운영 홈
