@@ -7,13 +7,15 @@ export class ApiError extends Error {
   readonly code: string;
   readonly fields: FieldErrors;
   readonly requestId?: string;
+  readonly body?: unknown; // 충돌 시 서버의 현재 상태 등 추가 정보
 
-  constructor(status: number, code: string, message: string, fields: FieldErrors = {}, requestId?: string) {
+  constructor(status: number, code: string, message: string, fields: FieldErrors = {}, requestId?: string, body?: unknown) {
     super(message);
     this.status = status;
     this.code = code;
     this.fields = fields;
     this.requestId = requestId;
+    this.body = body;
   }
 }
 
@@ -79,6 +81,7 @@ export async function api<T>(method: Method, path: string, opts: RequestOptions 
       err?.message ?? '요청을 처리하지 못했습니다',
       err?.fields ?? {},
       err?.request_id,
+      data,
     );
   }
   return data as T;

@@ -9,10 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yuntyu01/x-automation/internal/auth"
-	"github.com/yuntyu01/x-automation/internal/connection"
-	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/config"
+	"github.com/yuntyu01/x-automation/internal/connection"
+	"github.com/yuntyu01/x-automation/internal/content"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
+	"github.com/yuntyu01/x-automation/internal/notification"
+	"github.com/yuntyu01/x-automation/internal/prompt"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
 
@@ -25,17 +27,26 @@ type services struct {
 	settings      *settings.Repo
 	notifications *notification.Service
 	connections   *connection.Repo
+	contents      *content.Service
+	prompts       *prompt.Service
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
-	return &services{
+	s := &services{
 		auth: auth.NewService(pool, auth.Config{
 			Username: a.cfg.AdminUsername, PasswordHash: a.cfg.AdminPasswordHash, TTL: a.cfg.SessionTTL,
 		}, a.deps.Clock),
 		settings:      settings.NewRepo(pool),
 		notifications: notification.NewService(pool),
 		connections:   connection.NewRepo(pool),
+		prompts:       prompt.NewService(pool),
 	}
+	setRepo := settings.NewRepo(pool)
+	s.contents = content.NewService(pool, a.deps.Clock, func(ctx context.Context) bool {
+		st, err := setRepo.Get(ctx)
+		return err == nil && st.Policy.Thread.LongPostEnabled
+	})
+	return s
 }
 
 // buildAPI는 /api/ 아래 라우트를 구성한다.
@@ -56,6 +67,8 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Notifications: svc.notifications,
 		Connections:   svc.connections,
 		Integrations:  a.integrationStatus,
+		Contents:      svc.contents,
+		Prompts:       svc.prompts,
 	}
 	return srv.Routes()
 }

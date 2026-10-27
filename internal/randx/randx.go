@@ -27,7 +27,9 @@ type Seeded struct {
 	r  *rand.Rand
 }
 
-func NewSeeded(seed uint64) *Seeded { return &Seeded{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))} }
+func NewSeeded(seed uint64) *Seeded {
+	return &Seeded{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
+}
 
 func (s *Seeded) IntN(n int) int {
 	if n <= 0 {

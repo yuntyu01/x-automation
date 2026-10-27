@@ -1,0 +1,119 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.templates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.templates a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  font-weight: 600;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: center;
+}
+.drop:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+}
+.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-small);
+}
+.muted {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.parts {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.parts legend {
+  font-weight: 600;
+  font-size: var(--fs-small);
+  padding: 0 4px;
+}
+.partOpt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+}
+.partOpt input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
+.order {
+  margin-left: auto;
+  font-size: var(--fs-caption);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.bad {
+  background: var(--danger-soft);
+}
+.ok {
+  color: var(--success);
+  flex: none;
+  margin-top: 2px;
+}
+.badIcon {
+  color: var(--danger);
+  flex: none;
+  margin-top: 2px;
+}
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rowTitle {
+  font-weight: 600;
+}
+.errText {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}

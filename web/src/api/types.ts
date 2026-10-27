@@ -102,3 +102,205 @@ export const MODE_LABEL: Record<OperationMode, string> = {
   review: '검토 후 게시',
   publish_only: '게시만 자동',
 };
+
+// ── 콘텐츠 ────────────────────────────────────────────────────────────
+export type Stage = 'draft' | 'review' | 'ready' | 'scheduled' | 'published' | 'problem' | 'archived';
+export type SplitMode = 'two_parts' | 'overflow' | 'manual';
+export type ImageMode = 'none' | 'upload' | 'ai';
+
+export const STAGE_LABEL: Record<Stage, string> = {
+  draft: '작성 중',
+  review: '검토 대기',
+  ready: '준비 완료',
+  scheduled: '예약',
+  published: '게시 완료',
+  problem: '문제 발생',
+  archived: '보관됨',
+};
+
+export const SPLIT_LABEL: Record<SplitMode, string> = {
+  two_parts: '본문 + 답글 1개',
+  overflow: '넘칠 때만 답글',
+  manual: '직접 나누기',
+};
+
+export interface ThreadPart {
+  index: number;
+  text: string;
+  weighted_length: number;
+  valid: boolean;
+  problem?: string;
+}
+
+export interface SplitResult {
+  parts: ThreadPart[];
+  mode: SplitMode;
+  limit: number;
+  requested_replies: number;
+  replies: number;
+  note: string;
+  publishable: boolean;
+  problems: string[];
+  has_url: boolean;
+  post_count: number;
+}
+
+export interface SplitOptions {
+  numbering: boolean;
+  max_replies: number;
+}
+
+export interface PartMedia {
+  part_index: number;
+  position: number;
+  media_id: string;
+  url?: string;
+  thumb_url?: string;
+  alt_text: string;
+  state: string;
+}
+
+export interface Revision {
+  id: string;
+  content_id: string;
+  number: number;
+  raw_text: string;
+  split_mode: SplitMode;
+  split_options: SplitOptions;
+  image_mode: ImageMode;
+  origin: 'user' | 'ai' | 'import' | 'restore';
+  prompt_id: string | null;
+  prompt_version: number | null;
+  model: string | null;
+  review_state: 'unreviewed' | 'pending' | 'approved' | 'rejected';
+  approved_at: string | null;
+  frozen_at: string | null;
+  validation: { note: string; problems: string[]; replies: number; requested_replies: number; post_count: number; has_url: boolean; limit: number };
+  publishable: boolean;
+  created_at: string;
+  updated_at: string;
+  parts: ThreadPart[];
+  media: PartMedia[];
+}
+
+export interface ContentDetail {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  source: 'manual' | 'ai' | 'import';
+  is_demo: boolean;
+  current_revision_id: string;
+  approved_revision_id: string | null;
+  generation_state: string;
+  generation_error: string | null;
+  archived_at: string | null;
+  edit_version: number;
+  created_at: string;
+  updated_at: string;
+  stage: Stage;
+  revision: Revision;
+  approved_number: number | null;
+  revision_count: number;
+  reservation_id: string | null;
+  reservation_at: string | null;
+  reservation_revision_id: string | null;
+  last_run_state: string | null;
+}
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  source: string;
+  is_demo: boolean;
+  stage: Stage;
+  preview: string;
+  part_count: number;
+  image_mode: ImageMode;
+  review_state: string;
+  publishable: boolean;
+  problems: string[];
+  generation_state: string;
+  reservation_at: string | null;
+  reservation_state: string | null;
+  wait_reason: string | null;
+  last_run_state: string | null;
+  last_published_at: string | null;
+  revision_number: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentPage {
+  items: ContentItem[];
+  total: number;
+  counts: Record<string, number>;
+  limit: number;
+  offset: number;
+}
+
+export interface RevisionSummary {
+  id: string;
+  number: number;
+  origin: string;
+  review_state: string;
+  approved_at: string | null;
+  frozen_at: string | null;
+  publishable: boolean;
+  preview: string;
+  created_at: string;
+  updated_at: string;
+  published: boolean;
+}
+
+export interface BulkResult {
+  updated: number;
+  skipped: Record<string, string>;
+}
+
+// ── 프롬프트 ──────────────────────────────────────────────────────────
+export interface PromptVariable {
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'select' | 'number';
+  options?: string[];
+  required: boolean;
+  default: string;
+  max?: number;
+  min?: number;
+  help?: string;
+}
+
+export interface PromptDefaults {
+  model: string;
+  length: string;
+  tone: string;
+  image_mode: string;
+  image_prompt: string;
+  split_mode: string;
+}
+
+export interface PromptVersion {
+  version: number;
+  body: string;
+  variables: PromptVariable[];
+  defaults: PromptDefaults;
+  note: string;
+  created_at: string;
+}
+
+export interface Prompt {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  is_example: boolean;
+  active: boolean;
+  current_version: number;
+  created_at: string;
+  updated_at: string;
+  version: PromptVersion;
+  usage_count: number;
+}
