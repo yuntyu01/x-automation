@@ -8,6 +8,8 @@ import (
 
 	"github.com/yuntyu01/x-automation/internal/auth"
 	"github.com/yuntyu01/x-automation/internal/clock"
+	"github.com/yuntyu01/x-automation/internal/connection"
+	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
 
@@ -19,8 +21,11 @@ type Server struct {
 	Clock          clock.Clock
 	Info           RuntimeInfo
 
-	Auth     *auth.Service
-	Settings *settings.Repo
+	Auth          *auth.Service
+	Settings      *settings.Repo
+	Notifications *notification.Service
+	Connections   *connection.Repo
+	Integrations  IntegrationProvider
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }
@@ -54,6 +59,8 @@ func (s *Server) Routes() http.Handler {
 	protected.HandleFunc("GET /api/runtime", func(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, s.Info)
 	})
+	s.mountSettings(protected)
+	s.mountNotifications(protected)
 	for _, fn := range s.extra {
 		fn(protected)
 	}

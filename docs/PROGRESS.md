@@ -8,8 +8,8 @@
 |---|---|---|---|
 | 01 | 저장소 조사와 실행 기반 | 완료 | eaddf85 |
 | 02 | PostgreSQL·설정·마이그레이션 | 완료 | 560ecbe |
-| 03 | 고정 관리자 인증 | 완료 | (보고에 기록) |
-| 04 | 모바일 앱 셸·디자인 시스템 | 대기 | |
+| 03 | 고정 관리자 인증 | 완료 | 129ae3d |
+| 04 | 모바일 앱 셸·디자인 시스템 | 완료 | (보고에 기록) |
 | 05 | 콘텐츠·프롬프트·직접 등록 | 대기 | |
 | 06 | R2·이미지 관리 | 대기 | |
 | 07 | AI 생성·세 가지 생성 정책 | 대기 | |
@@ -40,10 +40,10 @@
 | A11 | AI 이미지·업로드·재사용·부분별 첨부, R2 공개/관리 구분 | | | 대기 |
 | A12 | 답글부터 재개, 불명확 전송 재게시 차단 | | | 대기 |
 | A13 | 워커 2개·즉시 게시·취소 경쟁 | | | 대기 |
-| A14 | 앱 내부 알림 | | | 대기 |
+| A14 | 앱 내부 알림 | `internal/notification`, `web/src/pages/NotificationsPage.tsx`, 상단·사이드 알림 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·모두 읽음) | 진행 (알림 발생원은 07·10·11·12단계) |
 | A15 | 사용량 추정·예산 한도·동시 예약 | | | 대기 |
 | A16 | 게시 후 14일 정리·참조 보호 | | | 대기 |
-| A17 | 라이트·다크 모바일 흐름·접근성 | | | 대기 |
+| A17 | 라이트·다크 모바일 흐름·접근성 | `web/src/styles/tokens.css`, `components/layout/AppShell.tsx`, `components/ui/*`, `docs/DESIGN.md` | 4개 폭×2테마 레이아웃 점검, 키보드·시트 포커스 점검 | 진행 (13단계 전체 흐름) |
 | A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 | 진행 |
 | A19 | Docker·ARM64·CI·환경변수·KoDeploy 문서 | | | 대기 |
 | A20 | 14단계 결과·main 커밋·푸시·정직한 보고 | | | 대기 |
@@ -85,3 +85,15 @@
 - 운영 기동 거부: 운영에서 관리자 아이디·해시·암호화 키가 없거나 평문이면 시작하지 않음(02단계 설정 검증)
 - 검증: `make lint`·`make test` 통과. 통합 테스트 6건(미인증 차단, 잘못된 로그인, 쿠키 속성, CSRF 누락·타 출처 403, 로그아웃 후 401, 세션 만료, 시도 제한·XFF 우회 불가·창 경과 후 해제, 비로그인 세션 응답). 브라우저(Playwright) 390px 라이트·다크, 360px 오류 표시, 1440px 로그인 후 `/contents/123?q=1` 복귀 확인
 - 다음: 04 모바일 앱 셸·디자인 시스템
+
+### 04 모바일 앱 셸·디자인 시스템 — 완료
+
+- 앱 셸: 1024px 미만 하단 탭(홈·콘텐츠·예약·설정), 이상은 왼쪽 내비게이션 + 알림. 100dvh·safe-area·하단 탭 높이만큼 여백, 상세·첫 설정은 탭 숨김. 본문 건너뛰기 링크, 목업 모드·오프라인 띠
+- 테마: 라이트·다크·시스템, localStorage 유지(접근 실패 시에도 동작), theme-color 메타 갱신. 대비 검증 후 토큰 조정(`docs/DESIGN.md`)
+- 공통 컴포넌트: Button·IconButton(접근 이름 필수)·TextField(레이블 유지·필드 오류)·Select·TextArea·Card/Section·Row/RowGroup(설정 행)·Switch(role=switch)·Badge(아이콘+이름)·Segmented(화살표 키)·ChoiceList(라디오)·Sheet(모바일 시트/PC 대화상자, 포커스 가둠·복귀)·Toast·EmptyState·ErrorState(오프라인 구분)·Skeleton
+- 화면: 홈(첫 설정 안내, 자동 운영이 꺼진 이유 목록), 설정(운영 모드 변경·테마·연결·실행 정보·로그아웃), 연결 상태(X·AI·R2, 비밀값 없음, R2 공개 조회 주의·r2.dev 경고), 알림함(읽지 않음/전체, 반복 횟수, 해결 링크, 모두 읽음), 첫 설정 흐름 틀(연결 → 프롬프트 → 운영 모드 → 시간표 → 확인, 완료해도 자동 운영은 꺼짐), 404
+- API: `GET/PUT /api/settings`(필드 검증·낙관적 버전·생성 정책 변경 시 정책 버전 증가), `POST /api/setup/complete`, `GET /api/integrations`(연동 요약, 비밀 제외), `GET /api/notifications`·`/counts`·`POST /{id}/read`·`/read-all`
+- 알림 서비스: group_key 묶음(부분 고유 인덱스로 동시 발생에도 하나), 심각도 상향, 읽은 뒤 재발 시 새 알림
+- 남은 연결: 프롬프트·시간표·생성 설정 화면과 X 연결 버튼은 05·07·09·10단계에서 채운다 (현재 링크는 404 화면)
+- 검증: `make lint`·`make test` 통과(Go 통합 테스트에 설정 API·알림 추가, Vitest 5건), Playwright 레이아웃·키보드 점검(`docs/DESIGN.md` 점검 기록)
+- 다음: 05 콘텐츠·프롬프트·직접 등록

@@ -23,9 +23,3 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }
   return <>{children}</>;
 }
-
-// 외부 주소로 튕기지 않게 앱 내부 경로만 허용한다
-export function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/login')) return '/';
-  return raw;
-}

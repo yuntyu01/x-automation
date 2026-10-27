@@ -3,11 +3,15 @@ package app
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/yuntyu01/x-automation/internal/auth"
+	"github.com/yuntyu01/x-automation/internal/connection"
+	"github.com/yuntyu01/x-automation/internal/notification"
+	"github.com/yuntyu01/x-automation/internal/config"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
@@ -17,8 +21,10 @@ var Version = "dev"
 
 // services는 DB가 준비된 뒤 만드는 도메인 서비스 묶음이다.
 type services struct {
-	auth     *auth.Service
-	settings *settings.Repo
+	auth          *auth.Service
+	settings      *settings.Repo
+	notifications *notification.Service
+	connections   *connection.Repo
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -26,7 +32,9 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 		auth: auth.NewService(pool, auth.Config{
 			Username: a.cfg.AdminUsername, PasswordHash: a.cfg.AdminPasswordHash, TTL: a.cfg.SessionTTL,
 		}, a.deps.Clock),
-		settings: settings.NewRepo(pool),
+		settings:      settings.NewRepo(pool),
+		notifications: notification.NewService(pool),
+		connections:   connection.NewRepo(pool),
 	}
 }
 
@@ -43,8 +51,11 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 			Env: string(a.cfg.Env), IntegrationMode: string(a.cfg.IntegrationMode),
 			PublishingEnabled: a.cfg.PublishingEnabled, Version: Version,
 		},
-		Auth:     svc.auth,
-		Settings: svc.settings,
+		Auth:          svc.auth,
+		Settings:      svc.settings,
+		Notifications: svc.notifications,
+		Connections:   svc.connections,
+		Integrations:  a.integrationStatus,
 	}
 	return srv.Routes()
 }
@@ -72,4 +83,24 @@ func (a *App) every(ctx context.Context, name string, d time.Duration, fn func(c
 			}
 		}
 	}()
+}
+
+// integrationStatus는 환경변수로 정해진 연동 설정을 요약한다 (비밀값 제외).
+func (a *App) integrationStatus() httpapi.IntegrationStatus {
+	var st httpapi.IntegrationStatus
+	c := a.cfg
+	st.Mode = string(c.IntegrationMode)
+	st.PublishingEnabled = c.PublishingEnabled
+	mock := c.IntegrationMode == config.ModeMock
+	st.X.Configured = mock || c.X.Configured()
+	st.AI.Configured = mock || c.AI.Configured()
+	st.AI.Provider = "openai"
+	if mock {
+		st.AI.Provider = "mock"
+	}
+	st.AI.TextModel, st.AI.ImageModel = c.AI.TextModel, c.AI.ImageModel
+	st.R2.Configured = mock || c.R2.Configured()
+	st.R2.Bucket, st.R2.Prefix, st.R2.PublicBaseURL = c.R2.Bucket, c.R2.Prefix, c.R2.PublicBaseURL
+	st.R2.DevURL = strings.Contains(c.R2.PublicBaseURL, ".r2.dev")
+	return st
 }

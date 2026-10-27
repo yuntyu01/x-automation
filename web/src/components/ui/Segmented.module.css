@@ -1,0 +1,39 @@
+.wrap {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2px var(--gutter);
+}
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+.item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 600;
+  font-size: var(--fs-small);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+.count {
+  font-size: 12px;
+  opacity: 0.8;
+}

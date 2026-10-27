@@ -1,0 +1,44 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.neutral {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.info,
+.scheduled {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+.progress {
+  background: var(--info-soft);
+  color: var(--primary-text);
+}
+.success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

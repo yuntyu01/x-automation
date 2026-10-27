@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { ApiError, errorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
-import { safeNext } from '../auth/RequireAuth';
+import { safeNext } from '../lib/nav';
 import { Button } from '../components/ui/Button';
 import { TextField } from '../components/ui/TextField';
 import { AppMark } from '../components/AppMark';

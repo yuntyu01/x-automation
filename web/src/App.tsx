@@ -1,21 +1,53 @@
-import { createBrowserRouter, Outlet } from 'react-router';
+import { createBrowserRouter, Outlet, ScrollRestoration } from 'react-router';
 import { RequireAuth } from './auth/RequireAuth';
+import { AppShell } from './components/layout/AppShell';
+import { ToastProvider } from './components/ui/Toast';
+import { ContentsPage } from './pages/contents/ContentsPage';
+import { HomePage } from './pages/home/HomePage';
 import { LoginPage } from './pages/LoginPage';
-import { FullScreenMessage } from './components/FullScreenMessage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { SchedulePage } from './pages/schedule/SchedulePage';
+import { ConnectionsPage } from './pages/settings/ConnectionsPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
+import { SetupPage } from './pages/setup/SetupPage';
+
+function Root() {
+  return (
+    <ToastProvider>
+      <Outlet />
+      {/* 탭 복귀·뒤로 가기 때 스크롤 위치 복원 */}
+      <ScrollRestoration />
+    </ToastProvider>
+  );
+}
 
 function Protected() {
   return (
     <RequireAuth>
-      <Outlet />
+      <AppShell />
     </RequireAuth>
   );
 }
 
-function Placeholder() {
-  return <FullScreenMessage title="로그인되었습니다" body="앱 화면은 다음 단계에서 연결됩니다." />;
-}
-
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
-  { element: <Protected />, children: [{ path: '*', element: <Placeholder /> }] },
+  {
+    element: <Root />,
+    children: [
+      { path: '/login', element: <LoginPage /> },
+      {
+        element: <Protected />,
+        children: [
+          { path: '/', element: <HomePage /> },
+          { path: '/contents', element: <ContentsPage /> },
+          { path: '/schedule', element: <SchedulePage /> },
+          { path: '/settings', element: <SettingsPage /> },
+          { path: '/settings/connections', element: <ConnectionsPage /> },
+          { path: '/notifications', element: <NotificationsPage /> },
+          { path: '/setup', element: <SetupPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+    ],
+  },
 ]);

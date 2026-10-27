@@ -1,0 +1,81 @@
+.progress {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+.dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.done,
+.current {
+  background: var(--primary);
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+}
+.stepTitle {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+}
+.stepDesc {
+  color: var(--text-2);
+  margin-top: var(--space-2);
+}
+.stepBody {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.check {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+}
+.check:last-child {
+  border-bottom: 0;
+}
+.link {
+  font-weight: 600;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.summary dt {
+  color: var(--text-2);
+}
+.summary dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+.footer {
+  display: flex;
+  gap: var(--space-2);
+}
+.footer > * {
+  flex: 1;
+}

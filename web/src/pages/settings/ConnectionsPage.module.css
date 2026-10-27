@@ -1,0 +1,66 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.mock {
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--fs-small);
+}
+.row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  flex: none;
+}
+.text {
+  flex: 1;
+  min-width: 0;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.title {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+}
+.detail {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  margin-top: 4px;
+}
+.extra {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.help {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}
+.help svg {
+  flex: none;
+  margin-top: 2px;
+}
+.gate {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
