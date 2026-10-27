@@ -1,0 +1,20 @@
+# 로컬 개발 전용. 운영 DB는 KoDeploy 관리형 PostgreSQL 등 영속 저장소를 쓴다.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: xauto
+      POSTGRES_PASSWORD: xauto
+      POSTGRES_DB: xauto
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - xauto-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xauto -d xauto"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  xauto-db:

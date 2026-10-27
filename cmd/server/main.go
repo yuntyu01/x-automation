@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -10,34 +11,48 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata" // 실행 이미지에 시간대 데이터가 없어도 Asia/Seoul을 쓸 수 있게
 
-	"github.com/yuntyu01/x-automation/internal/web"
+	"github.com/yuntyu01/x-automation/internal/app"
+	"github.com/yuntyu01/x-automation/internal/config"
+	"github.com/yuntyu01/x-automation/internal/logx"
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(2)
 	}
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-	mux.Handle("/", web.Handler())
+	log := logx.New(os.Stdout, cfg.LogLevel)
+	slog.SetDefault(log)
 
-	srv := &http.Server{Addr: net.JoinHostPort("0.0.0.0", port), Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	a := app.New(cfg, log, app.Deps{})
+	srv := &http.Server{
+		Addr:              net.JoinHostPort("0.0.0.0", cfg.Port),
+		Handler:           a.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+	a.Start(ctx)
 	go func() {
-		slog.Info("server listening", "addr", srv.Addr)
+		log.Info("server listening", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("server failed", "err", err)
+			log.Error("server failed", "err", err.Error())
 			os.Exit(1)
 		}
 	}()
+
 	<-ctx.Done()
-	shutdown, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	log.Info("shutting down")
+	sctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
-	_ = srv.Shutdown(shutdown)
+	_ = srv.Shutdown(sctx)
+	a.Shutdown(sctx)
+	log.Info("stopped")
 }

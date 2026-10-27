@@ -3,8 +3,11 @@ SHELL := /bin/bash
 GO ?= go
 NPM ?= npm
 BIN := bin/server
+# DB 통합 테스트용 계정 (테스트마다 임시 DB를 만들고 지운다). make db-up 으로 띄운 로컬 DB 기준
+TEST_DATABASE_URL ?= postgres://xauto:xauto@127.0.0.1:5432/postgres?sslmode=disable
+export TEST_DATABASE_URL
 
-.PHONY: setup dev dev-api dev-web test test-go test-web lint build web-build e2e docker-build
+.PHONY: setup dev dev-api dev-web db-up db-down test test-go test-web lint build web-build e2e docker-build
 
 setup: ## 의존성 설치·개발 설정 안내 (비밀값은 만들지 않는다)
 	@command -v $(GO) >/dev/null || { echo "Go가 필요합니다 (go.mod의 toolchain을 자동으로 받습니다)"; exit 1; }
@@ -21,6 +24,12 @@ dev-api:
 
 dev-web:
 	cd web && $(NPM) run dev
+
+db-up: ## 로컬 PostgreSQL (docker compose)
+	docker compose up -d --wait db
+
+db-down:
+	docker compose down
 
 test: test-go test-web
 
