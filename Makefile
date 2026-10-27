@@ -53,8 +53,8 @@ gen-thread: ## twitter-text에서 서버용 정규식·기대값 다시 만들�
 build: web-build ## 프론트 빌드 후 Go 바이너리
 	CGO_ENABLED=0 $(GO) build -trimpath -ldflags="-s -w" -o $(BIN) ./cmd/server
 
-e2e:
-	@echo "E2E는 13단계에서 추가됩니다"; exit 1
+e2e: build ## 브라우저 E2E: 전용 DB(xa_e2e)를 새로 만들고 목업 연동으로 서버를 띄워 핵심 흐름 검사 (PostgreSQL 필요)
+	cd web && $(NPM) run e2e
 
 docker-build:
 	@echo "Dockerfile은 14단계에서 추가됩니다"; exit 1

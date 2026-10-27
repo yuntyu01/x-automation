@@ -61,8 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await post('/api/auth/logout');
     } finally {
       setCsrfToken('');
-      qc.clear();
+      // 세션 쿼리는 지우지 않고 값만 바꾼다: 지우면 화면의 세션 구독이 새 값을 받지 못해 로그인 화면으로 넘어가지 않는다
       qc.setQueryData(SESSION_KEY, { authenticated: false });
+      qc.removeQueries({ predicate: (query) => query.queryKey[0] !== SESSION_KEY[0] });
     }
   }, [qc]);
 

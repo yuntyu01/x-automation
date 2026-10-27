@@ -13,6 +13,7 @@ import { useToast } from '../../components/ui/Toast';
 import { BackButton, xState } from '../settings/ConnectionsPage';
 import { MODE_OPTIONS } from '../settings/labels';
 import { SetupPromptStep, SetupScheduleStep } from './steps';
+import { XConnectActions } from '../settings/XConnectActions';
 import { StepCard } from './StepCard';
 import styles from './SetupPage.module.css';
 
@@ -79,12 +80,13 @@ export function SetupPage() {
                   state={integrations.data.r2.configured ? { tone: 'success', label: integrations.data.mode === 'mock' ? '목업' : '설정됨' } : { tone: 'neutral', label: '선택 사항' }}
                 />
               </ul>
+              {integrations.data.x.connection.status !== 'connected' && <XConnectActions status={integrations.data} />}
               <Link to="/settings/connections" className={styles.link}>
                 연결 자세히 보기
               </Link>
             </StepCard>
           )}
-          {step === 1 && <SetupPromptStep />}
+          {step === 1 && <SetupPromptStep settings={settings.data} />}
           {step === 2 && (
             <StepCard title="어떻게 운영할까요?" desc="나중에 설정에서 바꿀 수 있어요.">
               <ChoiceList name="운영 모드" value={settings.data.operation_mode} options={MODE_OPTIONS} onChange={setMode} />

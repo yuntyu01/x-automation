@@ -145,7 +145,7 @@ export function ContentsPage() {
             label="제목·원문 검색"
             hideLabel
             type="search"
-            placeholder="제목이나 원문으로 검색"
+            placeholder="제목·원문 검색"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
