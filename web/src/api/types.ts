@@ -430,3 +430,97 @@ export interface UsageSummary {
   pricing_verified_at: string;
   exceeded: boolean;
 }
+
+// ── 시간표·예약 ───────────────────────────────────────────────────────
+export interface ScheduleRules {
+  daily_target: number;
+  base_interval_min: number;
+  jitter_min_min: number;
+  jitter_max_min: number;
+  reply_gap_sec: number;
+  end_margin_min: number;
+  substitute_unready: boolean;
+  policy_version: number;
+  version: number;
+}
+
+export interface ScheduleWindow {
+  id?: string;
+  label: string;
+  weekdays: number[];
+  start_minute: number;
+  end_minute: number;
+  enabled: boolean;
+  sort_order?: number;
+}
+
+export interface ScheduleSettings {
+  rules: ScheduleRules;
+  windows: ScheduleWindow[];
+  exceptions: { date: string; note: string }[];
+  timezone: string;
+  capacity: [number, number];
+}
+
+export type ReservationState = 'open' | 'assigned' | 'waiting' | 'publishing' | 'partial' | 'unknown' | 'published' | 'failed' | 'canceled';
+
+export interface ReservationItem {
+  id: string;
+  slot_at: string;
+  original_slot_at: string;
+  jitter_sec: number;
+  local_date: string;
+  pinned: boolean;
+  manual: boolean;
+  state: ReservationState;
+  wait_reason: string | null;
+  delay_note: string | null;
+  generation_due_at: string | null;
+  generating: boolean;
+  content_id: string | null;
+  title: string | null;
+  preview: string | null;
+  stage: Stage | null;
+  part_count: number;
+  image_count: number;
+  unapproved_change: boolean;
+  window: string;
+}
+
+export interface ScheduleDay {
+  date: string;
+  target: number;
+  count: number;
+  posts: number;
+  posts_approx: boolean;
+  excluded: boolean;
+  exclude_note: string;
+  capacity_min: number;
+  capacity_max: number;
+  intervals: { start: string; end: string; labels: string[] }[];
+  items: ReservationItem[];
+}
+
+export interface SchedulePlanReport {
+  seed: number;
+  from: string;
+  to: string;
+  slots: { at: string; local_date: string; window: string; jitter_sec: number; title: string | null }[];
+  days: { date: string; target: number; count: number; shortfall: number; capacity_min: number; capacity_max: number; excluded: boolean; partial: boolean }[];
+  canceled: number;
+  reassigned: number;
+  released: number;
+  pinned: number;
+}
+
+export const RES_STATE_LABEL: Record<ReservationState, string> = {
+  open: '빈 예약',
+  assigned: '준비 완료',
+  waiting: '대기',
+  publishing: '게시 중',
+  partial: '일부 완료',
+  unknown: '확인 필요',
+  published: '게시 완료',
+  failed: '실패',
+  canceled: '건너뜀',
+};

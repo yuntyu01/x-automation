@@ -22,6 +22,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
+	"github.com/yuntyu01/x-automation/internal/schedule"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
 
@@ -42,6 +43,7 @@ type services struct {
 	queue         *jobs.Queue
 	generation    *generation.Service
 	planner       *generation.Planner
+	schedule      *schedule.Service
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -73,6 +75,8 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 	s.generation = generation.NewService(generation.Deps{Pool: pool, Clock: a.deps.Clock, Queue: s.queue, Provider: a.newAIProvider(),
 		Settings: setRepo, Prompts: s.prompts, Contents: s.contents, Media: s.media, Budget: s.budget, Notify: s.notifications, Log: a.log})
 	s.planner = generation.NewPlanner(pool, a.deps.Clock, setRepo, s.generation, s.notifications, a.log)
+	s.schedule = schedule.NewService(pool, a.deps.Clock, a.deps.Rand, setRepo, s.notifications)
+	s.generation.SetAssigner(s.schedule) // 예약에 묶인 생성·"생성 후 빈 예약에 배치"
 	return s
 }
 
@@ -139,6 +143,7 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Generation:    svc.generation,
 		Planner:       svc.planner,
 		Budget:        svc.budget,
+		Schedule:      svc.schedule,
 	}
 	return srv.Routes()
 }
@@ -160,7 +165,13 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 		defer a.workersWG.Done()
 		gw.Run(ctx)
 	}()
-	a.every(ctx, "generation-planner", time.Minute, svc.planner.Tick)
+	// 시간표(예약 채우기·배치·지난 예약 정리)를 먼저 맞춘 뒤 생성 부족분을 판단한다
+	a.every(ctx, "schedule-and-planner", time.Minute, func(ctx context.Context) error {
+		if err := svc.schedule.Tick(ctx); err != nil {
+			return err
+		}
+		return svc.planner.Tick(ctx)
+	})
 	// lease가 끝난 작업 정리: 생성은 다시 해도 외부 중복이 없어 다시 대기시킨다 (게시 작업은 10단계에서 결과 확인 필요로 분류)
 	a.every(ctx, "jobs-recover", time.Minute, func(ctx context.Context) error {
 		_, _, err := svc.queue.RecoverExpired(ctx, recoverPolicy)

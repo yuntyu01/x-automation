@@ -39,3 +39,25 @@ export function relativeTime(iso: string, now = Date.now()): string {
 export function formatMoney(micros: number, currency = 'USD'): string {
   return new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: 4 }).format(micros / 1e6);
 }
+
+// 'YYYY-MM-DD' 날짜 도우미 (설정 시간대 기준)
+export function localDate(d: Date = new Date(), timeZone = tz): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}
+
+export function dayLabel(date: string): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+  const wd = '일월화수목금토'[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${m}월 ${d}일 (${wd})`;
+}
+
+export function minutesToHM(min: number): string {
+  const h = Math.floor(min / 60) % 24;
+  return `${String(h).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+}

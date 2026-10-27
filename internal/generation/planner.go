@@ -428,7 +428,7 @@ func (p *Planner) count(ctx context.Context, db store.DB, st settings.Settings, 
 		}
 	}
 	if err := db.QueryRow(ctx, `SELECT
-		(SELECT count(*) FROM content_overview WHERE stage = 'ready' AND NOT is_demo),
+		(SELECT count(*) FROM content_overview o JOIN contents c ON c.id = o.id WHERE o.stage = 'ready' AND NOT o.is_demo AND NOT c.schedule_hold),
 		(SELECT COALESCE(sum(quantity - produced - failed), 0) FROM generation_requests
 		  WHERE state IN ('queued', 'running') AND reservation_id IS NULL AND content_id IS NULL),
 		(SELECT count(*) FROM content_overview o JOIN contents c ON c.id = o.id

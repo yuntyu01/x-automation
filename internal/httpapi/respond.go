@@ -17,6 +17,7 @@ type Error struct {
 	Code      string            `json:"code"`
 	Message   string            `json:"message"`
 	Fields    map[string]string `json:"fields,omitempty"`
+	Details   map[string]any    `json:"details,omitempty"` // 확인이 필요한 경고 목록 등
 	RequestID string            `json:"request_id,omitempty"`
 }
 

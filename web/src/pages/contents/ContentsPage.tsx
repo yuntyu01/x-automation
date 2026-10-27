@@ -1,9 +1,10 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { Archive, CheckSquare, Download, FileText, Filter, ImageIcon, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { Archive, CalendarPlus, CheckSquare, Download, FileText, Filter, ImageIcon, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { errorMessage, get } from '../../api/client';
 import { contentQueryString, useBulk, useCategories, type ContentQuery } from '../../api/contents';
+import { placeContents } from '../../api/schedule';
 import { STAGE_LABEL, type ContentItem, type ContentPage, type Stage } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
 import { StageBadge } from '../../components/StageBadge';
@@ -48,6 +49,7 @@ export function ContentsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sheet, setSheet] = useState<'new' | 'import' | 'export' | 'filters' | 'more' | 'category' | 'delete' | null>(null);
   const bulk = useBulk();
+  const qc = useQueryClient();
   const toast = useToast();
   const nav = useNavigate();
 
@@ -62,6 +64,27 @@ export function ContentsPage() {
     setSelecting(false);
     setSelected(new Set());
   };
+
+  const [placing, setPlacing] = useState(false);
+  // 고른 순서대로 다음 빈 예약에 넣는다 (지금 게시가 아니라 예약)
+  async function placeSelected() {
+    setPlacing(true);
+    try {
+      const r = await placeContents([...selected]);
+      const skipped = Object.keys(r.skipped).length;
+      const parts = [`${r.placed.length}개를 다음 빈 시간에 배치했어요`];
+      if (r.placed[0]) parts[0] += ` (첫 예약 ${formatDateTime(r.placed[0].slot_at)})`;
+      if (skipped) parts.push(`${skipped}개는 건너뜀: ${Object.values(r.skipped)[0]}`);
+      if (r.left.length) parts.push(`빈 예약이 모자라 ${r.left.length}개는 남겼어요`);
+      toast.show(parts.join(' · '), r.placed.length && !r.left.length ? 'success' : 'info');
+      await qc.invalidateQueries({ queryKey: ['contents'] });
+      exitSelect();
+    } catch (e) {
+      toast.show(errorMessage(e), 'error');
+    } finally {
+      setPlacing(false);
+    }
+  }
 
   async function runBulk(action: 'archive' | 'unarchive' | 'category' | 'delete', category?: string) {
     const ids = [...selected];
@@ -197,6 +220,11 @@ export function ContentsPage() {
           ) : (
             <Button size="sm" variant="secondary" icon={<Archive size={16} />} onClick={() => runBulk('archive')}>
               보관
+            </Button>
+          )}
+          {filter.stage !== 'archived' && (
+            <Button size="sm" variant="secondary" icon={<CalendarPlus size={16} />} busy={placing} onClick={placeSelected}>
+              빈 시간에 배치
             </Button>
           )}
           <Button size="sm" variant="secondary" onClick={() => setSheet('category')}>

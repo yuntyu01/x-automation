@@ -1,6 +1,8 @@
-import { ArrowLeft, ArrowRight, ImagePlus, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarPlus, ImagePlus, X } from 'lucide-react';
+import { Link } from 'react-router';
 import { useState } from 'react';
 import { ApiError, errorMessage, get, put } from '../../api/client';
+import { placeContents } from '../../api/schedule';
 import type { MediaAsset } from '../../api/media';
 import type { ContentDetail, ImageMode, PartMedia } from '../../api/types';
 import { MediaDetailSheet } from '../../components/media/MediaParts';
@@ -11,6 +13,7 @@ import { Select } from '../../components/ui/Field';
 import { IconButton } from '../../components/ui/IconButton';
 import { Segmented } from '../../components/ui/Segmented';
 import { useToast } from '../../components/ui/Toast';
+import { formatDateTime, localDate } from '../../lib/format';
 import type { DraftState } from './ContentEditorPage';
 import { RegenerateCard } from './RegenerateCard';
 import styles from './EditorExtras.module.css';
@@ -25,10 +28,11 @@ export interface ExtrasProps {
   editVersion: () => number;
 }
 
-// 편집 화면의 추가 영역: 이미지 배치, 다시 만들기 (예약 카드는 시간표 단계에서 붙는다)
+// 편집 화면의 추가 영역: 예약, 이미지 배치, 다시 만들기
 export function EditorExtras(props: ExtrasProps) {
   return (
     <>
+      <ScheduleCard content={props.content} onChanged={props.onChanged} />
       <ImagesCard {...props} />
       <RegenerateCard content={props.content} onReplaced={props.onReplaced} flush={props.flush} editVersion={props.editVersion} />
     </>
@@ -167,4 +171,43 @@ function swap<T>(arr: T[], a: number, b: number): T[] {
   const n = [...arr];
   [n[a], n[b]] = [n[b]!, n[a]!];
   return n;
+}
+
+// 예약 카드: 이 글의 예약 시각, 또는 다음 빈 예약에 넣기 ("지금 게시"와 다르다)
+function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChanged: (d: ContentDetail) => void }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (content.archived_at) return null;
+  async function place() {
+    setBusy(true);
+    try {
+      const r = await placeContents([content.id]);
+      if (r.placed[0]) toast.show(`${formatDateTime(r.placed[0].slot_at)} 예약에 넣었어요`, 'success');
+      else toast.show(Object.values(r.skipped)[0] ?? '빈 예약이 없어요. 시간표에서 시간을 지정해 넣을 수 있어요', 'info');
+      onChanged(await get<ContentDetail>(`/api/contents/${content.id}`));
+    } catch (e) {
+      toast.show(errorMessage(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Card>
+      <CardTitle action={content.reservation_at ? <Link className={styles.link} to={`/schedule?date=${localDate(new Date(content.reservation_at))}`}>예약 보기</Link> : undefined}>
+        예약
+      </CardTitle>
+      {content.reservation_at ? (
+        <p className={styles.muted}>
+          <strong>{formatDateTime(content.reservation_at)}</strong>에 게시 예정이에요. 시간·순서는 예약 화면에서 바꿔요.
+        </p>
+      ) : (
+        <div className={styles.stack}>
+          <p className={styles.muted}>아직 예약되지 않았어요. 준비 완료된 글은 빈 예약에 자동으로 들어가요.</p>
+          <Button variant="secondary" icon={<CalendarPlus size={16} />} busy={busy} onClick={place}>
+            다음 빈 예약에 넣기
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
 }

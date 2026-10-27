@@ -15,6 +15,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
+	"github.com/yuntyu01/x-automation/internal/schedule"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
 
@@ -37,6 +38,7 @@ type Server struct {
 	Generation    *generation.Service
 	Planner       *generation.Planner
 	Budget        *budget.Service
+	Schedule      *schedule.Service
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }
@@ -76,6 +78,7 @@ func (s *Server) Routes() http.Handler {
 	s.mountPrompts(protected)
 	s.mountMedia(protected)
 	s.mountGeneration(protected)
+	s.mountSchedule(protected)
 	for _, fn := range s.extra {
 		fn(protected)
 	}

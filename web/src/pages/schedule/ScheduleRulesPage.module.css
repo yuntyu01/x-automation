@@ -1,0 +1,123 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+.muted {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-top: var(--space-2);
+}
+.err {
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.windowHead {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+.windowHead > :nth-child(2) {
+  margin-bottom: 12px;
+}
+.times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* 좁은 화면에서는 한 줄씩 (시각이 잘리지 않게) */
+  gap: var(--space-3);
+}
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.day {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dayOn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+.presets {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.preset {
+  border: 0;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border-radius: var(--radius-pill);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: var(--fs-caption);
+  cursor: pointer;
+  min-height: 32px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.table th {
+  color: var(--text-3);
+  font-weight: 600;
+}
+.short {
+  color: var(--danger);
+  font-weight: 600;
+}
+.warnBox {
+  background: var(--warning-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-small);
+}
+.sub {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  margin: var(--space-2) 0 0;
+}
+.slotDay {
+  font-size: var(--fs-small);
+}
+.slotTimes {
+  margin: 2px 0 0;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.7;
+  word-break: keep-all;
+}

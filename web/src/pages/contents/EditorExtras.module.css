@@ -67,3 +67,8 @@
   font-size: var(--fs-caption);
   color: var(--text-3);
 }
+.link {
+  color: var(--primary-text);
+  font-weight: 600;
+  font-size: var(--fs-small);
+}
