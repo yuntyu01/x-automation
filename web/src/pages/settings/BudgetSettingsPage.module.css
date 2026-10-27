@@ -1,0 +1,67 @@
+.total {
+  margin-bottom: var(--space-2);
+}
+.total strong {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.sub {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.warn {
+  color: var(--warning);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+.meterBox {
+  margin: var(--space-2) 0 var(--space-4);
+}
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: inherit;
+}
+.near {
+  background: var(--warning);
+}
+.over {
+  background: var(--danger);
+}
+.cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+.cats dt {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.cats dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.caption {
+  margin-top: var(--space-3);
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.preset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}

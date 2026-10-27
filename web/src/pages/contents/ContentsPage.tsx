@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, CalendarPlus, CheckSquare, Download, FileText, Filter, ImageIcon, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage, get } from '../../api/client';
 import { contentQueryString, useBulk, useCategories, type ContentQuery } from '../../api/contents';
 import { placeContents } from '../../api/schedule';
@@ -32,6 +32,16 @@ const INITIAL: ContentQuery = { stage: 'all', q: '', category: '', from: '', to:
 
 export function ContentsPage() {
   const [filter, setFilter] = useSessionState<ContentQuery>('xa-contents-filter', INITIAL);
+  // 알림·홈에서 온 링크: ?stage=problem 은 필터로, ?new=write|generate 는 새 글 시트로 연다 (한 번 쓰고 주소에서 지운다)
+  const [params, setParams] = useSearchParams();
+  const linkStage = params.get('stage') as Stage | null;
+  const linkNew = params.get('new');
+  const [newTab] = useState<'write' | 'generate'>(linkNew === 'generate' ? 'generate' : 'write');
+  const [seenStage, setSeenStage] = useState<Stage | null>(null);
+  if (linkStage && linkStage !== seenStage && STAGES.includes(linkStage)) {
+    setSeenStage(linkStage);
+    setFilter({ ...INITIAL, stage: linkStage });
+  }
   const [search, setSearch] = useState(filter.q);
   const q = useDebounced(search, 300);
   const f = { ...filter, q };
@@ -47,11 +57,18 @@ export function ContentsPage() {
 
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sheet, setSheet] = useState<'new' | 'import' | 'export' | 'filters' | 'more' | 'category' | 'delete' | null>(null);
+  const [sheet, setSheet] = useState<'new' | 'import' | 'export' | 'filters' | 'more' | 'category' | 'delete' | null>(
+    linkNew === 'write' || linkNew === 'generate' ? 'new' : null,
+  );
   const bulk = useBulk();
   const qc = useQueryClient();
   const toast = useToast();
   const nav = useNavigate();
+
+  // 링크로 받은 값은 한 번만 쓰고 주소에서 지운다 (새로고침해도 다시 열리지 않게)
+  useEffect(() => {
+    if (linkStage || linkNew) setParams({}, { replace: true });
+  }, [linkStage, linkNew, setParams]);
 
   const toggle = (id: string) =>
     setSelected((s) => {
@@ -237,6 +254,8 @@ export function ContentsPage() {
       )}
 
       <NewContentSheet
+        key={newTab}
+        initialTab={newTab}
         open={sheet === 'new'}
         onClose={() => setSheet(null)}
         onCreated={(id) => nav(`/contents/${id}`)}

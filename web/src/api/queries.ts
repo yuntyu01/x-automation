@@ -30,8 +30,10 @@ export function useSaveSettings() {
       }),
     onSuccess: (data) => {
       qc.setQueryData(keys.settings, data);
-      // 생성 계획·한도는 설정을 따른다
+      // 생성 계획·한도·사용량 요약·홈은 설정을 따른다
       void qc.invalidateQueries({ queryKey: ['generation'] });
+      void qc.invalidateQueries({ queryKey: ['usage'] });
+      void qc.invalidateQueries({ queryKey: ['home'] });
     },
   });
 }

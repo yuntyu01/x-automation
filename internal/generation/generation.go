@@ -417,7 +417,7 @@ func (s *Service) HandleItem(ctx context.Context, j *jobs.Job) jobs.Result {
 	estimate := s.estimate(st, req)
 	if err := s.budget.Reserve(ctx, refKey, budget.AIText, estimate); err != nil {
 		if budget.IsExceeded(err) {
-			s.notifyOnce(ctx, notification.Critical, "budget:exceeded", err.Error(), "/settings/budget")
+			s.notifyState(ctx, notification.Critical, "budget:exceeded", err.Error(), "/settings/budget")
 			return s.itemFailed(ctx, j, req, err, "config")
 		}
 		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
@@ -501,6 +501,18 @@ func (s *Service) notifyOnce(ctx context.Context, sev notification.Severity, gro
 		title = string(r[:60]) + "…"
 	}
 	_ = s.notify.Notify(ctx, notification.New{Severity: sev, Category: "generation", GroupKey: group, Title: title, Body: msg, Link: link})
+}
+
+// notifyState는 계속되는 상태(생성 막힘·예산 한도)를 알린다. 해결 전에는 같은 알림을 갱신만 한다.
+func (s *Service) notifyState(ctx context.Context, sev notification.Severity, group, msg, link string) {
+	if s.notify == nil {
+		return
+	}
+	title := msg
+	if r := []rune(msg); len(r) > 60 {
+		title = string(r[:60]) + "…"
+	}
+	_ = s.notify.Upsert(ctx, notification.New{Severity: sev, Category: "generation", GroupKey: group, Title: title, Body: msg, Link: link})
 }
 
 // finishNotice는 요청이 끝나면 낮은 중요도의 묶음 알림을 남긴다.

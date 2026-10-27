@@ -63,6 +63,26 @@ func (s *Service) Notify(ctx context.Context, n New) error {
 	return err
 }
 
+// Upsert는 "지금 계속되는 상태"를 알린다 (콘텐츠 부족·예산 한도·게시 막힘 등 주기 점검 결과).
+// 같은 묶음이 해결되지 않은 채 있으면 내용만 갱신하고 횟수를 올리지 않는다. 읽은 뒤에도 해결 전에는 다시 만들지 않는다.
+// 상태가 풀리면 Resolve로 닫고, 다시 생기면 새 알림이 된다.
+func (s *Service) Upsert(ctx context.Context, n New) error {
+	if n.GroupKey == "" {
+		n.GroupKey = n.Category + ":" + n.Title
+	}
+	tag, err := s.db.Exec(ctx, `UPDATE notifications SET title = $2, body = $3, link = $4, severity = $5
+		WHERE group_key = $1 AND resolved_at IS NULL AND (title, body, link, severity) IS DISTINCT FROM ($2, $3, $4, $5)`,
+		n.GroupKey, n.Title, n.Body, n.Link, string(n.Severity))
+	if err != nil || tag.RowsAffected() > 0 {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `INSERT INTO notifications (severity, category, group_key, title, body, link)
+		SELECT $1, $2, $3, $4, $5, $6 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE group_key = $3 AND resolved_at IS NULL)
+		ON CONFLICT (group_key) WHERE read_at IS NULL AND resolved_at IS NULL DO NOTHING`,
+		string(n.Severity), n.Category, n.GroupKey, n.Title, n.Body, n.Link)
+	return err
+}
+
 // Resolve는 문제가 해결된 묶음을 닫는다 (예: 인증 복구). 읽음과 별개다.
 func (s *Service) Resolve(ctx context.Context, groupKey string) error {
 	_, err := s.db.Exec(ctx, `UPDATE notifications SET resolved_at = now() WHERE group_key = $1 AND resolved_at IS NULL`, groupKey)

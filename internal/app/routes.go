@@ -15,6 +15,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/config"
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/content"
+	"github.com/yuntyu01/x-automation/internal/dashboard"
 	"github.com/yuntyu01/x-automation/internal/generation"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
 	"github.com/yuntyu01/x-automation/internal/integration/ai"
@@ -50,6 +51,7 @@ type services struct {
 	schedule      *schedule.Service
 	xconn         *connection.Service
 	publish       *publish.Service
+	dashboard     *dashboard.Service
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -87,6 +89,8 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 	s.publish = publish.NewService(publish.Deps{Pool: pool, Clock: a.deps.Clock, Queue: s.queue, Conn: s.xconn, Settings: setRepo,
 		Schedule: s.schedule, Media: s.media, Budget: s.budget, Notify: s.notifications, Log: a.log,
 		Gates: publish.Gates{Live: a.cfg.IntegrationMode == config.ModeLive, PublishingEnabled: a.cfg.PublishingEnabled}})
+	s.dashboard = dashboard.NewService(dashboard.Deps{Pool: pool, Clock: a.deps.Clock, Settings: setRepo, Budget: s.budget, Planner: s.planner,
+		Notify: s.notifications, Live: a.cfg.IntegrationMode == config.ModeLive, PublishingEnabled: a.cfg.PublishingEnabled})
 	return s
 }
 
@@ -191,6 +195,7 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Schedule:      svc.schedule,
 		XConn:         svc.xconn,
 		Publish:       svc.publish,
+		Dashboard:     svc.dashboard,
 	}
 	return srv.Routes()
 }
@@ -217,7 +222,11 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 		if err := svc.schedule.Tick(ctx); err != nil {
 			return err
 		}
-		return svc.planner.Tick(ctx)
+		if err := svc.planner.Tick(ctx); err != nil {
+			return err
+		}
+		// 콘텐츠 부족·예산 한도 같은 계속되는 상태를 알림으로 남기거나 닫는다
+		return svc.dashboard.Watch(ctx)
 	})
 	// 게시는 계정 하나에 한 묶음씩: 동시성 1. 여러 인스턴스가 떠도 DB 고유 색인이 활성 실행을 하나로 막는다
 	pw := &jobs.Worker{Queue: svc.queue, Concurrency: 1, Lease: 2 * time.Minute, Poll: 5 * time.Second, Log: a.log,

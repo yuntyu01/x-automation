@@ -15,8 +15,8 @@
 | 07 | AI 생성·세 가지 생성 정책 | 완료 | 38ae3f0 |
 | 08 | 길이 검증·분할·타래 미리보기 | 완료 | 0ef9881 |
 | 09 | 시간표·예약·랜덤 추가 지연 | 완료 | 86bf8e8 |
-| 10 | X 연결·본문과 답글 게시·복구 | 완료 | (보고에 기록) |
-| 11 | 비용 제어·내부 알림·운영 홈 | 대기 | |
+| 10 | X 연결·본문과 답글 게시·복구 | 완료 | 4d75579 |
+| 11 | 비용 제어·내부 알림·운영 홈 | 완료 | (보고에 기록) |
 | 12 | 게시 후 14일 정리·재배포 내구성 | 대기 | |
 | 13 | 전체 사용자 흐름·모바일 품질 검증 | 대기 | |
 | 14 | 배포·CI·문서·최종 main 검증 | 대기 | |
@@ -32,7 +32,7 @@
 | A03 | 프롬프트·직접 작성·CSV/JSON·자동 저장·검색 | `internal/content`, `internal/prompt`, `web/src/pages/contents/*`, `web/src/pages/prompts/*` | `content_test.go`(자동 저장·충돌·검색·LIKE 이스케이프·가져오기/내보내기 왕복·수식 방어), `prompt_test.go`(버전·변수 검증·렌더), `app/content_test.go`(API), 브라우저 흐름(등록→편집→자동 저장→새로고침 유지→검색→가져오기→보관→프롬프트 v2) | 완료 |
 | A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 완료 (게시 경로: 검토 모드는 승인본만, 실게시 스위치·자동 운영·일시정지·연결 게이트) |
 | A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 진행 (예약 생성은 09단계) |
-| A06 | 20묶음과 실제 게시물 수 구분 | | | 대기 |
+| A06 | 20묶음과 실제 게시물 수 구분 | 예약 화면(묶음/목표·예상 X 게시물 수), 홈(오늘 N / 목표 묶음·오늘 올라간 X 게시물), 편집기(X 게시물 N개·예상 게시 비용), 사용량(X 게시물 수) | `dashboard_test.go`(묶음 1·진행 1·게시물 3 구분), `publish_test.go`(묶음 1 = 게시물 2 사용량), 브라우저 홈·예약 | 완료 |
 | A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`(twittertext.go·url.go·twittertext_gen.go·split.go), `web/src/lib/thread.ts`, `web/scripts/gen-thread-data.mjs`, `/settings/thread` | `conformance_test.go`(공식 적합성 사례 v2·v3·방향 문자·URL 추출 전부, 라이브러리 golden 180문장·이모지 1,247×5 일치, 단위 합=전체 판정), `split_property_test.go`(무작위 150개×모드×번호: 누락·중복 없음, 부분 ≤280, URL·이모지 비분할), `thread_test.go`, `bench_test.go`(긴·악의적 입력 성능), `content_test.go`(장문 설정 변경 시 미고정 글만 재분할), Vitest(공식 라이브러리=golden, 앱 measure=적합성) | 완료 |
 | A08 | 새벽·낮 복수 구간, 30분 + 추가 지연, 시간표 영속화 | `internal/schedule`(timeline.go·core.go·plan.go·manual.go), `migrations/0004_schedule.sql`, `web/src/pages/schedule` | `timeline_test.go`(12:00→12:33→13:04→13:39, 간격 30~35분, 구간 경계·끝 여유, 자정 넘김·실제 날짜 상한, 겹친 구간 합치기), `service_test.go`(미리 만들기·재시작해도 시각·지연 불변, 미리보기=적용), `app/schedule_test.go` | 완료 |
 | A09 | 시간 부족·자정·고정 예약·미준비·다운타임 | `internal/schedule`(Generate·CloseOverdue·AfterBodyStart·Pin·AddException·SaveRules) | `timeline_test.go`(억지로 채우지 않음·고정 예약과 간격·쉬는 날), `service_test.go`(부족 수 보고, 다운타임 후 지난 예약 닫고 글은 다음 빈 예약으로·알림 1건, 늦은 게시 뒤 저장된 지연으로 뒤 예약 늦춤, 고정 예약은 재배치에서 유지, 쉬는 날 추가·해제) | 완료 (게시 직전·답글마다 허용 구간 확인, 구간 밖 답글은 다음 구간으로) |
@@ -40,8 +40,8 @@
 | A11 | AI 이미지·업로드·재사용·부분별 첨부, R2 공개/관리 구분 | `internal/integration/storage`(R2·로컬), `internal/media`, `internal/content/media.go`, `web/src/pages/images`, `components/media` | `storage_test.go`(가짜 S3로 R2 어댑터·접두사 밖 미노출), `media_test.go`(검사·EXIF 제거·회전·축소·중복·자르기·삭제·연결·고아), `app/media_test.go`(공개 조회 무인증·관리 API 인증·디렉터리 차단), 브라우저 업로드→자르기→부분 연결→순서·이동 | 진행 (AI 이미지는 07단계) |
 | A12 | 답글부터 재개, 불명확 전송 재게시 차단 | `internal/publish`(publish.go·recovery.go), `internal/integration/xapi`(http.go 분류), `migrations/0005_publish.sql`, `web/src/pages/publish` | `publish_test.go`(가짜 X: 본문 성공→답글 403→재시작→답글만 재개·in_reply_to=본문 ID, 전송 후 시간 초과→unknown·재시작·디스패치·작업 정리 후에도 재전송 없음·중대 알림·확인 없는 재시도 경고·주소로 정리 후 남은 답글만, 의도 기록 직후 죽음→unknown→안 올라감 확인 후 재전송, 그만두기 시 자동 배치 제외), 브라우저 게시 기록 화면 | 완료 |
 | A13 | 워커 2개·즉시 게시·취소 경쟁 | 활성 실행 고유 색인(전체 1개·예약당 1개), 예약 상태 비교·교체, 작업 lease·소유권 확인 | `publish_test.go`(디스패치 6개 동시→활성 실행 1개, 게시 중 글 지금 게시 거부, 워커 2개 동시 처리→본문마다 1번, 건너뛰기 vs 디스패치 경쟁 5회 — 한쪽만 이김), `app/publish_test.go`(API 흐름) | 완료 |
-| A14 | 앱 내부 알림 | `internal/notification`, `web/src/pages/NotificationsPage.tsx`, 상단·사이드 알림 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·모두 읽음) | 진행 (알림 발생원은 07·10·11·12단계) |
-| A15 | 사용량 추정·예산 한도·동시 예약 | `internal/budget`(Reserve·Record·Settle·ReleaseStale·Summary), 생성 작업의 실행 전 예약 | `budget_test.go`(동시 12건 중 정확히 10건 통과, 같은 키 재예약, 생성만 중지 정책, 같은 사용 1번 기록, 기본 요율 '미확인'), `generation_test.go`(한도 초과 시 외부 호출 없이 실패) | 진행 (화면·게시 비용은 11단계) |
+| A14 | 앱 내부 알림 | `internal/notification`(Notify: 사건 묶음, Upsert: 계속되는 상태), `internal/dashboard`(Watch: 콘텐츠 부족·예산), 게시·생성·연결 알림, `web/src/pages/NotificationsPage.tsx`(해결됨 표시·해결 링크), 상단·사이드 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·상태 알림은 읽어도 해결 전 재생성 없음·해결 후 새 알림), `dashboard_test.go`(부족 알림 5회 점검에도 1건·채우면 해결), 브라우저(창을 닫은 70초 동안 서버가 부족 알림 생성 → 다시 열면 배지·알림함에 누적) | 완료 |
+| A15 | 사용량 추정·예산 한도·동시 예약 | `internal/budget`(Reserve·Record·Settle·Confirm·Void·Summary), 게시 실행 전 전체 타래 비용 확보, `/settings/budget`(분류별 사용량·한도·정책·요율표·확인일·출처), 홈 사용량 카드 | `budget_test.go`(동시 12건 중 정확히 10건 통과 등), `publish_test.go`(신규 게시까지 중지 정책: 지금 게시·예약 게시 차단 + 중대 알림, 생성만 중지 정책: 게시 계속), `dashboard_test.go`(80% 경고 → 초과 중대 → 한도 상향 시 해결, 요율표 비면 경고), `generation_test.go`(한도 초과 시 외부 호출 없음) | 완료 |
 | A16 | 게시 후 14일 정리·참조 보호 | | | 대기 |
 | A17 | 라이트·다크 모바일 흐름·접근성 | `web/src/styles/tokens.css`, `components/layout/AppShell.tsx`, `components/ui/*`, `docs/DESIGN.md` | 4개 폭×2테마 레이아웃 점검, 키보드·시트 포커스 점검 | 진행 (13단계 전체 흐름) |
 | A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 · 게시 중 재시작 시 보내던 부분은 불명확·남은 답글만 재개(`publish_test.go`) | 진행 |
@@ -184,3 +184,14 @@
 - 실제 X 공개 게시는 하지 않았다. 게시 경로는 실제 HTTP 클라이언트 + 가짜 X 서버로 검증했고, 브라우저 확인은 목업 메모리 대역이다 (목업 성공 ≠ 실제 게시 성공)
 - 검증: `make lint`(vet·staticcheck·tsc·eslint) 통과, Go 전체 테스트 통과(게시 10개 — 위 A12·A13, 게이트 차단·일시정지 시 취소 후 예약 복귀·구간 밖 답글 대기·토큰 갱신·만료·OAuth state 세션 결속·1회용·만료·토큰 평문 미저장·주소 파싱, API 흐름 1개 — 목업 연결·콜백 세션 확인·지금 게시·간격 경고·해제), Vitest 12. 브라우저(390px, 목업): X 계정 연결 → 연결됨 표시 → 글 지금 게시(간격 경고 → 그래도 게시) → 게시 기록에 본문·답글 2개 올라감·X 링크, 장문 막힘 안내, 320px 가로 넘침 0·다크 모드, 콘솔 오류 0
 - 다음: 11 비용 제어·내부 알림·운영 홈
+
+### 11 비용 제어·내부 알림·운영 홈 — 완료
+
+- 운영 홈(`internal/dashboard`, `GET /api/home`, 30초마다 갱신): 다음 게시(글이 든 가장 가까운 예약 — 시각·제목·상태·X 게시물 수·시작 못 한 이유), 오늘 N / 목표 묶음·남은 예약·진행/확인 중·오늘 올라간 X 게시물 수(본문 + 답글)·준비된 글·검토 대기, 필요한 조치(결과 확인 필요·답글 실패·게시 실패·X 연결·시작 못 한 예약·24시간 안 빈 예약·준비 안 된 글이 든 예약·검토 대기·생성 실패·예산 80%/초과·요율표 비어 있음 — 모두 해결 화면 링크), 자동 운영 카드(시작·멈추기 확인 시트, 생성·게시 일시정지 스위치, 예약 게시가 멈춘 이유·자동 생성이 멈춘 이유를 서버가 계산), 가까운 예약 5개, 빠른 실행(글 생성·직접 등록 → 콘텐츠 화면의 새 글 시트), 이번 달 추정 사용량. 모든 수치는 DB에서 계산(하드코딩 없음)
+- 알림: 사건(실패 등)은 같은 묶음 키로 횟수만 올리고, 계속되는 상태(콘텐츠 부족·예산 한도·생성 막힘·게시 막힘)는 `Upsert`로 내용만 갱신 — 읽어도 해결 전에는 다시 만들지 않고, 풀리면 자동으로 닫음(알림함에 "해결됨" 표시). 1분 점검(`Watch`)이 브라우저와 무관하게 서버에서 콘텐츠 부족(3시간 안 빈 예약)·예산 80%·초과를 알림으로 남김
+- 예산: 게시 실행은 시작 전에 타래 전체의 추정 비용을 확보(신규 게시까지 중지 정책일 때만 차단), 한도 초과 시 예약에 이유 표시·중대 알림, 지금 게시는 409로 이유 안내. 결과 불명확 게시는 보수적으로 비용 포함 후 확인 결과로 확정·삭제
+- 사용량·예산 화면(`/settings/budget`): 이번 달 분류별(글 생성·이미지 생성·X 게시·X 미디어·저장) 사용 횟수와 추정 금액, 진행 중 예약 금액, 한도 사용률(색 + 숫자), 불명확 건수, 월 한도·도달 정책, 요율표(단가·확인일·버전·출처, 확인 근거가 있는 X 단가만 미리 넣기), "추정치이며 실제 청구액은 콘솔에서 확인" 안내. 요율표에 확인일이 없으면 금액을 계산하지 않음
+- 편집기: 분할 결과의 X 게시물 수 옆에 예상 게시 비용(요율표 확인 시만, 링크 포함 부분은 링크 단가)
+- 콘텐츠 화면은 `?stage=`(알림·홈 링크 필터)와 `?new=write|generate`(새 글 시트)를 한 번 적용하고 주소에서 지움
+- 검증: `make lint`·`make test` 통과(Go: 대시보드 3·알림 2·게시 예산 정책 1·홈 API 1 추가, Vitest 12 — 게시 비용 추정 2 추가, 클라이언트 측 차단 이유 계산은 서버로 옮겨 삭제). 브라우저(390px·다크·320/768/1440): 홈 → 사용량·예산에서 확인된 X 단가 넣기·한도·정책 저장 → 사용률 표시 → 생성 일시정지·자동 운영 시작(확인 시트) → 브라우저를 닫고 70초 대기 → 다시 로그인하면 읽지 않은 알림 3 → 4, 알림함에 "곧 게시할 글이 부족해요", 가로 넘침 0, 콘솔 오류 0
+- 다음: 12 게시 후 14일 정리·재배포 내구성

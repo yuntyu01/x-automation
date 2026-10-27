@@ -17,14 +17,15 @@ import styles from './NewContentSheet.module.css';
 type Tab = 'write' | 'paste' | 'generate';
 
 interface Props {
+  initialTab?: Tab;
   open: boolean;
   onClose: () => void;
   onCreated: (id: string) => void;
   generateTab?: ReactNode; // AI 생성 탭 (생성 기능이 연결되면 채워진다)
 }
 
-export function NewContentSheet({ open, onClose, onCreated, generateTab }: Props) {
-  const [tab, setTab] = useState<Tab>('write');
+export function NewContentSheet({ open, onClose, onCreated, generateTab, initialTab = 'write' }: Props) {
+  const [tab, setTab] = useState<Tab>(initialTab === 'generate' && !generateTab ? 'write' : initialTab);
   const tabs: { value: Tab; label: string }[] = [
     { value: 'write', label: '직접 쓰기' },
     { value: 'paste', label: '여러 개 붙여넣기' },

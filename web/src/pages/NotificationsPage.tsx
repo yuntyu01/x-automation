@@ -72,12 +72,13 @@ export function NotificationsPage() {
             <button type="button" className={[styles.item, n.read_at ? styles.read : ''].join(' ')} onClick={() => open(n)}>
               <span className={styles.head}>
                 <Badge tone={SEVERITY[n.severity].tone}>{SEVERITY[n.severity].label}</Badge>
+                {n.resolved_at && <Badge tone="success">해결됨</Badge>}
                 {n.count > 1 && <span className={styles.repeat}>{n.count}회 반복</span>}
                 <span className={styles.time}>{relativeTime(n.last_at)}</span>
               </span>
               <span className={styles.title}>{n.title}</span>
               {n.body && <span className={styles.body}>{n.body}</span>}
-              {n.link && <span className={styles.link}>해결하러 가기</span>}
+              {n.link && <span className={styles.link}>{n.resolved_at ? '관련 화면 보기' : '해결하러 가기'}</span>}
               {!n.read_at && <span className="sr-only">읽지 않음</span>}
             </button>
           </li>

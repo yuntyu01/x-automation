@@ -61,3 +61,13 @@ export function minutesToHM(min: number): string {
   const h = Math.floor(min / 60) % 24;
   return `${String(h).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 }
+
+// X 게시 추정 비용: 요율표에 확인일·단가가 있을 때만 계산한다 (확인 안 된 금액을 꾸며 보이지 않는다)
+export function postCostMicros(
+  texts: string[],
+  pricing: { verified_at: string; x_post_micros: number; x_post_with_url_micros: number },
+  hasUrl: (t: string) => boolean,
+): number | null {
+  if (!pricing.verified_at || pricing.x_post_micros <= 0) return null;
+  return texts.reduce((sum, t) => sum + (hasUrl(t) && pricing.x_post_with_url_micros > 0 ? pricing.x_post_with_url_micros : pricing.x_post_micros), 0);
+}

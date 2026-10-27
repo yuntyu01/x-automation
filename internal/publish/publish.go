@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -116,6 +117,17 @@ func (s *Service) blockReason(ctx context.Context, st settings.Settings, automat
 		return "X 연결에 문제가 있어요: " + v.StatusDetail, nil
 	}
 	return "X 계정을 연결해야 해요", nil
+}
+
+// blockLink는 막힌 이유를 고칠 수 있는 화면이다.
+func blockLink(reason string) string {
+	switch {
+	case strings.Contains(reason, "연결"):
+		return "/settings/connections"
+	case strings.Contains(reason, "PUBLISHING_ENABLED"):
+		return "/settings/connections"
+	}
+	return "/"
 }
 
 // ── 실행 만들기 ───────────────────────────────────────────────────────
@@ -224,8 +236,8 @@ func (s *Service) Dispatch(ctx context.Context) (string, error) {
 	}
 	if reason != "" {
 		if st.AutomationEnabled && s.Notify != nil {
-			_ = s.Notify.Notify(ctx, notification.New{Severity: notification.Warning, Category: "publish", GroupKey: "publish:blocked",
-				Title: "예약 게시를 시작하지 못했어요", Body: reason, Link: "/settings/connections"})
+			_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Warning, Category: "publish", GroupKey: "publish:blocked",
+				Title: "예약 게시를 시작하지 못했어요", Body: reason, Link: blockLink(reason)})
 		}
 		return block(reason)
 	}
@@ -267,6 +279,10 @@ func (s *Service) Dispatch(ctx context.Context) (string, error) {
 	case errors.Is(err, ErrBusy):
 		return block("다른 묶음을 게시하는 중이라 끝나면 시작해요")
 	case budget.IsExceeded(err):
+		if s.Notify != nil {
+			_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Critical, Category: "budget", GroupKey: "budget:exceeded",
+				Title: "월 예산 한도에 도달해 새 게시를 멈췄어요", Body: err.Error(), Link: "/settings/budget"})
+		}
 		return block(err.Error())
 	case err != nil:
 		return "", err

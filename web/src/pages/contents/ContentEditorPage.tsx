@@ -20,9 +20,9 @@ import { ErrorState, LoadingList } from '../../components/ui/States';
 import { Switch } from '../../components/ui/Switch';
 import { TextField } from '../../components/ui/TextField';
 import { useToast } from '../../components/ui/Toast';
-import { formatDateTime } from '../../lib/format';
+import { formatDateTime, formatMoney, postCostMicros } from '../../lib/format';
 import { copyText, useDebounced } from '../../lib/hooks';
-import { joinManual, measure, splitManual } from '../../lib/thread';
+import { hasUrl, joinManual, measure, splitManual } from '../../lib/thread';
 import { BackButton } from '../settings/ConnectionsPage';
 import { EditorExtras } from './EditorExtras';
 import styles from './ContentEditorPage.module.css';
@@ -200,6 +200,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
   const result: SplitResult | undefined = preview.data?.result;
   const parts: ThreadPart[] = result?.parts ?? server.revision.parts;
   const limit = result?.limit ?? server.revision.validation.limit ?? 280;
+  const cost = settings.data ? postCostMicros(parts.map((p) => p.text), settings.data.policy.pricing, hasUrl) : null;
 
   async function toManual() {
     try {
@@ -398,6 +399,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
             {result && (
               <p className={[styles.note, result.publishable ? '' : styles.noteWarn].join(' ')} aria-live="polite">
                 <strong>{result.note}</strong> · X 게시물 {result.post_count}개
+                {cost !== null && <span> · 예상 게시 비용 {formatMoney(cost, settings.data?.policy.pricing.currency || 'USD')} (추정)</span>}
                 {result.has_url && <span className={styles.urlWarn}> · 링크 포함 게시는 X 단가가 높아요</span>}
               </p>
             )}

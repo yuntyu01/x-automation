@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send } from 'lucide-react';
+import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -74,6 +74,7 @@ export function SettingsPage() {
           <Section title="연결">
             <RowGroup>
               <Row icon={<Link2 size={20} />} label="X·AI·이미지 저장소" description="연결 상태와 필요한 설정" value={xValue} to="/settings/connections" />
+              <Row icon={<Wallet size={20} />} label="사용량·예산" description="이번 달 추정 사용량, 월 한도, 요율표" to="/settings/budget" />
             </RowGroup>
           </Section>
           <Section title="화면">

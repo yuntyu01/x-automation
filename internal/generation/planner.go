@@ -102,7 +102,7 @@ func (p *Planner) Tick(ctx context.Context) error {
 		// 자동 운영 중인데 프롬프트 문제로 못 도는 경우만 알린다 (나머지는 사용자가 고른 상태)
 		if st.AutomationEnabled && st.OperationMode != settings.ModePublishOnly && st.Policy.Generation.TextEnabled && st.Policy.Generation.Timing != "manual" &&
 			!st.GenerationPaused {
-			p.gen.notifyOnce(ctx, notification.Warning, "generation:blocked", b[0]+". 생성 설정에서 정해 주세요", "/settings/generation")
+			p.gen.notifyState(ctx, notification.Warning, "generation:blocked", b[0]+". 생성 설정에서 정해 주세요", "/settings/generation")
 		}
 		return nil
 	}
@@ -217,7 +217,7 @@ func (p *Planner) fill(ctx context.Context, st settings.Settings, key, trigger s
 		var ve *ValidationError
 		if errors.As(err, &ve) {
 			ae := autoError(err)
-			p.gen.notifyOnce(ctx, notification.Warning, "generation:blocked", ae.Fields["generation"], "/settings/generation")
+			p.gen.notifyState(ctx, notification.Warning, "generation:blocked", ae.Fields["generation"], "/settings/generation")
 			return nil, ae
 		}
 		return nil, err
@@ -332,7 +332,7 @@ func (p *Planner) tickDue(ctx context.Context, st settings.Settings, minutes int
 	if err != nil {
 		var ve *ValidationError
 		if errors.As(err, &ve) {
-			p.gen.notifyOnce(ctx, notification.Warning, "generation:blocked", autoError(err).Fields["generation"], "/settings/generation")
+			p.gen.notifyState(ctx, notification.Warning, "generation:blocked", autoError(err).Fields["generation"], "/settings/generation")
 			return nil
 		}
 		return err

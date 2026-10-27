@@ -11,6 +11,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/clock"
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/content"
+	"github.com/yuntyu01/x-automation/internal/dashboard"
 	"github.com/yuntyu01/x-automation/internal/generation"
 	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
@@ -42,6 +43,7 @@ type Server struct {
 	Schedule      *schedule.Service
 	XConn         *connection.Service
 	Publish       *publish.Service
+	Dashboard     *dashboard.Service
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }
@@ -85,6 +87,16 @@ func (s *Server) Routes() http.Handler {
 	s.mountGeneration(protected)
 	s.mountSchedule(protected)
 	s.mountPublish(protected)
+	if s.Dashboard != nil {
+		protected.HandleFunc("GET /api/home", func(w http.ResponseWriter, r *http.Request) {
+			h, err := s.Dashboard.Home(r.Context())
+			if err != nil {
+				WriteError(w, r, err)
+				return
+			}
+			WriteJSON(w, http.StatusOK, h)
+		})
+	}
 	for _, fn := range s.extra {
 		fn(protected)
 	}

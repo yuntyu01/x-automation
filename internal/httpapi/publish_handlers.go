@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/yuntyu01/x-automation/internal/auth"
+	"github.com/yuntyu01/x-automation/internal/budget"
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/integration"
 	"github.com/yuntyu01/x-automation/internal/publish"
@@ -25,6 +26,8 @@ func publishError(err error) error {
 		return ErrNotFound
 	case errors.Is(err, publish.ErrBusy):
 		return NewError(http.StatusConflict, "busy", err.Error())
+	case budget.IsExceeded(err):
+		return NewError(http.StatusConflict, "budget_exceeded", err.Error())
 	}
 	return connError(err)
 }

@@ -646,10 +646,10 @@ func TestAbandonHoldsContent(t *testing.T) {
 
 func TestParsePostRef(t *testing.T) {
 	cases := map[string]string{
-		"https://x.com/tester/status/1849000000000000001":          "1849000000000000001",
+		"https://x.com/tester/status/1849000000000000001":           "1849000000000000001",
 		"https://twitter.com/a/status/1849000000000000002?s=20&t=x": "1849000000000000002",
-		"1849000000000000003":                                       "1849000000000000003",
-		"https://x.com/i/web/status/1849000000000000004/photo/1":    "1849000000000000004",
+		"1849000000000000003": "1849000000000000003",
+		"https://x.com/i/web/status/1849000000000000004/photo/1": "1849000000000000004",
 	}
 	for in, want := range cases {
 		if got, ok := publish.ParsePostRef(in); !ok || got != want {
@@ -660,5 +660,58 @@ func TestParsePostRef(t *testing.T) {
 		if _, ok := publish.ParsePostRef(bad); ok {
 			t.Errorf("%q should not parse", bad)
 		}
+	}
+}
+
+func (e *env) budgetPolicy(limit int64, onLimit string) {
+	e.t.Helper()
+	st, _ := e.settings.Get(e.ctx)
+	p := st.Policy
+	p.Budget.MonthlyLimitMicros, p.Budget.OnLimit = limit, onLimit
+	p.Pricing.XPostMicros, p.Pricing.XPostWithURLMicros, p.Pricing.VerifiedAt, p.Pricing.Source = 15000, 200000, "2026-10-27", "test"
+	if _, err := e.settings.Update(e.ctx, st.Version, st.OperationMode, st.Timezone, p); err != nil {
+		e.t.Fatal(err)
+	}
+}
+
+func TestBudgetPolicyStopAllBlocksNewPosts(t *testing.T) {
+	e := newEnv(t, 5*time.Second)
+	e.connect()
+	e.automation(true)
+	e.budgetPolicy(100000, "stop_all") // 0.1 USD
+	b := budget.NewService(e.pool, e.clk, e.settings)
+	if err := b.Record(e.ctx, budget.Entry{Category: budget.AIText, RefKey: "spent", Micros: 90000}, ""); err != nil {
+		t.Fatal(err)
+	}
+	cid := e.newContent("예산 본문.\n---\n답글.") // 2개 × 0.015 = 0.03 → 한도 초과
+	if _, err := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid, Confirm: true}); !budget.IsExceeded(err) {
+		t.Fatalf("post-now over budget = %v", err)
+	}
+	rid := e.assignedReservation(cid, e.clk.Now().Add(-time.Minute))
+	if id, err := e.pub.Dispatch(e.ctx); err != nil || id != "" {
+		t.Fatalf("dispatch over budget = %q %v", id, err)
+	}
+	var reason *string
+	_ = e.pool.QueryRow(e.ctx, `SELECT block_reason FROM reservations WHERE id = $1`, rid).Scan(&reason)
+	if reason == nil || !strings.Contains(*reason, "예산") {
+		t.Fatalf("block reason = %v", reason)
+	}
+	list, _ := e.notify.List(e.ctx, notification.ListOptions{})
+	if len(list) == 0 || list[0].GroupKey != "budget:exceeded" {
+		t.Fatalf("budget notification = %+v", list)
+	}
+	// "생성만 중지" 정책이면 게시는 계속된다 (한도를 넘어도 게시 비용은 기록)
+	e.budgetPolicy(100000, "stop_generation")
+	runID, err := e.pub.Dispatch(e.ctx)
+	if err != nil || runID == "" {
+		t.Fatalf("dispatch with stop_generation = %q %v", runID, err)
+	}
+	e.drain(time.Hour)
+	if v := e.run(runID); v.State != "completed" {
+		t.Fatalf("run = %s", v.State)
+	}
+	sum, _ := b.Summary(e.ctx)
+	if sum.Counts["x_post"] != 2 || sum.ByCategory["x_post"] != 30000 {
+		t.Fatalf("x_post usage = %v %v", sum.Counts, sum.ByCategory)
 	}
 }
