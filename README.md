@@ -23,7 +23,7 @@ Go 서버 하나가 화면(React)과 API를 함께 제공하고, 데이터는 Po
 
 ```bash
 make setup                         # 의존성 설치, .env 생성 (비밀값은 만들지 않음)
-go run ./cmd/admin hash-password   # 관리자 비밀번호 → .env의 ADMIN_PASSWORD_HASH
+go run ./cmd/admin hash-password   # 관리자 비밀번호 → .env의 ADMIN_PASSWORD_HASH='…' (작은따옴표로 감싼다)
 go run ./cmd/admin gen-key         # → .env의 TOKEN_ENCRYPTION_KEY
 make dev                           # 로컬 DB + API(:8080) + 화면(:5173)
 ```

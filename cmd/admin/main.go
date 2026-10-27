@@ -88,6 +88,7 @@ func hashPassword() error {
 		return err
 	}
 	fmt.Println(h)
+	fmt.Fprintln(os.Stderr, ".env에 넣을 때는 작은따옴표로 감싸세요 (예: ADMIN_PASSWORD_HASH='$argon2id$...'). 배포 환경변수 화면에는 그대로 넣습니다.")
 	return nil
 }
 

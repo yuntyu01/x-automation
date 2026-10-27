@@ -231,7 +231,8 @@
 - CI(`.github/workflows/ci.yml`, 비밀값 없음): lint·test·build(PostgreSQL 서비스) → E2E(Chromium) · 컨테이너(arm64+amd64 빌드, amd64 실행 스모크)
 - 문서: README(화면 예시·빠른 시작·첫 설정·운영 모드·생성/게시 시점·묶음/게시물 수·이미지 공개·정리 기준·비용 한계·멈추기/복구·배포·검증 상태), API, DEPLOY_KODEPLOY(확인한 KoDeploy 규약·10단계 순서), OPERATIONS(켜고 끄기·문제 해결·비용·이미지·계정/키·백업·복원·이전·로그·장애), TESTING(구성·명령·실연동 미검증), ARCHITECTURE(디렉터리 갱신)
 - 컨테이너 검증(이 기계, Docker 29 + BuildKit): amd64 빌드·실행 — 마이그레이션 6개 적용, `/readyz` ready, `/healthz` ok, `/schedule` 깊은 링크, 로그인 200, 미인증 401, 프로세스 UID 1000, `docker stop` → 정상 종료 코드 0. arm64 — 이미지 빌드 성공, 안의 바이너리가 ARM aarch64 정적 실행 파일임을 확인(실행은 에뮬레이터가 없어 못 함). 베이스 이미지 3개 모두 arm64 제공 확인. Docker Hub는 요청 제한(429)이라 같은 이미지를 mirror.gcr.io에서 받아 빌드(`REGISTRY` 인자, 기본값은 docker.io)
-- 검증: `make lint`·`make test`·`make e2e`(12) 통과, 새로 받은 저장소에서 문서대로 빌드·기동 확인(최종 보고에 기록)
+- 새 환경 확인: origin/main(7aa8df3)을 새로 clone → `make setup` → `admin hash-password`·`gen-key`로 `.env` 채움 → `make build` → `.env`를 읽어 기동: `/healthz` ok, `/readyz` ready, 화면 제공, 로그인 200, 실행 환경 development·목업·실게시 차단. 이때 `.env`를 셸로 읽으면 따옴표 없는 해시의 `$`가 사라져 시작이 거부되는 문제를 찾아 `.env.example`·README·`hash-password` 안내와 설정 오류 문구에 "작은따옴표로 감싸기"를 추가
+- 검증: `make lint`·`make test`·`make e2e`(12) 통과
 
 ## 외부 설정이 필요한 항목 (실제 자격증명·플랫폼 접근이 없어 미검증)
 

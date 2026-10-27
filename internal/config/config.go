@@ -193,7 +193,7 @@ func LoadFrom(lookup Lookup) (*Config, error) {
 		case c.AdminPasswordHash == "":
 			add("ADMIN_PASSWORD_HASH", "필수입니다. `go run ./cmd/admin hash-password`로 만드세요")
 		case !strings.HasPrefix(c.AdminPasswordHash, "$argon2id$"):
-			add("ADMIN_PASSWORD_HASH", "Argon2id 해시($argon2id$...)여야 합니다. 평문 비밀번호를 넣지 마세요")
+			add("ADMIN_PASSWORD_HASH", "Argon2id 해시($argon2id$...)여야 합니다. 평문 비밀번호를 넣지 마세요. .env를 셸로 읽는다면 $가 사라지지 않게 작은따옴표로 감싸세요")
 		}
 	}
 
