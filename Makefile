@@ -4,6 +4,7 @@ GO ?= go
 NPM ?= npm
 BIN := bin/server
 # DB 통합 테스트용 계정 (테스트마다 임시 DB를 만들고 지운다). make db-up 으로 띄운 로컬 DB 기준
+comma := ,
 TEST_DATABASE_URL ?= postgres://xauto:xauto@127.0.0.1:5432/postgres?sslmode=disable
 export TEST_DATABASE_URL
 
@@ -16,7 +17,8 @@ setup: ## 의존성 설치·개발 설정 안내 (비밀값은 만들지 않는�
 	cd web && $(NPM) ci
 	@test -f .env || { cp .env.example .env; echo ".env를 만들었습니다. ADMIN_PASSWORD_HASH·TOKEN_ENCRYPTION_KEY를 채우세요 (README 참고)"; }
 
-dev: ## API와 Vite 개발 서버를 함께 실행 (Ctrl+C로 둘 다 종료)
+dev: ## 로컬 DB(docker compose) + API + Vite 개발 서버 (Ctrl+C로 함께 종료)
+	@$(MAKE) --no-print-directory db-up || echo "로컬 DB를 띄우지 못했어요 (docker compose 필요). .env의 DATABASE_URL에 PostgreSQL이 떠 있어야 합니다"
 	@trap 'kill 0' EXIT; $(MAKE) --no-print-directory dev-api & $(MAKE) --no-print-directory dev-web & wait
 
 dev-api:
@@ -56,5 +58,8 @@ build: web-build ## 프론트 빌드 후 Go 바이너리
 e2e: build ## 브라우저 E2E: 전용 DB(xa_e2e)를 새로 만들고 목업 연동으로 서버를 띄워 핵심 흐름 검사 (PostgreSQL 필요)
 	cd web && $(NPM) run e2e
 
-docker-build:
-	@echo "Dockerfile은 14단계에서 추가됩니다"; exit 1
+# 배포 이미지. PLATFORM=linux/arm64 처럼 대상 아키텍처를 고를 수 있다 (KoDeploy 클러스터는 ARM64)
+IMAGE ?= x-automation:dev
+PLATFORM ?=
+docker-build: ## 배포 이미지 빌드 (PLATFORM=linux/arm64,linux/amd64 로 여러 아키텍처)
+	docker buildx build $(if $(PLATFORM),--platform $(PLATFORM),) --build-arg VERSION=$$(git rev-parse --short HEAD 2>/dev/null || echo dev) -t $(IMAGE) $(if $(findstring $(comma),$(PLATFORM)),,--load) .

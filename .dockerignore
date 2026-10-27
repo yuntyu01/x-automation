@@ -1,0 +1,20 @@
+# 빌드에 필요 없는 것과 비밀은 빌드 컨텍스트에 넣지 않는다
+.git
+.github
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+bin/
+.data/
+tmp/
+*.log
+web/node_modules/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+internal/web/dist/*
+!internal/web/dist/.gitkeep
+docs/
+testdata/

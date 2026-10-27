@@ -2,6 +2,8 @@
 
 지시서: `docs/BUILD_INSTRUCTIONS.md`. 세션을 재개하면 이 파일의 "다음 작업"부터 이어 간다.
 
+현재 상태: **14/14단계 완료.** 남은 일은 실제 자격증명·플랫폼이 필요한 외부 설정뿐이다(맨 아래 "외부 설정이 필요한 항목"). 14단계 커밋 SHA는 최종 보고에 기록한다.
+
 ## 단계 체크리스트
 
 | 단계 | 내용 | 상태 | 커밋 |
@@ -18,8 +20,8 @@
 | 10 | X 연결·본문과 답글 게시·복구 | 완료 | 4d75579 |
 | 11 | 비용 제어·내부 알림·운영 홈 | 완료 | e5775e8 |
 | 12 | 게시 후 14일 정리·재배포 내구성 | 완료 | f5aaa07 |
-| 13 | 전체 사용자 흐름·모바일 품질 검증 | 완료 | (보고에 기록) |
-| 14 | 배포·CI·문서·최종 main 검증 | 대기 | |
+| 13 | 전체 사용자 흐름·모바일 품질 검증 | 완료 | 63794a0 |
+| 14 | 배포·CI·문서·최종 main 검증 | 완료 | (보고에 기록) |
 
 커밋 SHA는 같은 커밋 안에 넣을 수 없으므로 다음 단계 기록에서 앞 단계 SHA를 채운다.
 
@@ -27,17 +29,17 @@
 
 | 번호 | 시나리오 | 구현 경로 | 검증 근거 | 상태 |
 |---|---|---|---|---|
-| A01 | 지정 관리자만 로그인, 미인증 API 차단 | `internal/auth`, `internal/httpapi/server.go`(requireAuth), `web/src/auth` | `internal/app/auth_test.go`(미인증 401·CSRF·출처·만료·시도 제한·XFF 우회 불가·로그아웃), 브라우저 로그인 후 원래 경로 복귀 | 진행 (기능 API 추가 시 계속 확인) |
-| A02 | Go 한 서버에서 웹·API, 깊은 링크 새로고침 | `internal/web` | `internal/web/embed_test.go` (깊은 링크→index, 없는 자산 404) | 진행 |
+| A01 | 지정 관리자만 로그인, 미인증 API 차단 | `internal/auth`, `internal/httpapi/server.go`(requireAuth), `web/src/auth` | `internal/app/auth_test.go`(미인증 401·CSRF·출처·만료·시도 제한·XFF 우회 불가·로그아웃), 브라우저 로그인 후 원래 경로 복귀 | 완료 (모든 기능 API가 같은 인증·CSRF 경로: 홈·시간표·이미지·게시 API 테스트에서 미인증 401, E2E 로그아웃 후 401, 컨테이너 스모크 미인증 401) |
+| A02 | Go 한 서버에서 웹·API, 깊은 링크 새로고침 | `internal/web` | `internal/web/embed_test.go` (깊은 링크→index, 없는 자산 404) · E2E(새로고침 시 로그인 후 원래 경로), 컨테이너 스모크(`/schedule` 깊은 링크 → index) | 완료 |
 | A03 | 프롬프트·직접 작성·CSV/JSON·자동 저장·검색 | `internal/content`, `internal/prompt`, `web/src/pages/contents/*`, `web/src/pages/prompts/*` | `content_test.go`(자동 저장·충돌·검색·LIKE 이스케이프·가져오기/내보내기 왕복·수식 방어), `prompt_test.go`(버전·변수 검증·렌더), `app/content_test.go`(API), 브라우저 흐름(등록→편집→자동 저장→새로고침 유지→검색→가져오기→보관→프롬프트 v2) | 완료 |
 | A04 | 세 운영 모드, 텍스트·이미지 독립 | `internal/settings`(운영 모드·글/이미지 스위치), `internal/generation`(SubmitTx 검증·Blockers), `web/src/pages/settings/GenerationSettingsPage.tsx`, `components/generation/GenerateForm.tsx` | `generation_test.go`(게시만 자동은 글 생성 거부·이미지만 허용, 이미지 꺼짐 거부, 검토 모드 생성분은 검토 대기), 브라우저 생성 설정 저장 | 완료 (게시 경로: 검토 모드는 승인본만, 실게시 스위치·자동 운영·일시정지·연결 게이트) |
-| A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 진행 (예약 생성은 09단계) |
+| A05 | 세 생성 시점·세 사전 생성 전략·부족분만 생성 | `internal/generation/planner.go`(daily_at·before_slot·stock·on_publish·FillNow, generation_marks), `generation.go`(요청·작업·재생성), `internal/jobs` | `generation_test.go`(준비 8·예약 20→12개만, 같은 날 재실행·바로 채우기 중복 없음, 지정 시각 전 대기·일일 상한, 예약 전 N분은 재고로 못 덮는 뒤 예약만, 게시 시각 생성, 재고 보충 시간당 1번, 검토 대기 AI분 확보로 계산), `app/generation_test.go`(API·워커 흐름) | 완료 (예약 생성 연결은 09단계에서 완료, E2E로 목업 생성 확인) |
 | A06 | 20묶음과 실제 게시물 수 구분 | 예약 화면(묶음/목표·예상 X 게시물 수), 홈(오늘 N / 목표 묶음·오늘 올라간 X 게시물), 편집기(X 게시물 N개·예상 게시 비용), 사용량(X 게시물 수) | `dashboard_test.go`(묶음 1·진행 1·게시물 3 구분), `publish_test.go`(묶음 1 = 게시물 2 사용량), 브라우저 홈·예약 | 완료 |
 | A07 | 추가 답글·가중 길이·원문 보존 | `internal/thread`(twittertext.go·url.go·twittertext_gen.go·split.go), `web/src/lib/thread.ts`, `web/scripts/gen-thread-data.mjs`, `/settings/thread` | `conformance_test.go`(공식 적합성 사례 v2·v3·방향 문자·URL 추출 전부, 라이브러리 golden 180문장·이모지 1,247×5 일치, 단위 합=전체 판정), `split_property_test.go`(무작위 150개×모드×번호: 누락·중복 없음, 부분 ≤280, URL·이모지 비분할), `thread_test.go`, `bench_test.go`(긴·악의적 입력 성능), `content_test.go`(장문 설정 변경 시 미고정 글만 재분할), Vitest(공식 라이브러리=golden, 앱 measure=적합성) | 완료 |
 | A08 | 새벽·낮 복수 구간, 30분 + 추가 지연, 시간표 영속화 | `internal/schedule`(timeline.go·core.go·plan.go·manual.go), `migrations/0004_schedule.sql`, `web/src/pages/schedule` | `timeline_test.go`(12:00→12:33→13:04→13:39, 간격 30~35분, 구간 경계·끝 여유, 자정 넘김·실제 날짜 상한, 겹친 구간 합치기), `service_test.go`(미리 만들기·재시작해도 시각·지연 불변, 미리보기=적용), `app/schedule_test.go` | 완료 |
 | A09 | 시간 부족·자정·고정 예약·미준비·다운타임 | `internal/schedule`(Generate·CloseOverdue·AfterBodyStart·Pin·AddException·SaveRules) | `timeline_test.go`(억지로 채우지 않음·고정 예약과 간격·쉬는 날), `service_test.go`(부족 수 보고, 다운타임 후 지난 예약 닫고 글은 다음 빈 예약으로·알림 1건, 늦은 게시 뒤 저장된 지연으로 뒤 예약 늦춤, 고정 예약은 재배치에서 유지, 쉬는 날 추가·해제) | 완료 (게시 직전·답글마다 허용 구간 확인, 구간 밖 답글은 다음 구간으로) |
 | A10 | 미승인·승인 후 변경분 게시 차단 | `internal/content`(frozen revision, 승인 revision 단위), `content_overview.stage` | `TestApprovalIsInvalidatedByEdit`, 브라우저 승인 후 편집 확인 | 완료 (게시 직전 승인 revision·현재 한도 재검사, 게시 revision 고정) |
-| A11 | AI 이미지·업로드·재사용·부분별 첨부, R2 공개/관리 구분 | `internal/integration/storage`(R2·로컬), `internal/media`, `internal/content/media.go`, `web/src/pages/images`, `components/media` | `storage_test.go`(가짜 S3로 R2 어댑터·접두사 밖 미노출), `media_test.go`(검사·EXIF 제거·회전·축소·중복·자르기·삭제·연결·고아), `app/media_test.go`(공개 조회 무인증·관리 API 인증·디렉터리 차단), 브라우저 업로드→자르기→부분 연결→순서·이동 | 진행 (AI 이미지는 07단계) |
+| A11 | AI 이미지·업로드·재사용·부분별 첨부, R2 공개/관리 구분 | `internal/integration/storage`(R2·로컬), `internal/media`, `internal/content/media.go`, `web/src/pages/images`, `components/media` | `storage_test.go`(가짜 S3로 R2 어댑터·접두사 밖 미노출), `media_test.go`(검사·EXIF 제거·회전·축소·중복·자르기·삭제·연결·고아), `app/media_test.go`(공개 조회 무인증·관리 API 인증·디렉터리 차단), 브라우저 업로드→자르기→부분 연결→순서·이동 | 완료 (AI 이미지 생성·실패 시 텍스트만 대체는 `generation_test.go`) |
 | A12 | 답글부터 재개, 불명확 전송 재게시 차단 | `internal/publish`(publish.go·recovery.go), `internal/integration/xapi`(http.go 분류), `migrations/0005_publish.sql`, `web/src/pages/publish` | `publish_test.go`(가짜 X: 본문 성공→답글 403→재시작→답글만 재개·in_reply_to=본문 ID, 전송 후 시간 초과→unknown·재시작·디스패치·작업 정리 후에도 재전송 없음·중대 알림·확인 없는 재시도 경고·주소로 정리 후 남은 답글만, 의도 기록 직후 죽음→unknown→안 올라감 확인 후 재전송, 그만두기 시 자동 배치 제외), 브라우저 게시 기록 화면 | 완료 |
 | A13 | 워커 2개·즉시 게시·취소 경쟁 | 활성 실행 고유 색인(전체 1개·예약당 1개), 예약 상태 비교·교체, 작업 lease·소유권 확인 | `publish_test.go`(디스패치 6개 동시→활성 실행 1개, 게시 중 글 지금 게시 거부, 워커 2개 동시 처리→본문마다 1번, 건너뛰기 vs 디스패치 경쟁 5회 — 한쪽만 이김), `app/publish_test.go`(API 흐름) | 완료 |
 | A14 | 앱 내부 알림 | `internal/notification`(Notify: 사건 묶음, Upsert: 계속되는 상태), `internal/dashboard`(Watch: 콘텐츠 부족·예산), 게시·생성·연결 알림, `web/src/pages/NotificationsPage.tsx`(해결됨 표시·해결 링크), 상단·사이드 배지 | `notification_test.go`(동시 반복 실패 묶음·읽은 뒤 재알림·상태 알림은 읽어도 해결 전 재생성 없음·해결 후 새 알림), `dashboard_test.go`(부족 알림 5회 점검에도 1건·채우면 해결), 브라우저(창을 닫은 70초 동안 서버가 부족 알림 생성 → 다시 열면 배지·알림함에 누적) | 완료 |
@@ -45,8 +47,8 @@
 | A16 | 게시 후 14일 정리·참조 보호 | `internal/retention`, `internal/publish`(묶음 완료 시 보관 기준), `internal/media`(DeleteClaimed·RetryDelete·CleanOrphans), `migrations/0006_retention.sql`, 이미지 보관함(보관 규칙·정리 실패 필터·다시 시도·고아 파일), 설정(보관 일수) | `retention_test.go`(미게시 이미지 유지, 완료 15일 뒤 정리·메타데이터·원문·X 링크 유지·재게시 차단, 재사용 시 마지막 완료 기준, 초안·일부 완료 실행 보호, 그만두면 그때부터, 붙이기 vs 정리 경쟁 15회 — 붙었으면 active·실패면 deleted, 삭제 실패 알림·1시간 뒤 재시도·해결, 정리 중 종료 10분 뒤 복구, pending 행 정리, 고아는 유예 뒤에만) | 완료 |
 | A17 | 라이트·다크 모바일 흐름·접근성 | `web/src/styles/tokens.css`, `components/layout/AppShell.tsx`, `components/ui/*`, `docs/DESIGN.md`, `web/e2e/04-mobile-a11y.spec.ts` | E2E: 14개 화면 × 360·390·768·1440 × 라이트·다크 가로 넘침 0, 하단 탭 44px 이상·마지막 버튼이 탭에 가려지지 않음, 보이는 버튼·링크 모두 이름 있음, 키보드로 시트 열기·Esc 닫기·포커스 복귀·시트 안 포커스, 로그인 키보드 진행·포커스 표시 | 완료 |
 | A18 | 재배포 후 유지·정상 종료·복구 | `internal/app` (DB 재시도·준비 상태), `internal/store/migrate.go`, `internal/settings` | `store/migrate_test.go`(재실행·동시 실행·체크섬·롤백), `settings_test.go`(자동 운영 상태 보존), SIGTERM 종료 스모크 · 게시 중 재시작 시 보내던 부분은 불명확·남은 답글만 재개(`publish_test.go`) · 종료 시 진행 중 작업 결과 저장·새 선점 중지(`jobs_test.go` TestShutdownFinishesInFlightAndStopsClaiming), 정리 중 종료 복구(`retention_test.go`) | 완료 |
-| A19 | Docker·ARM64·CI·환경변수·KoDeploy 문서 | | | 대기 |
-| A20 | 14단계 결과·main 커밋·푸시·정직한 보고 | | | 대기 |
+| A19 | Docker·ARM64·CI·환경변수·KoDeploy 문서 | `Dockerfile`(BuildKit, 빌드 단계는 빌드 기계에서 돌고 Go 교차 컴파일 → distroless, UID 1000), `.dockerignore`, `make docker-build`, `.github/workflows/ci.yml`(lint·test·build, e2e, arm64+amd64 빌드·amd64 스모크), `.env.example`(설정 코드의 변수 전부), `docs/DEPLOY_KODEPLOY.md` | 로컬: amd64 이미지 빌드·실행(마이그레이션·readyz·healthz·깊은 링크·로그인 200·미인증 401·SIGTERM 정상 종료 0, UID 1000, 43.8MB), arm64 이미지 빌드·바이너리 aarch64 확인(이 기계에 에뮬레이터가 없어 arm64 실행은 못 함), 설정 코드와 `.env.example` 변수 대조 | 완료 (KoDeploy 실제 배포는 계정 접근이 없어 미검증) |
+| A20 | 14단계 결과·main 커밋·푸시·정직한 보고 | 단계마다 main 커밋·푸시(체크리스트의 SHA), 이 문서의 단계별 기록·실연동 미검증 목록 | `git log origin/main`, 단계 보고, 최종 보고(실연동·배포 미검증 구분) | 완료 |
 
 ## 단계별 기록
 
@@ -57,7 +59,7 @@
 - 구성: Go 모듈, `cmd/server`(헬스·SPA 제공·종료 신호 처리), `internal/web`(embed + 깊은 링크), `web/`(React 19·TS 6·Vite 8·ESLint 10·Vitest 5), Makefile, `.env.example`, `.gitignore`
 - 결정 기록: `docs/ARCHITECTURE.md`
 - 검증: `go vet`·`staticcheck`·`go test ./...` 통과, `tsc -b`·`eslint`·`vite build` 통과, 서버 실행 후 `/healthz` 200, `/contents/abc` → index.html 200, `/assets/nope.js` 404
-- 차단 요인: 이 개발 환경에서 Docker 데몬이 꺼져 있음(14단계에서 이미지 빌드 검증 시 재확인). docs.x.com 등 일부 문서 사이트는 셸 프록시에서 막혀 웹 조회 도구로 확인
+- 차단 요인: 이 개발 환경에서 Docker 데몬이 꺼져 있음(14단계에서 데몬을 직접 띄워 이미지 빌드·실행까지 확인함). docs.x.com 등 일부 문서 사이트는 셸 프록시에서 막혀 웹 조회 도구로 확인
 - 다음: 02 PostgreSQL 스키마·설정 검증·마이그레이션
 
 ### 02 PostgreSQL·설정·마이그레이션 — 완료
@@ -221,3 +223,25 @@
 - 화면 캡처: `E2E_SCREENSHOT_DIR`를 주면 홈·편집·게시 기록·콘텐츠와 390px 라이트·다크 주요 화면을 저장. 확인 결과 넘침·가림·빈 화면 없음, 운영 수치는 모두 실제 DB 값(새 DB에서 0부터 시작)
 - 검증: `make lint`·`make test`·`make e2e`(12개) 통과
 - 다음: 14 배포·CI·문서·최종 main 검증
+
+### 14 배포·CI·문서·최종 main 검증 — 완료
+
+- 배포 이미지(`Dockerfile`): 프론트(node 22 alpine) → Go 1.27.3(CGO 없음, 대상 아키텍처로 교차 컴파일, 버전 주입) → `gcr.io/distroless/static-debian12:nonroot`(셸 없음, CA 포함, 시간대는 바이너리에 포함). UID 1000, `PORT` 기본 8080, `APP_ENV=production`·`INTEGRATION_MODE=live`·`PUBLISHING_ENABLED=false` 기본, `/app/admin` 동봉(`--entrypoint /app/admin`). KoDeploy가 빌드 인자를 주지 않아 모든 ARG에 기본값. 프록시 뒤 빌드용 선택 인자(`EXTRA_CA_CERT_B64`)는 빌드 단계에만 쓰이고 실행 이미지에 남지 않음
+- `make docker-build [PLATFORM=…]`, `make dev`가 로컬 DB(compose)도 띄우도록 보완, `.env.example`에 빠진 선택 변수(AI_BASE_URL·X_* 주소) 추가
+- CI(`.github/workflows/ci.yml`, 비밀값 없음): lint·test·build(PostgreSQL 서비스) → E2E(Chromium) · 컨테이너(arm64+amd64 빌드, amd64 실행 스모크)
+- 문서: README(화면 예시·빠른 시작·첫 설정·운영 모드·생성/게시 시점·묶음/게시물 수·이미지 공개·정리 기준·비용 한계·멈추기/복구·배포·검증 상태), API, DEPLOY_KODEPLOY(확인한 KoDeploy 규약·10단계 순서), OPERATIONS(켜고 끄기·문제 해결·비용·이미지·계정/키·백업·복원·이전·로그·장애), TESTING(구성·명령·실연동 미검증), ARCHITECTURE(디렉터리 갱신)
+- 컨테이너 검증(이 기계, Docker 29 + BuildKit): amd64 빌드·실행 — 마이그레이션 6개 적용, `/readyz` ready, `/healthz` ok, `/schedule` 깊은 링크, 로그인 200, 미인증 401, 프로세스 UID 1000, `docker stop` → 정상 종료 코드 0. arm64 — 이미지 빌드 성공, 안의 바이너리가 ARM aarch64 정적 실행 파일임을 확인(실행은 에뮬레이터가 없어 못 함). 베이스 이미지 3개 모두 arm64 제공 확인. Docker Hub는 요청 제한(429)이라 같은 이미지를 mirror.gcr.io에서 받아 빌드(`REGISTRY` 인자, 기본값은 docker.io)
+- 검증: `make lint`·`make test`·`make e2e`(12) 통과, 새로 받은 저장소에서 문서대로 빌드·기동 확인(최종 보고에 기록)
+
+## 외부 설정이 필요한 항목 (실제 자격증명·플랫폼 접근이 없어 미검증)
+
+| 항목 | 필요한 것 | 문서 |
+|---|---|---|
+| KoDeploy 배포 | 앱 생성·저장소 연결·관리형 PostgreSQL 켜기·환경변수 입력·재배포. `pipeline v2` 계정이면 프로브·환경 주입 확인 | DEPLOY_KODEPLOY 1~6 |
+| 관리자 값 | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `TOKEN_ENCRYPTION_KEY`, `APP_BASE_URL` | DEPLOY_KODEPLOY 4 |
+| X | 개발자 앱(Web App, OAuth 2.0, 콜백 `https://{앱}-api.kodeploy.com/api/x/oauth/callback`, 권한 5개), `X_CLIENT_ID`·`X_CLIENT_SECRET`·`X_REDIRECT_URI`, 계정 연결, 첫 게시 때 자기 답글 제한 확인 | DEPLOY_KODEPLOY 7·9 |
+| AI | `AI_API_KEY`, `AI_TEXT_MODEL`, `AI_IMAGE_MODEL` (쓸 수 있는 모델 이름) | DEPLOY_KODEPLOY 7 |
+| R2 | 전용 버킷·쓰기 토큰·커스텀 공개 도메인, `R2_*` | DEPLOY_KODEPLOY 3 |
+| 요율표 | 운영 시점의 X·AI 단가와 확인일 (X 단가는 2026-10-27 확인값을 버튼으로 넣을 수 있음) | OPERATIONS 비용 |
+| 실게시 시작 | `PUBLISHING_ENABLED=true` 후 앱 홈 "자동 운영 시작" — 운영자가 직접 | DEPLOY_KODEPLOY 9 |
+| 백업 | KoDeploy 관리형 DB에 외부에서 `pg_dump`할 경로 확인 | OPERATIONS 백업 |

@@ -11,7 +11,7 @@
 Go 서버 (cmd/server)
    ├─ internal/httpapi    라우팅·요청 검증·JSON 오류
    ├─ internal/web        embed.FS 정적 파일 + SPA 대체 경로
-   ├─ 도메인 패키지        content · prompt · thread · schedule · generation · publish · media · budget · notification
+   ├─ 도메인 패키지        content · prompt · thread · schedule · generation · publish · connection · media · retention · budget · notification · dashboard
    ├─ internal/jobs       PostgreSQL 작업 큐 (FOR UPDATE SKIP LOCKED + lease)
    └─ internal/integration  X · AI · R2 실제 어댑터와 테스트 대역
    │
@@ -25,7 +25,7 @@ Go 서버 (cmd/server)
 
 | 경계 | 원칙 |
 |---|---|
-| X | `integration/x`의 인터페이스 뒤에 실제 HTTP 클라이언트와 테스트용 가짜 서버. 게시 요청 전 의도 기록, 성공 ID 즉시 저장, 응답 불명확은 `unknown` 보류 |
+| X | `integration/xapi`의 인터페이스 뒤에 실제 HTTP 클라이언트, 목업 메모리 대역, 테스트용 가짜 서버(`xapi/xfake`). 게시 요청 전 의도 기록, 성공 ID 즉시 저장, 응답 불명확은 `unknown` 보류 |
 | AI | `integration/ai` 인터페이스. 출력은 JSON 스키마로 검증하고 텍스트로만 취급. 모델명·단가는 설정·요율표로 관리 |
 | R2 | `integration/storage` 인터페이스. 실제 S3 호환 어댑터와 로컬 파일 대역. 앱 전용 접두사 밖은 읽거나 지우지 않음 |
 | 시계·난수 | `internal/clock`, `internal/randx` 주입. 시간표·재시도 테스트를 결정적으로 만든다 |
@@ -55,11 +55,24 @@ Go 서버 (cmd/server)
 | 경로 | 책임 |
 |---|---|
 | `cmd/server` | HTTP·워커 시작, 종료 처리 |
-| `cmd/admin` | 비밀번호 해시 생성 등 운영 보조 명령 |
-| `internal/*` | 지시서 10.1절의 모듈 구성 (단계별로 채움) |
+| `cmd/admin` | 비밀번호 해시·암호화 키 생성, 마이그레이션 |
+| `internal/app` | 설정·서비스 조립, 주기 작업·워커 시작, 종료 |
+| `internal/httpapi` | 라우팅·인증·CSRF·요청 검증·JSON 오류 |
+| `internal/auth`, `internal/secretbox` | 관리자 로그인·세션, 토큰 암호화 |
+| `internal/config`, `internal/settings`, `internal/store` | 환경변수, 앱 설정(정책), DB·마이그레이션 |
+| `internal/content`, `internal/prompt`, `internal/thread` | 글·버전·승인, 프롬프트, 글자 수·분할 |
+| `internal/generation`, `internal/budget` | 생성 요청·계획, 사용량·예산 |
+| `internal/schedule` | 허용 구간·예약 자리·배치 |
+| `internal/connection`, `internal/publish` | X 연결·토큰, 게시 실행·복구 |
+| `internal/media`, `internal/retention` | 이미지 처리·보관함, 게시 후 정리 |
+| `internal/notification`, `internal/dashboard` | 앱 내부 알림, 홈 요약·상태 점검 |
+| `internal/jobs` | PostgreSQL 작업 큐·워커 |
+| `internal/integration` | X(`xapi`)·AI(`ai`)·R2(`storage`) 어댑터와 대역 |
+| `internal/testutil` | 테스트 DB(`pgtest`), E2E 서버(`e2eserver`) |
 | `migrations` | 순서 있는 SQL 마이그레이션 (embed) |
-| `web/` | React 앱 (`web/src`), Vite 설정, E2E |
-| `docs/` | 구조·API·배포·운영·진행 기록 |
+| `web/` | React 앱(`web/src`), Vite 설정, E2E(`web/e2e`) |
+| `Dockerfile`, `.github/workflows/ci.yml` | 배포 이미지(ARM64·amd64), CI |
+| `docs/` | 구조·API·배포·운영·테스트·진행 기록 |
 
 ## 글자 수와 분할 (`internal/thread`)
 
