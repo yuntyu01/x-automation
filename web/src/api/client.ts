@@ -26,6 +26,10 @@ export function setCsrfToken(token: string) {
   csrfToken = token;
 }
 
+export function getCsrfToken(): string {
+  return csrfToken;
+}
+
 export function onUnauthorized(fn: () => void): () => void {
   unauthorizedListeners.add(fn);
   return () => {

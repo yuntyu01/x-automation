@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/content"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
+	"github.com/yuntyu01/x-automation/internal/integration/storage"
+	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
 	"github.com/yuntyu01/x-automation/internal/settings"
@@ -29,6 +32,8 @@ type services struct {
 	connections   *connection.Repo
 	contents      *content.Service
 	prompts       *prompt.Service
+	media         *media.Service
+	store         storage.Store
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -46,7 +51,39 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 		st, err := setRepo.Get(ctx)
 		return err == nil && st.Policy.Thread.LongPostEnabled
 	})
+	s.store = a.newStore()
+	s.media = media.NewService(pool, s.store, a.deps.Clock, func(ctx context.Context) int {
+		st, err := setRepo.Get(ctx)
+		if err != nil {
+			return 14
+		}
+		return st.Policy.Retention.Days
+	})
+	s.contents.SetMediaLoader(s.media.ContentLoader())
 	return s
+}
+
+// newStore는 이미지 저장소를 고른다. 목업은 로컬 파일, 실제 연동은 R2(값이 없으면 설정 오류를 돌려주는 대역).
+func (a *App) newStore() storage.Store {
+	if a.cfg.IntegrationMode == config.ModeMock {
+		l, err := storage.NewLocal(filepath.Join(a.cfg.DataDir, "media"), a.cfg.BaseURL.String()+"/media")
+		if err == nil {
+			a.local = l
+			return l
+		}
+		a.log.Error("local media store unavailable", "err", err.Error())
+		return storage.Unconfigured{}
+	}
+	if !a.cfg.R2.Configured() {
+		return storage.Unconfigured{}
+	}
+	r2, err := storage.NewR2(storage.R2Config{Endpoint: a.cfg.R2.ResolvedEndpoint(), AccessKeyID: a.cfg.R2.AccessKeyID,
+		SecretAccessKey: a.cfg.R2.SecretAccessKey, Bucket: a.cfg.R2.Bucket, Prefix: a.cfg.R2.Prefix, PublicBaseURL: a.cfg.R2.PublicBaseURL})
+	if err != nil {
+		a.log.Error("r2 store unavailable", "err", err.Error())
+		return storage.Unconfigured{}
+	}
+	return r2
 }
 
 // buildAPI는 /api/ 아래 라우트를 구성한다.
@@ -69,6 +106,7 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		Integrations:  a.integrationStatus,
 		Contents:      svc.contents,
 		Prompts:       svc.prompts,
+		Media:         svc.media,
 	}
 	return srv.Routes()
 }

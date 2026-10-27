@@ -5,6 +5,7 @@ import { ToastProvider } from './components/ui/Toast';
 import { ContentEditorPage } from './pages/contents/ContentEditorPage';
 import { ContentsPage } from './pages/contents/ContentsPage';
 import { HomePage } from './pages/home/HomePage';
+import { ImagesPage } from './pages/images/ImagesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
           { path: '/contents', element: <ContentsPage /> },
           { path: '/contents/:id', element: <ContentEditorPage /> },
           { path: '/prompts', element: <PromptsPage /> },
+          { path: '/images', element: <ImagesPage /> },
           { path: '/prompts/:id', element: <PromptEditorPage /> },
           { path: '/schedule', element: <SchedulePage /> },
           { path: '/settings', element: <SettingsPage /> },

@@ -98,6 +98,11 @@ function Editor({ initial }: { initial: ContentDetail }) {
   }, []);
   const editVersion = useRef(initial.edit_version);
   const saving = useRef(false);
+  const savePromise = useRef<Promise<void> | null>(null);
+  const draftRef = useRef(draft);
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   const update = (patch: Partial<DraftState>) => setDraft((d) => ({ ...d, ...patch }));
   const dirty = !sameDraft(draft, saved);
@@ -114,8 +119,10 @@ function Editor({ initial }: { initial: ContentDetail }) {
 
   const save = useCallback(
     async (d: DraftState, force?: number) => {
-      if (saving.current) return;
+      if (saving.current) return savePromise.current ?? undefined;
       saving.current = true;
+      let done: () => void = () => {};
+      savePromise.current = new Promise<void>((r) => (done = r));
       setStatus('saving');
       try {
         const res = await put<ContentDetail>(`/api/contents/${server.id}`, {
@@ -142,10 +149,17 @@ function Editor({ initial }: { initial: ContentDetail }) {
         }
       } finally {
         saving.current = false;
+        done();
       }
     },
     [server.id, apply, toast, markSaved],
   );
+
+  // 다른 저장(이미지 연결 등) 전에 진행 중·대기 중인 자동 저장을 마친다
+  const flush = useCallback(async () => {
+    if (savePromise.current) await savePromise.current;
+    if (!sameDraft(draftRef.current, savedDraft.current)) await save(draftRef.current);
+  }, [save]);
 
   // 자동 저장: 입력이 멈추고 0.9초 뒤
   const debounced = useDebounced(draft, 900);
@@ -348,7 +362,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
             </div>
           </Card>
 
-          <EditorExtras content={server} draft={draft} update={update} onChanged={apply} />
+          <EditorExtras content={server} draft={draft} update={update} onChanged={apply} flush={flush} editVersion={() => editVersion.current} />
         </div>
 
         <div className={styles.col}>

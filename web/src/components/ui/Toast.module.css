@@ -16,7 +16,8 @@
   }
 }
 .toast {
-  pointer-events: auto;
+  /* 아래 버튼 조작을 막지 않게 토스트 자체는 클릭을 통과시킨다 (동작 버튼만 받는다) */
+  pointer-events: none;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -44,6 +45,7 @@
   flex: 1;
 }
 .action {
+  pointer-events: auto;
   background: none;
   border: 0;
   color: #9cc2ff;

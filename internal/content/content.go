@@ -449,29 +449,16 @@ func (s *Service) SaveDraft(ctx context.Context, id string, d Draft) (Detail, er
 		so, _ := json.Marshal(d.SplitOptions)
 		if frozen != nil {
 			// 고정된 revision은 그대로 두고 새 revision을 만든다. 승인 상태는 이어받지 않는다
-			var newID string
-			if err := tx.QueryRow(ctx, `INSERT INTO content_revisions (content_id, number, raw_text, split_mode, split_options, image_mode,
-				origin, prompt_id, prompt_version, model, gen_options, review_state)
-				SELECT content_id, (SELECT max(number) + 1 FROM content_revisions WHERE content_id = $1), $3, $4, $5, $6, 'user',
-				       prompt_id, prompt_version, model, gen_options, 'unreviewed'
-				FROM content_revisions WHERE id = $2 RETURNING id`, id, revID, d.RawText, string(d.SplitMode), so, d.ImageMode).Scan(&newID); err != nil {
+			if revID, err = s.forkRevision(ctx, tx, id, revID); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO part_media (revision_id, part_index, media_id, position)
-				SELECT $2, part_index, media_id, position FROM part_media WHERE revision_id = $1`, revID, newID); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `UPDATE contents SET current_revision_id = $2 WHERE id = $1`, id, newID); err != nil {
-				return err
-			}
-			revID = newID
-		} else {
-			// 미고정 revision 수정: 반려 상태였다면 다시 검토 전 상태로
-			if _, err := tx.Exec(ctx, `UPDATE content_revisions SET raw_text = $2, split_mode = $3, split_options = $4, image_mode = $5,
-				review_state = CASE WHEN review_state = 'rejected' THEN 'unreviewed' ELSE review_state END, updated_at = now() WHERE id = $1`,
-				revID, d.RawText, string(d.SplitMode), so, d.ImageMode); err != nil {
-				return err
-			}
+		}
+		// 반려 상태였다면 다시 검토 전 상태로
+		if _, err := tx.Exec(ctx, `UPDATE content_revisions SET raw_text = $2, split_mode = $3, split_options = $4, image_mode = $5,
+			origin = CASE WHEN origin = 'restore' THEN 'restore' ELSE origin END,
+			review_state = CASE WHEN review_state = 'rejected' THEN 'unreviewed' ELSE review_state END, updated_at = now() WHERE id = $1`,
+			revID, d.RawText, string(d.SplitMode), so, d.ImageMode); err != nil {
+			return err
 		}
 		media, err := s.loadMedia(ctx, tx, revID)
 		if err != nil {
@@ -484,6 +471,51 @@ func (s *Service) SaveDraft(ctx context.Context, id string, d Draft) (Detail, er
 		return Detail{}, err
 	}
 	return s.Get(ctx, id)
+}
+
+// forkRevision은 고정된 revision을 복사해 새 편집본을 만든다 (이미지 연결 포함, 승인 미승계).
+func (s *Service) forkRevision(ctx context.Context, tx pgx.Tx, contentID, revID string) (string, error) {
+	var newID string
+	if err := tx.QueryRow(ctx, `INSERT INTO content_revisions (content_id, number, raw_text, split_mode, split_options, image_mode,
+		origin, prompt_id, prompt_version, model, gen_options, review_state)
+		SELECT content_id, (SELECT max(number) + 1 FROM content_revisions WHERE content_id = $1), raw_text, split_mode, split_options,
+		       image_mode, 'user', prompt_id, prompt_version, model, gen_options, 'unreviewed'
+		FROM content_revisions WHERE id = $2 RETURNING id`, contentID, revID).Scan(&newID); err != nil {
+		return "", err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO part_media (revision_id, part_index, media_id, position)
+		SELECT $2, part_index, media_id, position FROM part_media WHERE revision_id = $1`, revID, newID); err != nil {
+		return "", err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE contents SET current_revision_id = $2 WHERE id = $1`, contentID, newID); err != nil {
+		return "", err
+	}
+	return newID, nil
+}
+
+// lockForEdit은 편집 대상 revision을 잠그고 버전을 확인한다. 고정된 revision이면 새 편집본을 만든다.
+func (s *Service) lockForEdit(ctx context.Context, tx pgx.Tx, id string, editVersion int) (string, error) {
+	var ver int
+	var revID string
+	var frozen *time.Time
+	err := tx.QueryRow(ctx, `SELECT c.edit_version, r.id, r.frozen_at FROM contents c
+		JOIN content_revisions r ON r.id = c.current_revision_id WHERE c.id = $1 FOR UPDATE OF c`, id).Scan(&ver, &revID, &frozen)
+	if store.IsNoRows(err) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	if ver != editVersion {
+		return "", ErrConflict
+	}
+	if _, err := tx.Exec(ctx, `UPDATE contents SET edit_version = edit_version + 1, updated_at = now() WHERE id = $1`, id); err != nil {
+		return "", err
+	}
+	if frozen != nil {
+		return s.forkRevision(ctx, tx, id, revID)
+	}
+	return revID, nil
 }
 
 // Revalidate는 이미지 연결 변경처럼 원문 밖의 변화가 있을 때 현재 revision을 다시 판정한다.

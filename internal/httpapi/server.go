@@ -10,6 +10,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/clock"
 	"github.com/yuntyu01/x-automation/internal/connection"
 	"github.com/yuntyu01/x-automation/internal/content"
+	"github.com/yuntyu01/x-automation/internal/media"
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
 	"github.com/yuntyu01/x-automation/internal/settings"
@@ -30,6 +31,7 @@ type Server struct {
 	Integrations  IntegrationProvider
 	Contents      *content.Service
 	Prompts       *prompt.Service
+	Media         *media.Service
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }
@@ -67,6 +69,7 @@ func (s *Server) Routes() http.Handler {
 	s.mountNotifications(protected)
 	s.mountContents(protected)
 	s.mountPrompts(protected)
+	s.mountMedia(protected)
 	for _, fn := range s.extra {
 		fn(protected)
 	}

@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, Info, Link2, LogOut, Moon, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -60,6 +60,7 @@ export function SettingsPage() {
               <Row icon={<SlidersHorizontal size={20} />} label="운영 모드" value={MODE_LABEL[settings.data.operation_mode]} onClick={() => setSheet('mode')} />
               <Row icon={<Sparkles size={20} />} label="생성 방식" value={generationSummary(settings.data.policy.generation.timing)} to="/settings/generation" />
               <Row icon={<FileText size={20} />} label="프롬프트" to="/prompts" />
+              <Row icon={<ImageIcon size={20} />} label="이미지 보관함" description="업로드·생성 이미지, 정리 예정" to="/images" />
               <Row icon={<CalendarClock size={20} />} label="시간표" to="/schedule/rules" />
             </RowGroup>
           </Section>

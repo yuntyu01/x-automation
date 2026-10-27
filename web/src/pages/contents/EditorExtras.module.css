@@ -1,0 +1,69 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.muted {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+.problem {
+  color: var(--danger);
+  font-size: var(--fs-small);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.part {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+.partHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.partHead strong {
+  margin-right: auto;
+}
+.thumbs {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: var(--space-3);
+}
+.thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.thumbBtn {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.thumbBtn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumbActions {
+  display: flex;
+  justify-content: space-between;
+}
+.cleaned {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-caption);
+  color: var(--text-3);
+}

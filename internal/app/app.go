@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/clock"
 	"github.com/yuntyu01/x-automation/internal/config"
 	"github.com/yuntyu01/x-automation/internal/httpapi"
+	"github.com/yuntyu01/x-automation/internal/integration/storage"
 	"github.com/yuntyu01/x-automation/internal/randx"
 	"github.com/yuntyu01/x-automation/internal/store"
 	"github.com/yuntyu01/x-automation/internal/web"
@@ -36,6 +38,7 @@ type App struct {
 	ready atomic.Bool
 
 	svc       *services
+	local     *storage.Local // 목업 모드 공개 이미지 경로(/media/)용
 	workersWG sync.WaitGroup
 	stopWork  context.CancelFunc
 }
@@ -63,6 +66,8 @@ func (a *App) Handler() http.Handler {
 		}
 		(*h).ServeHTTP(w, r)
 	})
+	// 목업 저장소의 공개 조회 경로. R2 공개 버킷과 같은 성격이라 로그인 없이 열린다
+	mux.HandleFunc("GET /media/{key...}", a.serveLocalMedia)
 	mux.Handle("/", web.Handler())
 	return httpapi.Base(mux)
 }
@@ -184,4 +189,23 @@ func (a *App) OpenWithPool(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	a.ready.Store(true)
 	return nil
+}
+
+func (a *App) serveLocalMedia(w http.ResponseWriter, r *http.Request) {
+	if a.local == nil {
+		http.NotFound(w, r)
+		return
+	}
+	p, err := a.local.Path(r.PathValue("key"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	// 디렉터리 목록은 보여 주지 않는다
+	if st, err := os.Stat(p); err != nil || !st.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	http.ServeFile(w, r, p)
 }

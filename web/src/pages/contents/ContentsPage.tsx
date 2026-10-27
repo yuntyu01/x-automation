@@ -213,6 +213,7 @@ export function ContentsPage() {
           <Row icon={<Upload size={20} />} label="CSV·JSON 가져오기" description="양식 다운로드·필드 연결·미리보기 후 등록" onClick={() => setSheet('import')} />
           <Row icon={<Download size={20} />} label="내보내기" description="현재 필터의 글을 CSV·JSON으로" onClick={() => setSheet('export')} />
           <Row icon={<Sparkles size={20} />} label="프롬프트 관리" to="/prompts" />
+          <Row icon={<ImageIcon size={20} />} label="이미지 보관함" to="/images" />
         </RowGroup>
       </Sheet>
       <Sheet open={sheet === 'export'} onClose={() => setSheet(null)} title="내보내기" description="줄바꿈·한글을 보존하고, 스프레드시트에서 수식으로 실행되지 않게 처리해요. 연결 정보는 포함하지 않아요.">
