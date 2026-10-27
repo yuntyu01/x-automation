@@ -32,7 +32,7 @@ export interface MediaUsage {
   part_index: number;
 }
 
-export type MediaFilter = 'all' | 'used' | 'unused' | 'cleaned';
+export type MediaFilter = 'all' | 'used' | 'unused' | 'cleaned' | 'failed';
 
 export function useMediaList(usage: MediaFilter, q: string, limit = 60) {
   return useQuery({

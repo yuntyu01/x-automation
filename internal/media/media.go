@@ -259,13 +259,43 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		if used {
 			return ErrInUse
 		}
-		_, err := tx.Exec(ctx, `UPDATE media_assets SET state = 'deleting' WHERE id = $1`, id)
+		_, err := tx.Exec(ctx, `UPDATE media_assets SET state = 'deleting', delete_claimed_at = $2 WHERE id = $1`, id, s.clock.Now())
 		return err
 	})
 	if err != nil {
 		return err
 	}
 	return s.finishDelete(ctx, id, key, thumb)
+}
+
+// DeleteClaimed는 정리 작업이 'deleting'으로 선점한 이미지의 저장소 객체를 지운다. 이미 없으면 지운 것으로 본다.
+func (s *Service) DeleteClaimed(ctx context.Context, id string) error {
+	var key string
+	var thumb *string
+	err := s.pool.QueryRow(ctx, `SELECT storage_key, thumb_key FROM media_assets WHERE id = $1 AND state IN ('deleting', 'delete_failed')`, id).Scan(&key, &thumb)
+	if store.IsNoRows(err) {
+		return nil // 이미 끝났다
+	}
+	if err != nil {
+		return err
+	}
+	return s.finishDelete(ctx, id, key, thumb)
+}
+
+// RetryDelete는 정리에 실패한 이미지를 지금 다시 지운다 (화면의 "다시 시도").
+func (s *Service) RetryDelete(ctx context.Context, id string) (Asset, error) {
+	tag, err := s.pool.Exec(ctx, `UPDATE media_assets SET state = 'deleting', delete_claimed_at = $2 WHERE id = $1 AND state = 'delete_failed'`, id, s.clock.Now())
+	if err != nil {
+		return Asset{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return Asset{}, ErrNotFound
+	}
+	if err := s.DeleteClaimed(ctx, id); err != nil {
+		a, _ := s.Get(ctx, id)
+		return a, err
+	}
+	return s.Get(ctx, id)
 }
 
 func (s *Service) finishDelete(ctx context.Context, id, key string, thumb *string) error {
@@ -275,7 +305,7 @@ func (s *Service) finishDelete(ctx context.Context, id, key string, thumb *strin
 	}
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		_, _ = s.pool.Exec(context.WithoutCancel(ctx), `UPDATE media_assets SET state = 'delete_failed', delete_attempts = delete_attempts + 1,
-			delete_error = $2 WHERE id = $1`, id, err.Error())
+			delete_error = $2, delete_claimed_at = $3 WHERE id = $1`, id, err.Error(), s.clock.Now())
 		return err
 	}
 	_, err = s.pool.Exec(ctx, `UPDATE media_assets SET state = 'deleted', deleted_at = $2, delete_error = NULL WHERE id = $1`, id, s.clock.Now())
@@ -306,6 +336,8 @@ func (s *Service) List(ctx context.Context, f ListFilter) (Page, error) {
 		cond += " AND NOT EXISTS (SELECT 1 FROM part_media pm WHERE pm.media_id = m.id)"
 	case "cleaned":
 		cond = "m.state = 'deleted'"
+	case "failed":
+		cond = "m.state = 'delete_failed'"
 	}
 	args := []any{}
 	if q := strings.TrimSpace(f.Query); q != "" {
@@ -371,7 +403,7 @@ type Orphan struct {
 // FindOrphans는 유예 기간이 지난 고아 객체를 찾는다. 버킷 전체가 아니라 앱 전용 접두사 안만 본다.
 func (s *Service) FindOrphans(ctx context.Context, grace time.Duration, limit int) ([]Orphan, error) {
 	cutoff := s.clock.Now().Add(-grace)
-	var out []Orphan
+	out := []Orphan{}
 	after := ""
 	for pages := 0; pages < 50; pages++ {
 		objs, next, err := s.store.List(ctx, after, 500)
@@ -411,4 +443,27 @@ func (s *Service) FindOrphans(ctx context.Context, grace time.Duration, limit in
 		after = next
 	}
 	return out, nil
+}
+
+// CleanOrphans는 유예 기간이 지난 고아 객체를 지운다. 앱 전용 접두사 안에서 찾고, 지우기 직전에 DB 참조를 다시 확인한다.
+func (s *Service) CleanOrphans(ctx context.Context, grace time.Duration, limit int) (int, error) {
+	list, err := s.FindOrphans(ctx, grace, limit)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, o := range list {
+		var known bool
+		if err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM media_assets WHERE storage_key = $1 OR thumb_key = $1)`, o.Key).Scan(&known); err != nil {
+			return n, err
+		}
+		if known {
+			continue
+		}
+		if err := s.store.Delete(ctx, o.Key); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }

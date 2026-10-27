@@ -225,7 +225,11 @@ func (s *Service) Resolve(ctx context.Context, runID string, in ResolveInput) er
 		}
 		if !remaining {
 			completed = true
-			if _, err := tx.Exec(ctx, `UPDATE publish_runs SET state = 'completed', completed_at = now(), note = NULL, updated_at = now() WHERE id = $1`, runID); err != nil {
+			now := s.Clock.Now()
+			if _, err := tx.Exec(ctx, `UPDATE publish_runs SET state = 'completed', completed_at = $2, note = NULL, updated_at = now() WHERE id = $1`, runID, now); err != nil {
+				return err
+			}
+			if err := anchorMedia(ctx, tx, runID, now); err != nil {
 				return err
 			}
 			_, err := tx.Exec(ctx, `UPDATE reservations SET state = 'published', block_reason = NULL, updated_at = now() WHERE id = $1`, r.reservationID)
@@ -321,6 +325,10 @@ func (s *Service) Abandon(ctx context.Context, runID string) error {
 		}
 		bodyOut := len(parts) > 0 && parts[0].state == "succeeded"
 		if _, err := tx.Exec(ctx, `UPDATE publish_runs SET state = 'canceled', dismissed_at = now(), note = '사용자가 남은 부분을 보내지 않고 끝냈어요', updated_at = now() WHERE id = $1`, runID); err != nil {
+			return err
+		}
+		// 끝낸 묶음에서 이미 올라간 이미지는 이 시각부터 보관 기간을 센다
+		if err := anchorMedia(ctx, tx, runID, s.Clock.Now()); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE publish_parts SET state = 'failed', error = COALESCE(error, '중단'), error_class = COALESCE(error_class, 'canceled')

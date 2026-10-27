@@ -172,6 +172,19 @@ func (s *Service) createRun(ctx context.Context, tx pgx.Tx, st settings.Settings
 	if !publishable || len(parts) == 0 {
 		return "", &ValidationError{Fields: map[string]string{"content": "게시할 수 없는 상태의 글이에요 (길이·이미지 문제)"}}
 	}
+	var allMedia []string
+	for _, p := range parts {
+		allMedia = append(allMedia, p.media...)
+	}
+	if len(allMedia) > 0 {
+		var gone int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM media_assets WHERE id = ANY($1::uuid[]) AND state <> 'active'`, allMedia).Scan(&gone); err != nil {
+			return "", err
+		}
+		if gone > 0 {
+			return "", &ValidationError{Fields: map[string]string{"content": "보관 기간이 지나 정리된 이미지가 붙어 있어요. 이미지를 바꾸거나 빼 주세요"}}
+		}
+	}
 	var cost int64
 	for i := range parts {
 		p := thread.ParseLimit(parts[i].text, thread.V3, limit)
@@ -609,7 +622,8 @@ func (s *Service) HandleRun(ctx context.Context, j *jobs.Job) jobs.Result {
 			Micros: budget.PostMicros(st.Policy.Pricing, thread.HasURL(p.text))}, "")
 		_ = s.Budget.Confirm(ctx, budget.XPost, ref) // 앞선 불명확 기록이 있었다면 (중복 위험을 감수한 재시도) 확정으로 바꾼다
 		if len(p.media) > 0 {
-			_, _ = s.Pool.Exec(ctx, `UPDATE media_assets SET last_published_at = $2, retention_anchor_at = $2 WHERE id = ANY($1)`, p.media, s.Clock.Now())
+			// 이미지가 들어간 부분의 성공 시각만 남긴다. 보관 기준(retention_anchor_at)은 묶음이 끝날 때 정한다 (그 전에는 진행 중 참조로 보호)
+			_, _ = s.Pool.Exec(ctx, `UPDATE media_assets SET last_published_at = GREATEST(COALESCE(last_published_at, $2), $2) WHERE id = ANY($1)`, p.media, s.Clock.Now())
 		}
 		p.state, p.postID, prevID = "succeeded", &post.ID, post.ID
 		if p.position == 0 {
@@ -760,9 +774,20 @@ func (s *Service) finishFailed(ctx context.Context, r run, p *part, err error, b
 	return jobs.Result{Outcome: jobs.Failed, Err: err, Class: class}
 }
 
+// anchorMedia는 묶음이 끝났을 때 올라간 부분의 이미지 보관 기준을 끝난 시각으로 올린다 (여러 묶음에서 쓰면 가장 늦은 시각).
+func anchorMedia(ctx context.Context, tx pgx.Tx, runID string, at time.Time) error {
+	_, err := tx.Exec(ctx, `UPDATE media_assets SET retention_anchor_at = GREATEST(COALESCE(retention_anchor_at, $2), $2)
+		WHERE id IN (SELECT unnest(media_ids) FROM publish_parts WHERE run_id = $1 AND state = 'succeeded')`, runID, at)
+	return err
+}
+
 func (s *Service) finishCompleted(ctx context.Context, r run) jobs.Result {
 	err := store.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE publish_runs SET state = 'completed', completed_at = $2, note = NULL, updated_at = now() WHERE id = $1`, r.id, s.Clock.Now()); err != nil {
+		now := s.Clock.Now()
+		if _, err := tx.Exec(ctx, `UPDATE publish_runs SET state = 'completed', completed_at = $2, note = NULL, updated_at = now() WHERE id = $1`, r.id, now); err != nil {
+			return err
+		}
+		if err := anchorMedia(ctx, tx, r.id, now); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `UPDATE reservations SET state = 'published', block_reason = NULL, updated_at = now() WHERE id = $1`, r.reservationID)

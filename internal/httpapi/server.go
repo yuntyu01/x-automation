@@ -17,6 +17,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
 	"github.com/yuntyu01/x-automation/internal/publish"
+	"github.com/yuntyu01/x-automation/internal/retention"
 	"github.com/yuntyu01/x-automation/internal/schedule"
 	"github.com/yuntyu01/x-automation/internal/settings"
 )
@@ -44,6 +45,7 @@ type Server struct {
 	XConn         *connection.Service
 	Publish       *publish.Service
 	Dashboard     *dashboard.Service
+	Retention     *retention.Service
 
 	extra []func(mux *http.ServeMux) // 단계별 기능 라우트
 }

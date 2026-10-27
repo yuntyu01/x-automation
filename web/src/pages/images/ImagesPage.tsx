@@ -1,5 +1,6 @@
 import { ImageIcon } from 'lucide-react';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useMediaList, type MediaAsset, type MediaFilter } from '../../api/media';
 import { useIntegrations } from '../../api/queries';
 import { PageHeader } from '../../components/layout/AppShell';
@@ -12,10 +13,16 @@ import { EmptyState, ErrorState, LoadingList } from '../../components/ui/States'
 import { TextField } from '../../components/ui/TextField';
 import { useDebounced } from '../../lib/hooks';
 import { BackButton } from '../settings/ConnectionsPage';
+import { RetentionCard } from './RetentionCard';
 import styles from './ImagesPage.module.css';
 
+const FILTERS: MediaFilter[] = ['all', 'used', 'unused', 'cleaned', 'failed'];
+
 export function ImagesPage() {
-  const [filter, setFilter] = useState<MediaFilter>('all');
+  // 알림 링크(/images?filter=failed)로 들어오면 그 필터로 연다
+  const [params] = useSearchParams();
+  const linked = params.get('filter') as MediaFilter | null;
+  const [filter, setFilter] = useState<MediaFilter>(linked && FILTERS.includes(linked) ? linked : 'all');
   const [search, setSearch] = useState('');
   const q = useDebounced(search, 300);
   const [limit, setLimit] = useState(60);
@@ -49,6 +56,7 @@ export function ImagesPage() {
             { value: 'used', label: '사용 중' },
             { value: 'unused', label: '미사용' },
             { value: 'cleaned', label: '정리됨' },
+            { value: 'failed', label: '정리 실패' },
           ]}
         />
         <TextField label="대체 텍스트·프롬프트 검색" hideLabel type="search" placeholder="대체 텍스트나 생성 프롬프트로 검색" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -57,7 +65,7 @@ export function ImagesPage() {
       {list.isError && <ErrorState error={list.error} onRetry={() => list.refetch()} />}
       {list.data && list.data.items.length === 0 && (
         <Card>
-          <EmptyState icon={<ImageIcon size={28} aria-hidden />} title={filter === 'cleaned' ? '정리된 이미지가 없어요' : '이미지가 없어요'} body="위에서 이미지를 올리거나, 글을 만들 때 AI 이미지를 생성할 수 있어요." />
+          <EmptyState icon={<ImageIcon size={28} aria-hidden />} title={filter === 'cleaned' ? '정리된 이미지가 없어요' : filter === 'failed' ? '정리에 실패한 이미지가 없어요' : '이미지가 없어요'} body="위에서 이미지를 올리거나, 글을 만들 때 AI 이미지를 생성할 수 있어요." />
         </Card>
       )}
       {list.data && list.data.items.length > 0 && (
@@ -77,6 +85,7 @@ export function ImagesPage() {
           )}
         </>
       )}
+      <RetentionCard />
       <MediaDetailSheet asset={open} onClose={() => setOpen(null)} />
     </>
   );

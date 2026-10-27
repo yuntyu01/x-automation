@@ -26,6 +26,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/notification"
 	"github.com/yuntyu01/x-automation/internal/prompt"
 	"github.com/yuntyu01/x-automation/internal/publish"
+	"github.com/yuntyu01/x-automation/internal/retention"
 	"github.com/yuntyu01/x-automation/internal/schedule"
 	"github.com/yuntyu01/x-automation/internal/secretbox"
 	"github.com/yuntyu01/x-automation/internal/settings"
@@ -52,6 +53,7 @@ type services struct {
 	xconn         *connection.Service
 	publish       *publish.Service
 	dashboard     *dashboard.Service
+	retention     *retention.Service
 }
 
 func (a *App) newServices(pool *pgxpool.Pool) *services {
@@ -91,6 +93,7 @@ func (a *App) newServices(pool *pgxpool.Pool) *services {
 		Gates: publish.Gates{Live: a.cfg.IntegrationMode == config.ModeLive, PublishingEnabled: a.cfg.PublishingEnabled}})
 	s.dashboard = dashboard.NewService(dashboard.Deps{Pool: pool, Clock: a.deps.Clock, Settings: setRepo, Budget: s.budget, Planner: s.planner,
 		Notify: s.notifications, Live: a.cfg.IntegrationMode == config.ModeLive, PublishingEnabled: a.cfg.PublishingEnabled})
+	s.retention = retention.NewService(pool, s.media, setRepo, a.deps.Clock, s.notifications, a.log)
 	return s
 }
 
@@ -196,6 +199,7 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 		XConn:         svc.xconn,
 		Publish:       svc.publish,
 		Dashboard:     svc.dashboard,
+		Retention:     svc.retention,
 	}
 	return srv.Routes()
 }
@@ -242,6 +246,11 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 			return err
 		}
 		_, err := svc.publish.Dispatch(ctx)
+		return err
+	})
+	// 게시 후 보관 기간이 지난 이미지 정리 (매시간 검사. 기준 + 보관 기간이 지난 뒤 다음 실행 때 지운다)
+	a.every(ctx, "media-retention", time.Hour, func(ctx context.Context) error {
+		_, err := svc.retention.Sweep(ctx)
 		return err
 	})
 	// lease가 끝난 작업 정리

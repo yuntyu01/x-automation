@@ -105,3 +105,22 @@ func TestMediaUploadPublicReadAndAuthBoundary(t *testing.T) {
 		t.Fatalf("download = %d %v", dl.Status, dl.Header)
 	}
 }
+
+func TestRetentionAndOrphanEndpoints(t *testing.T) {
+	h := newHarness(t)
+	h.login()
+	o := h.do("GET", "/api/media/orphans", nil, nil)
+	if o.Status != 200 || !strings.Contains(string(o.Raw), `"items":[]`) {
+		t.Fatalf("orphans = %d %s (빈 목록은 null이 아니라 [])", o.Status, o.Raw)
+	}
+	r := h.do("POST", "/api/media/retention/run", nil, nil)
+	if r.Status != 200 || r.Body["deleted"] != float64(0) {
+		t.Fatalf("retention run = %d %s", r.Status, r.Raw)
+	}
+	if c := h.do("POST", "/api/media/orphans/clean", nil, nil); c.Status != 200 || c.Body["deleted"] != float64(0) {
+		t.Fatalf("orphan clean = %d %s", c.Status, c.Raw)
+	}
+	if f := h.do("GET", "/api/media?usage=failed", nil, nil); f.Status != 200 {
+		t.Fatalf("failed filter = %d", f.Status)
+	}
+}

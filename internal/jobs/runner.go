@@ -152,6 +152,15 @@ func (w *Worker) process(parent context.Context, j *Job) {
 	sctx, scancel := context.WithTimeout(context.WithoutCancel(parent), 10*time.Second)
 	defer scancel()
 	err := w.Queue.Finish(sctx, j, res)
+	// 운영 로그: 사람이 봐야 하는 결과만 남긴다 (메시지는 사용자용 설명이며 토큰·원문은 담지 않는다)
+	switch res.Outcome {
+	case Failed:
+		w.Log.Warn("job failed", "job", j.ID, "kind", j.Kind, "attempt", j.Attempts, "class", res.Class, "err", msg(res.Err))
+	case Unknown:
+		w.Log.Error("job result unknown", "job", j.ID, "kind", j.Kind, "attempt", j.Attempts, "err", msg(res.Err))
+	case RetryLater:
+		w.Log.Info("job will retry", "job", j.ID, "kind", j.Kind, "attempt", j.Attempts, "err", msg(res.Err))
+	}
 	if errors.Is(err, ErrLeaseLost) {
 		w.Log.Warn("job result discarded: lease lost", "job", j.ID, "kind", j.Kind)
 	} else if err != nil {

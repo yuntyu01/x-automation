@@ -146,3 +146,40 @@ func TestWorkerRunsRetriesAndStopsGracefully(t *testing.T) {
 		t.Fatalf("calls = %d", calls.Load())
 	}
 }
+
+// 종료 신호(SIGTERM → ctx 취소) 뒤: 진행 중 작업은 끝까지 결과를 저장하고, 새 작업은 선점하지 않는다
+func TestShutdownFinishesInFlightAndStopsClaiming(t *testing.T) {
+	pool := pgtest.New(t)
+	q := NewQueue(pool, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	started := make(chan struct{})
+	var once sync.Once
+	w := &Worker{Queue: q, Concurrency: 1, Poll: 20 * time.Millisecond, Lease: 3 * time.Second, Handlers: map[string]Handler{
+		"slow": func(hctx context.Context, j *Job) Result {
+			once.Do(func() { close(started) })
+			select {
+			case <-time.After(300 * time.Millisecond): // 외부 요청을 기다리는 중
+			case <-hctx.Done():
+				return Result{Outcome: Unknown, Err: errors.New("핸들러 컨텍스트가 종료 신호로 취소되면 안 된다")}
+			}
+			return OK()
+		},
+	}}
+	_, _, _ = q.Enqueue(context.Background(), nil, "slow", "s1", nil, EnqueueOptions{})
+	_, _, _ = q.Enqueue(context.Background(), nil, "slow", "s2", nil, EnqueueOptions{RunAt: time.Now().Add(100 * time.Millisecond)})
+	done := make(chan struct{})
+	go func() { w.Run(ctx); close(done) }()
+	<-started
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("worker did not stop")
+	}
+	var s1, s2 string
+	_ = pool.QueryRow(context.Background(), `SELECT state FROM jobs WHERE unique_key = 's1'`).Scan(&s1)
+	_ = pool.QueryRow(context.Background(), `SELECT state FROM jobs WHERE unique_key = 's2'`).Scan(&s2)
+	if s1 != "succeeded" || s2 != "queued" {
+		t.Fatalf("after shutdown: s1=%s s2=%s", s1, s2)
+	}
+}

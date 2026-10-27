@@ -85,6 +85,36 @@ func (s *Server) mountMedia(mux *http.ServeMux) {
 		}
 		WriteJSON(w, http.StatusOK, map[string]any{"items": list})
 	})
+	// 고아 객체 정리: 앱 접두사 안에서 하루 넘게 DB에 연결되지 않은 객체만 지운다 (사용자가 목록을 보고 실행)
+	mux.HandleFunc("POST /api/media/orphans/clean", func(w http.ResponseWriter, r *http.Request) {
+		n, err := s.Media.CleanOrphans(r.Context(), 24*time.Hour, 200)
+		if err != nil {
+			WriteError(w, r, mediaError(err))
+			return
+		}
+		WriteJSON(w, http.StatusOK, map[string]int{"deleted": n})
+	})
+	// 보관 기간 정리를 지금 실행 (평소에는 서버가 매시간 실행)
+	mux.HandleFunc("POST /api/media/retention/run", func(w http.ResponseWriter, r *http.Request) {
+		if s.Retention == nil {
+			WriteError(w, r, ErrNotFound)
+			return
+		}
+		rep, err := s.Retention.Sweep(r.Context())
+		if err != nil {
+			WriteError(w, r, mediaError(err))
+			return
+		}
+		WriteJSON(w, http.StatusOK, rep)
+	})
+	mux.HandleFunc("POST /api/media/{id}/retry-delete", func(w http.ResponseWriter, r *http.Request) {
+		a, err := s.Media.RetryDelete(r.Context(), r.PathValue("id"))
+		if err != nil && a.ID == "" {
+			WriteError(w, r, mediaError(err))
+			return
+		}
+		WriteJSON(w, http.StatusOK, a)
+	})
 	mux.HandleFunc("GET /api/media/{id}", func(w http.ResponseWriter, r *http.Request) {
 		a, err := s.Media.Get(r.Context(), r.PathValue("id"))
 		if err != nil {

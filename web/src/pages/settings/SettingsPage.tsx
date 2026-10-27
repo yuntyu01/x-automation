@@ -1,4 +1,4 @@
-import { CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send, Wallet } from 'lucide-react';
+import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, SlidersHorizontal, Sparkles, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -11,6 +11,7 @@ import { Section } from '../../components/ui/Card';
 import { Row, RowGroup } from '../../components/ui/Row';
 import { Sheet } from '../../components/ui/Sheet';
 import { ErrorState, LoadingList } from '../../components/ui/States';
+import { TextField } from '../../components/ui/TextField';
 import { useToast } from '../../components/ui/Toast';
 import { useTheme, type ThemePref } from '../../lib/theme';
 import { MODE_OPTIONS, generationSummary } from './labels';
@@ -26,13 +27,26 @@ export function SettingsPage() {
   const theme = useTheme();
   const auth = useAuth();
   const toast = useToast();
-  const [sheet, setSheet] = useState<'mode' | 'theme' | null>(null);
+  const [sheet, setSheet] = useState<'mode' | 'theme' | 'retention' | null>(null);
+  const [days, setDays] = useState('');
 
   async function changeMode(mode: OperationMode) {
     if (!settings.data) return;
     try {
       await save.mutateAsync({ ...settings.data, operation_mode: mode });
       toast.show(`운영 모드를 '${MODE_LABEL[mode]}'(으)로 바꿨어요`, 'success');
+      setSheet(null);
+    } catch (e) {
+      toast.show(errorMessage(e), 'error');
+    }
+  }
+
+  async function saveRetention() {
+    if (!settings.data) return;
+    const n = Number(days);
+    try {
+      await save.mutateAsync({ ...settings.data, policy: { ...settings.data.policy, retention: { days: n } } });
+      toast.show(`게시 완료 후 ${n}일 보관으로 바꿨어요`, 'success');
       setSheet(null);
     } catch (e) {
       toast.show(errorMessage(e), 'error');
@@ -67,6 +81,16 @@ export function SettingsPage() {
               />
               <Row icon={<FileText size={20} />} label="프롬프트" to="/prompts" />
               <Row icon={<ImageIcon size={20} />} label="이미지 보관함" description="업로드·생성 이미지, 정리 예정" to="/images" />
+              <Row
+                icon={<Archive size={20} />}
+                label="게시 후 이미지 보관"
+                description="게시가 끝난 이미지를 저장소에서 지우기까지"
+                value={`${settings.data.policy.retention.days}일`}
+                onClick={() => {
+                  setDays(String(settings.data!.policy.retention.days));
+                  setSheet('retention');
+                }}
+              />
               <Row icon={<CalendarClock size={20} />} label="시간표" to="/schedule/rules" />
               <Row icon={<Send size={20} />} label="게시 기록" description="진행 중·확인 필요·최근 게시" to="/publish" />
             </RowGroup>
@@ -101,6 +125,24 @@ export function SettingsPage() {
 
       <Sheet open={sheet === 'mode'} onClose={() => setSheet(null)} title="운영 모드" description="언제든 바꿀 수 있어요. 이미 승인된 글은 그대로예요.">
         {settings.data && <ChoiceList name="운영 모드" value={settings.data.operation_mode} options={MODE_OPTIONS} onChange={changeMode} />}
+      </Sheet>
+      <Sheet
+        open={sheet === 'retention'}
+        onClose={() => setSheet(null)}
+        title="게시 후 이미지 보관"
+        description="마지막 게시 완료 시각부터 세요. 업로드 날짜가 아니에요. 바꾸면 이미 게시한 이미지에도 새 기간이 적용돼요."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setSheet(null)}>
+              취소
+            </Button>
+            <Button busy={save.isPending} disabled={!/^\d+$/.test(days) || Number(days) < 1 || Number(days) > 365} onClick={saveRetention}>
+              저장
+            </Button>
+          </>
+        }
+      >
+        <TextField label="보관 일수 (1~365)" type="number" inputMode="numeric" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} suffix="일" />
       </Sheet>
       <Sheet
         open={sheet === 'theme'}

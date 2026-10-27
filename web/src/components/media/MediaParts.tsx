@@ -90,7 +90,11 @@ export function MediaDetailSheet({ asset, onClose }: { asset: MediaAsset | null;
 
   const retention = asset.state === 'deleted'
     ? `보관 기간이 지나 ${asset.deleted_at ? formatDate(asset.deleted_at) : ''} 정리됐어요. 기록과 X 링크는 남아 있어요`
-    : asset.cleanup_after
+    : asset.state === 'delete_failed'
+      ? `정리하다 실패했어요 (${asset.delete_error ?? '저장소 오류'}). 매시간 다시 시도하고, 지금 다시 시도할 수도 있어요`
+      : asset.state === 'deleting'
+        ? '보관 기간이 지나 정리하는 중이에요. 새 글에 붙일 수 없어요'
+        : asset.cleanup_after
       ? `게시 완료 후 보관 중 · ${formatDate(asset.cleanup_after)} 이후 정리 실행 때 지워져요`
       : asset.last_published_at
         ? '게시가 끝나지 않은 묶음에서 쓰고 있어 보호 중이에요'
@@ -108,7 +112,12 @@ export function MediaDetailSheet({ asset, onClose }: { asset: MediaAsset | null;
             {asset.source === 'ai' ? 'AI 생성' : asset.source === 'crop' ? '자른 이미지' : '직접 업로드'}
           </p>
           <p className={own.retention}>{retention}</p>
-          {asset.state !== 'deleted' && (
+          {asset.state === 'delete_failed' && (
+            <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(() => post(`/api/media/${asset.id}/retry-delete`), '정리를 다시 시도했어요', true)}>
+              정리 다시 시도
+            </Button>
+          )}
+          {asset.state === 'active' && (
             <>
               <TextArea label="대체 텍스트" rows={3} value={alt} onChange={(e) => setAlt(e.target.value)} hint="이미지를 설명하는 글이에요. 화면 낭독기 사용자에게 읽혀요" />
               <Button variant="secondary" size="sm" disabled={busy || alt === asset.alt_text} onClick={() => act(() => patch(`/api/media/${asset.id}`, { alt_text: alt }), '대체 텍스트를 저장했어요')}>
