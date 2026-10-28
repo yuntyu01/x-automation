@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArrowDown, ArrowUp, Check, Copy, CopyPlus, History, MoreHorizontal, Plus, RotateCcw, Scissors, Trash2 } from 'lucide-react';
+import { Archive, ArrowDown, ArrowUp, BarChart2, Check, Copy, CopyPlus, Heart, History, MessageCircle, MoreHorizontal, Plus, Repeat2, RotateCcw, Scissors, Share, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import { ApiError, errorMessage, get, post, put } from '../../api/client';
@@ -435,6 +435,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
                 {p}
               </p>
             ))}
+            {draft.title && <p className={styles.previewTitle}><span>제목</span>{draft.title}</p>}
             <ThreadPreview parts={parts} limit={limit} account={xName} media={server.revision.media} />
           </Card>
 
@@ -615,18 +616,19 @@ export function ThreadPreview({ parts, limit, account, media }: { parts: ThreadP
         const imgs = media.filter((m) => m.part_index === i);
         return (
           <li key={i} className={styles.post}>
-            <div className={styles.avatar} aria-hidden />
+            <div className={styles.avatar} aria-hidden>{account ? account.charAt(0).toUpperCase() : '나'}</div>
             <div className={styles.postBody}>
               <div className={styles.postHead}>
-                <strong>{account ? `@${account}` : '내 계정'}</strong>
-                <span className={styles.muted}>{i === 0 ? '본문' : `답글 ${i}`}</span>
+                <strong>{account || '내 계정'}</strong>
+                {account && <span className={styles.handle}>@{account}</span>}
+                <span className={styles.handle}>· {i === 0 ? '본문' : `답글 ${i}`}</span>
                 <span className={[styles.len, p.valid ? '' : styles.lenBad].join(' ')}>
                   {p.weighted_length}/{limit}
                 </span>
               </div>
               <p className={styles.postText}>{p.text}</p>
               {imgs.length > 0 && (
-                <div className={styles.postImgs}>
+                <div className={`${styles.postImgs} ${imgs.length === 1 ? styles.singleImage : ''}`}>
                   {imgs.map((m) =>
                     m.state === 'deleted' ? (
                       <span key={m.media_id} className={styles.cleaned}>
@@ -639,6 +641,9 @@ export function ThreadPreview({ parts, limit, account, media }: { parts: ThreadP
                 </div>
               )}
               {p.problem && <p className={styles.problem}>{p.problem}</p>}
+              <div className={styles.postMetrics} aria-hidden="true">
+                <MessageCircle size={17} /><Repeat2 size={17} /><Heart size={17} /><BarChart2 size={17} /><Share size={17} />
+              </div>
               <div className={styles.postActions}>
                 <Button
                   variant="ghost"

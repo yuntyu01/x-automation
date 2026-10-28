@@ -54,6 +54,7 @@ type Config struct {
 }
 
 type AIConfig struct {
+	Provider   string
 	APIKey     string
 	TextModel  string
 	ImageModel string
@@ -278,10 +279,17 @@ func LoadFrom(lookup Lookup) (*Config, error) {
 	}
 
 	c.AI = AIConfig{
+		Provider:   get("AI_PROVIDER"),
 		APIKey:     get("AI_API_KEY"),
 		TextModel:  get("AI_TEXT_MODEL"),
 		ImageModel: get("AI_IMAGE_MODEL"),
 		BaseURL:    get("AI_BASE_URL"),
+	}
+	if c.AI.Provider == "" {
+		c.AI.Provider = "openai"
+	}
+	if c.AI.Provider != "openai" && c.AI.Provider != "gemini" {
+		add("AI_PROVIDER", "openai 또는 gemini여야 합니다")
 	}
 	c.X = XConfig{
 		ClientID:     get("X_CLIENT_ID"),

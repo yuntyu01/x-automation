@@ -132,7 +132,7 @@ func (a *App) tokenBox() *secretbox.Box {
 	return box
 }
 
-// newAIProvider는 AI 공급자를 고른다. 목업은 결정적 대역, 실제 연동은 OpenAI(키가 없으면 설정 오류를 돌려주는 대역).
+// newAIProvider는 AI 공급자를 고른다. 목업은 결정적 대역을 사용한다.
 func (a *App) newAIProvider() ai.Provider {
 	if a.cfg.IntegrationMode == config.ModeMock {
 		return &ai.Mock{}
@@ -140,7 +140,13 @@ func (a *App) newAIProvider() ai.Provider {
 	if !a.cfg.AI.Configured() {
 		return ai.Unconfigured{}
 	}
-	p, err := ai.NewOpenAI(a.cfg.AI.APIKey, a.cfg.AI.BaseURL, a.cfg.AI.TextModel, a.cfg.AI.ImageModel, nil)
+	var p ai.Provider
+	var err error
+	if a.cfg.AI.Provider == "gemini" {
+		p, err = ai.NewGemini(a.cfg.AI.APIKey, a.cfg.AI.BaseURL, a.cfg.AI.TextModel, a.cfg.AI.ImageModel, nil)
+	} else {
+		p, err = ai.NewOpenAI(a.cfg.AI.APIKey, a.cfg.AI.BaseURL, a.cfg.AI.TextModel, a.cfg.AI.ImageModel, nil)
+	}
 	if err != nil {
 		a.log.Error("ai provider unavailable", "err", err.Error())
 		return ai.Unconfigured{}

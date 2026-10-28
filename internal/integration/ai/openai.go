@@ -25,6 +25,7 @@ type OpenAI struct {
 	textModel  string
 	imageModel string
 	http       *http.Client
+	googleAuth bool
 }
 
 func NewOpenAI(apiKey, baseURL, textModel, imageModel string, hc *http.Client) (*OpenAI, error) {
@@ -229,7 +230,11 @@ func (o *OpenAI) post(ctx context.Context, path, op string, body any, out any) e
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+o.apiKey)
+	if o.googleAuth {
+		req.Header.Set("x-goog-api-key", o.apiKey)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+o.apiKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := o.http.Do(req)
 	if err != nil {
@@ -257,9 +262,16 @@ func (o *OpenAI) post(ctx context.Context, path, op string, body any, out any) e
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(data, &apiErr)
+	googleNoQuota := o.googleAuth && (res.StatusCode == 402 || (res.StatusCode == 429 && strings.Contains(apiErr.Error.Message, "limit: 0")))
+	if o.googleAuth {
+		// 공급자가 API 키나 요청 내용을 오류에 되돌려도 로그에 남기지 않는다.
+		apiErr.Error.Message = ""
+	}
 	e := &integration.Error{Provider: "AI", Op: op, HTTPStatus: res.StatusCode, RequestID: res.Header.Get("x-request-id"),
 		Err: errors.New(logx.Redact(truncate(apiErr.Error.Message, 300)))}
 	switch {
+	case googleNoQuota:
+		e.Class, e.Message = integration.Config, "Gemini 사용 한도 또는 결제 잔액이 부족해요 (Google AI Studio 확인)"
 	case res.StatusCode == 401:
 		e.Class, e.Message = integration.Config, "AI 키가 올바르지 않아요 (AI_API_KEY 확인)"
 	case res.StatusCode == 403:

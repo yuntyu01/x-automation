@@ -596,7 +596,14 @@ func (s *Service) run(ctx context.Context, st settings.Settings, req Request, n 
 	if length == "" {
 		length = p.Version.Defaults.Length
 	}
+	mode := thread.Mode(st.Policy.Thread.SplitMode)
+	if dm := thread.Mode(p.Version.Defaults.SplitMode); dm.Valid() && dm != thread.ModeManual {
+		mode = dm
+	}
 	instr := instructionsBase + lengthHint(length)
+	if mode == thread.ModeTwoParts {
+		instr += "\n- body는 본문과 첫 답글의 두 문단으로 쓰고, 의도한 전환점에서 빈 줄 하나로 분리한다. 제목이나 본문·답글 같은 표지는 body에 넣지 않는다."
+	}
 	if tone := firstNonEmpty(req.Options.Tone, p.Version.Defaults.Tone); tone != "" {
 		instr += "\n- 말투: " + tone
 	}
@@ -631,10 +638,7 @@ func (s *Service) run(ctx context.Context, st settings.Settings, req Request, n 
 		media = ids
 	}
 
-	mode, so := thread.Mode(st.Policy.Thread.SplitMode), content.SplitOptions{Numbering: st.Policy.Thread.Numbering, MaxReplies: st.Policy.Thread.MaxReplies}
-	if dm := thread.Mode(p.Version.Defaults.SplitMode); dm.Valid() && dm != thread.ModeManual {
-		mode = dm
-	}
+	so := content.SplitOptions{Numbering: st.Policy.Thread.Numbering, MaxReplies: st.Policy.Thread.MaxReplies}
 	genOpts, _ := json.Marshal(map[string]any{"options": req.Options, "variables": req.Variables, "provider": s.provider.Name()})
 	review := "unreviewed"
 	if st.OperationMode == settings.ModeReview {

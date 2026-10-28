@@ -170,6 +170,19 @@ textarea.raw {
   margin: 0;
   padding: 0;
 }
+.previewTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 18px;
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.previewTitle span {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+}
 .post {
   display: flex;
   gap: var(--space-3);
@@ -191,6 +204,11 @@ textarea.raw {
   border-radius: 50%;
   background: var(--primary-soft);
   flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--primary-text);
+  font-size: 16px;
+  font-weight: 700;
 }
 .postBody {
   flex: 1;
@@ -202,12 +220,18 @@ textarea.raw {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
+.handle {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
 .postHead .len {
   margin-left: auto;
   margin-right: 0;
 }
 .postText {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin-top: 4px;
   line-height: 1.6;
 }
@@ -223,6 +247,17 @@ textarea.raw {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
+}
+.singleImage {
+  grid-template-columns: minmax(0, 1fr);
+}
+.postMetrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-3);
+  max-width: 420px;
+  padding: 14px 2px 2px;
 }
 .cleaned {
   display: flex;

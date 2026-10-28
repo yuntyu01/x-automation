@@ -51,6 +51,14 @@ OpenAI 공식 Go SDK(openai/openai-go v3.88.0)의 생성 타입으로 확인했�
 
 앱은 요율을 코드에 고정하지 않는다. 설정의 요율표에 확인일·출처를 함께 입력하고, 비어 있으면 "단가 미확인"으로 표시한다.
 
+## Gemini (선택적 텍스트·이미지 공급자)
+
+- `AI_PROVIDER=gemini`, `AI_API_KEY`, `AI_TEXT_MODEL`, `AI_IMAGE_MODEL`을 설정한다. 기존 `openai`가 기본이고 목업 모드는 그대로다. `AI_BASE_URL`은 기본 Google 주소를 바꿀 때만 사용한다.
+- Google `generateContent`의 JSON 스키마 응답을 앱의 제목·본문·이미지 프롬프트·태그로 검증한다. 이미지 요청은 모델의 이미지 데이터와 실제 MIME 형식을 확인하고, 1024x1024·1536x1024·1024x1536을 각각 1:1·3:2·2:3 비율로 요청한다.
+- 2026-10-28 실제 확인: 별도 무료 프로젝트의 `gemini-3.5-flash-lite` 텍스트 호출과 구조화 출력 성공. `gemini-3.1-flash-lite-image`는 무료 이미지 요청 한도가 0이라 429로 거부됐다. 이미지가 없는 상태를 생성 성공으로 처리하지 않는다.
+- Gemini 유료 프로젝트는 결제 계정과 잔액에 따라 과금된다. Google 요금표에서 최신 가격과 등급을 확인한다. 무료 API 입력·출력은 Google 제품 개선에 사용될 수 있다.
+- 공식 문서: https://ai.google.dev/gemini-api/docs/structured-output , https://ai.google.dev/gemini-api/docs/image-generation , https://ai.google.dev/gemini-api/docs/pricing
+
 ## Cloudflare R2
 
 | 항목 | 내용 | 상태 |
