@@ -127,14 +127,14 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 	default:
 		cond += " AND stage = " + arg(f.Stage)
 	}
-	order := "updated_at DESC, id"
+	order := "co.updated_at DESC, co.id"
 	switch f.Sort {
 	case "created":
-		order = "created_at DESC, id"
+		order = "co.created_at DESC, co.id"
 	case "title":
-		order = "title ASC, id"
+		order = "co.title ASC, co.id"
 	case "slot":
-		order = "active_slot_at ASC NULLS LAST, updated_at DESC, id"
+		order = "co.active_slot_at ASC NULLS LAST, co.updated_at DESC, co.id"
 	}
 	var total int
 	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM content_overview WHERE `+cond, args...).Scan(&total); err != nil {
