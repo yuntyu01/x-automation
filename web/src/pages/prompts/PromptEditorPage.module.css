@@ -5,7 +5,7 @@
 }
 .grid {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--box-gap);
 }
 @media (min-width: 1024px) {
   .grid {
@@ -16,7 +16,7 @@
 .col {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--box-gap);
   min-width: 0;
 }
 .form {

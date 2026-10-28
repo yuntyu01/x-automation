@@ -31,12 +31,14 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--box-gap);
 }
+/* 제목 ↔ 첫 상자 12px, 상자끼리 8px */
 .sectionHeader {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 4px;
 }
 .sectionHead {
   display: flex;

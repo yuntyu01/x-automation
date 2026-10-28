@@ -76,7 +76,7 @@
 }
 /* 탭 화면 머리: 제목 줄(제목 ↔ 행동·알림) + 설명 */
 .header {
-  padding: var(--space-4) 0 var(--space-5);
+  padding: var(--space-4) 0 var(--space-4);
   padding-top: max(var(--space-4), env(safe-area-inset-top));
 }
 .headRow {
@@ -88,7 +88,7 @@
 }
 /* 하위 화면 머리: 내비게이션 줄 → 큰 제목 → 설명 (모두 왼쪽 여백에 맞춤) */
 .subHeader {
-  padding-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
   padding-top: env(safe-area-inset-top);
 }
 .navRow {

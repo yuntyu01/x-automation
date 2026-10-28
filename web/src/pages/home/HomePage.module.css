@@ -1,11 +1,11 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--box-gap);
 }
-/* 카드 사이는 12px, 제목이 있는 영역 앞은 32px */
+/* 카드 사이는 8px, 제목이 있는 영역 앞은 24px */
 .stack > section {
-  margin-top: calc(var(--section-gap) - var(--space-3));
+  margin-top: calc(var(--section-gap) - var(--box-gap));
 }
 .muted {
   color: var(--text-3);
@@ -207,7 +207,7 @@
 .quick {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: var(--box-gap);
 }
 .tile {
   display: flex;

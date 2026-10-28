@@ -51,7 +51,8 @@
 
   --gutter: 20px;
   --card-pad: 20px;            /* 카드 안쪽 여백. 카드 안 목록 행도 이 값에 맞춘다 */
-  --section-gap: 32px;         /* 화면 안 큰 영역 사이 */
+  --box-gap: 8px;              /* 나란히 놓인 카드·상자 사이 (토스처럼 촘촘하게) */
+  --section-gap: 24px;         /* 제목이 있는 영역 사이 */
   --content-max: 1100px;
   --tabbar-h: 64px;
   --header-h: 56px;

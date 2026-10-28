@@ -1,10 +1,10 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--box-gap);
 }
 .stack > section {
-  margin-top: calc(var(--section-gap) - var(--space-3));
+  margin-top: calc(var(--section-gap) - var(--box-gap));
 }
 .row {
   display: flex;
