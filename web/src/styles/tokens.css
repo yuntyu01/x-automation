@@ -30,10 +30,14 @@
   --shadow-bar: 0 -1px 0 var(--border);
   --focus: #1e6ae0;
 
-  --radius-card: 20px;
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  /* 모서리: 높이에 비례 (약 0.28배). 바깥 면일수록 크고, 카드 안의 상자는 한 단계 작게 */
+  --radius-sheet: 24px;        /* 아래 시트·대화상자 */
+  --radius-card: 20px;         /* 카드·목록 묶음·타일 */
+  --radius-lg: 16px;           /* 큰 버튼 56px·선택 카드 */
+  --radius-field: 14px;        /* 입력 칸 52px·버튼 48px */
+  --radius-md: 12px;           /* 카드 안 상자·아이콘 상자 40px */
+  --radius-sm: 10px;           /* 작은 버튼 40px·세그먼트 칸 */
+  --radius-xs: 6px;            /* 스켈레톤·포커스 테두리 */
   --radius-pill: 999px;
 
   --space-1: 4px;
@@ -46,6 +50,8 @@
   --space-8: 32px;
 
   --gutter: 20px;
+  --card-pad: 20px;            /* 카드 안쪽 여백. 카드 안 목록 행도 이 값에 맞춘다 */
+  --section-gap: 32px;         /* 화면 안 큰 영역 사이 */
   --content-max: 1100px;
   --tabbar-h: 64px;
   --header-h: 56px;
@@ -102,6 +108,7 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 24px;
+    --card-pad: 24px;
     --fs-title: 28px;
   }
 }

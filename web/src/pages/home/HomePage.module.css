@@ -3,8 +3,9 @@
   flex-direction: column;
   gap: var(--space-3);
 }
+/* 카드 사이는 12px, 제목이 있는 영역 앞은 32px */
 .stack > section {
-  margin-top: var(--space-3);
+  margin-top: calc(var(--section-gap) - var(--space-3));
 }
 .muted {
   color: var(--text-3);

@@ -74,32 +74,58 @@
 .tabActive {
   color: var(--text);
 }
+/* 탭 화면 머리: 제목 줄(제목 ↔ 행동·알림) + 설명 */
 .header {
+  padding: var(--space-4) 0 var(--space-5);
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
+}
+.headRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  min-height: var(--header-h);
-  padding: var(--space-3) 0 var(--space-4);
-  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  min-height: 44px;
 }
-.headTitles {
-  flex: 1;
-  min-width: 0;
+/* 하위 화면 머리: 내비게이션 줄 → 큰 제목 → 설명 (모두 왼쪽 여백에 맞춤) */
+.subHeader {
+  padding-bottom: var(--space-5);
+  padding-top: env(safe-area-inset-top);
+}
+.navRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  margin-bottom: var(--space-1);
+}
+/* 아이콘 버튼의 안쪽 여백만큼 바깥으로 빼서 화살표가 글자 왼쪽 선에 맞게 */
+.navBack {
+  margin-left: -10px;
 }
 .title {
+  min-width: 0;
   font-size: var(--fs-title);
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 .subtitle {
   color: var(--text-2);
   font-size: var(--fs-small);
-  margin-top: 2px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.headRow + .subtitle {
+  margin-top: 0;
 }
 .headActions {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  margin-left: auto;
+  margin-right: -10px;
+  flex: none;
 }
 .bell {
   position: relative;

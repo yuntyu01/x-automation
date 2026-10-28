@@ -75,15 +75,22 @@ textarea.raw {
 }
 .left {
   align-self: flex-start;
+  margin-left: -14px;
 }
 .num {
-  width: 72px;
+  width: 76px;
   min-height: 44px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
   background: var(--surface-2);
   text-align: center;
   font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}
+.num:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
 }
 .row {
   display: flex;

@@ -84,7 +84,7 @@ export function SettingsPage() {
               <Row
                 icon={<Archive size={20} />}
                 label="게시 후 이미지 보관"
-                description="게시 후 저장소에서 지우기까지"
+                description="저장소에서 지우기까지"
                 value={`${settings.data.policy.retention.days}일`}
                 onClick={() => {
                   setDays(String(settings.data!.policy.retention.days));
@@ -97,7 +97,7 @@ export function SettingsPage() {
           </Section>
           <Section title="연결">
             <RowGroup>
-              <Row icon={<Link2 size={20} />} label="연결 상태" description="X 계정·AI·이미지 저장소" value={xValue} to="/settings/connections" />
+              <Row icon={<Link2 size={20} />} label="연결 상태" description="X·AI·저장소" value={xValue} to="/settings/connections" />
               <Row icon={<Wallet size={20} />} label="사용량·예산" description="추정 사용량·월 한도·요율표" to="/settings/budget" />
             </RowGroup>
           </Section>

@@ -1,18 +1,21 @@
 /* 목록 행(ListRow): 왼쪽 아이콘 상자 · 제목 17px · 설명 15px · 오른쪽 값 */
+/* 단독 묶음은 흰 카드. 카드·시트 안에서는 상자 없이 행 글자를 바깥 여백에 맞춘다
+   (--row-pad-x·--group-bg·--group-pad-y·--group-radius를 Card·Sheet가 정해 준다) */
 .group {
-  background: var(--surface);
-  border-radius: var(--radius-card);
+  background: var(--group-bg, var(--surface));
+  border-radius: var(--group-radius, var(--radius-card));
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  padding: var(--space-2) 0;
+  padding: var(--group-pad-y, var(--space-2)) 0;
+  margin-inline: calc(-1 * var(--row-pad-x, 0px));
 }
 .row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
   width: 100%;
-  min-height: 60px;
-  padding: 10px var(--space-5);
+  min-height: 56px;
+  padding: 12px var(--row-pad-x, var(--space-5));
   text-align: left;
   background: none;
   border: 0;
@@ -86,6 +89,12 @@
   font-size: var(--fs-small);
   text-align: right;
   max-width: 50%;
+  flex: none;
+  overflow-wrap: anywhere;
+}
+/* 값과 화살표는 한 덩어리로 붙인다 */
+.value + .chev {
+  margin-left: -8px;
 }
 .chev {
   color: var(--border-strong);

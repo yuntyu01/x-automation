@@ -4,7 +4,7 @@
   gap: var(--space-3);
 }
 .stack > section {
-  margin-top: var(--space-3);
+  margin-top: calc(var(--section-gap) - var(--space-3));
 }
 .row {
   display: flex;

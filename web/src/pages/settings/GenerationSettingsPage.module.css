@@ -1,7 +1,7 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  gap: var(--section-gap);
   padding-bottom: var(--space-4);
 }
 .note {
@@ -22,6 +22,22 @@
 .muted a {
   color: var(--primary-text);
   font-weight: 600;
+}
+/* 목록 행 오른쪽의 숫자 입력 */
+.num {
+  width: 76px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  background: var(--surface-2);
+  text-align: center;
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}
+.num:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
 }
 .warn {
   color: var(--warning);

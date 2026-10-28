@@ -96,19 +96,33 @@ function UnreadDot() {
   );
 }
 
-// 화면 상단: 제목·필요한 작업·알림 아이콘
+// 화면 상단. 탭 화면은 제목 줄 오른쪽에 행동·알림, 하위 화면은 TDS Top처럼
+// 위 내비게이션 줄(뒤로·행동·알림) 아래에 큰 제목과 설명을 화면 폭 전체로 둔다
 export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: ReactNode }) {
-  return (
-    <header className={styles.header}>
-      {back}
-      <div className={styles.headTitles}>
+  const tools = (
+    <div className={styles.headActions}>
+      {actions}
+      <NotificationBell />
+    </div>
+  );
+  if (back)
+    return (
+      <header className={styles.subHeader}>
+        <div className={styles.navRow}>
+          <span className={styles.navBack}>{back}</span>
+          {tools}
+        </div>
         <h1 className={styles.title}>{title}</h1>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+      </header>
+    );
+  return (
+    <header className={styles.header}>
+      <div className={styles.headRow}>
+        <h1 className={styles.title}>{title}</h1>
+        {tools}
       </div>
-      <div className={styles.headActions}>
-        {actions}
-        <NotificationBell />
-      </div>
+      {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
     </header>
   );
 }

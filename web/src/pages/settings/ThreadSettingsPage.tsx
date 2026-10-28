@@ -10,7 +10,6 @@ import { Row, RowGroup } from '../../components/ui/Row';
 import { Sheet } from '../../components/ui/Sheet';
 import { ErrorState, LoadingList } from '../../components/ui/States';
 import { Switch } from '../../components/ui/Switch';
-import { TextField } from '../../components/ui/TextField';
 import { useToast } from '../../components/ui/Toast';
 import { LONG_LIMIT, STANDARD_LIMIT } from '../../lib/thread';
 import { BackButton } from './ConnectionsPage';
@@ -78,23 +77,32 @@ function ThreadForm({ settings }: { settings: Settings }) {
         <RowGroup>
           <Row
             label="번호 표기 (1/N)"
-            description="각 게시물 끝에 (1/3) 같은 번호를 붙여요. 번호도 글자 수에 들어가요"
+            description="게시물 끝에 (1/3)처럼 붙여요. 번호도 글자 수에 들어가요"
             trailing={<Switch label="번호 표기" checked={t.numbering} onChange={(v) => set('numbering', v)} />}
           />
-        </RowGroup>
-        <Card>
-          <TextField
+          <Row
             label="최대 답글 수"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={25}
-            value={String(t.max_replies)}
-            onChange={(e) => set('max_replies', e.target.value === '' ? 0 : Number(e.target.value))}
-            error={fields['thread.max_replies']}
-            hint="0이면 제한 없어요. 넘는 글은 요약하지 않고 '수정 필요'로 두고 게시하지 않아요"
+            description="0이면 제한 없어요. 넘는 글은 게시하지 않고 '수정 필요'로 둬요"
+            trailing={
+              <input
+                className={styles.num}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={25}
+                aria-label="최대 답글 수"
+                aria-invalid={fields['thread.max_replies'] ? true : undefined}
+                value={String(t.max_replies)}
+                onChange={(e) => set('max_replies', e.target.value === '' ? 0 : Number(e.target.value))}
+              />
+            }
           />
-        </Card>
+        </RowGroup>
+        {fields['thread.max_replies'] && (
+          <p className={styles.warn} role="alert">
+            {fields['thread.max_replies']}
+          </p>
+        )}
       </Section>
 
       <Section title="한 게시물 한도">

@@ -25,12 +25,12 @@ export function Section({ title, description, action, children }: { title?: stri
   return (
     <section className={styles.section}>
       {(title || action) && (
-        <div className={styles.sectionHead}>
-          <div>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionHead}>
             {title && <h2 className={styles.sectionTitle}>{title}</h2>}
-            {description && <p className={styles.sectionDesc}>{description}</p>}
+            {action}
           </div>
-          {action}
+          {description && <p className={styles.sectionDesc}>{description}</p>}
         </div>
       )}
       {children}

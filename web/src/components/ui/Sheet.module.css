@@ -12,7 +12,7 @@
   width: 100%;
   max-height: calc(100dvh - 24px - env(safe-area-inset-top));
   background: var(--surface);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   display: flex;
   flex-direction: column;
   outline: none;
@@ -41,28 +41,44 @@
   padding-top: 8px;
 }
 .title {
-  font-size: var(--fs-h2);
+  font-size: 22px;
   font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
 }
 .desc {
   color: var(--text-2);
   font-size: var(--fs-small);
-  margin-top: 4px;
+  line-height: 1.5;
+  margin-top: 6px;
 }
 .body {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-2) var(--space-6) var(--space-6);
   overscroll-behavior: contain;
+  /* 시트 안 RowGroup도 시트 여백에 글자를 맞춘다 */
+  --row-pad-x: var(--space-6);
+  --group-bg: transparent;
+  --group-pad-y: 0px;
+  --group-radius: 0px;
+  --choice-border: var(--border);
+  --choice-pad-x: var(--space-4);
 }
+/* 아래 버튼: 구분선 없이 큰 버튼(56px) 하나 또는 둘 (TDS BottomCTA) */
 .footer {
   display: flex;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-6) var(--space-4);
-  border-top: 1px solid var(--border);
+  padding: var(--space-2) var(--space-6) var(--space-5);
 }
 .footer > * {
   flex: 1;
+}
+.footer > button {
+  min-height: 56px;
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  border-radius: var(--radius-lg);
 }
 @media (min-width: 768px) {
   .backdrop {
@@ -71,7 +87,7 @@
   }
   .sheet {
     max-width: 560px;
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-sheet);
     animation: pop 180ms var(--ease);
     padding-bottom: 0;
   }

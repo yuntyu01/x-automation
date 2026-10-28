@@ -42,7 +42,7 @@
   background: linear-gradient(90deg, var(--surface-2), var(--surface-pressed), var(--surface-2));
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 .loading {
   display: flex;

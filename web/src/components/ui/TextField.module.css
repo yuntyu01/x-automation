@@ -14,7 +14,7 @@
   align-items: center;
   background: var(--surface-2);
   border: 1.5px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-field);
   min-height: 52px;
   transition: border-color var(--dur) var(--ease);
 }

@@ -3,7 +3,7 @@
   width: 100%;
   background: var(--surface-2);
   border: 1.5px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-field);
   font-size: var(--fs-body);
   outline: none;
 }
