@@ -2,6 +2,7 @@ package content
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -22,28 +23,38 @@ type Filter struct {
 }
 
 type Item struct {
-	ID               string     `json:"id"`
-	Title            string     `json:"title"`
-	Category         string     `json:"category"`
-	Tags             []string   `json:"tags"`
-	Source           string     `json:"source"`
-	IsDemo           bool       `json:"is_demo"`
-	Stage            string     `json:"stage"`
-	Preview          string     `json:"preview"`
-	PartCount        int        `json:"part_count"`
-	ImageMode        string     `json:"image_mode"`
-	ReviewState      string     `json:"review_state"`
-	Publishable      bool       `json:"publishable"`
-	Problems         []string   `json:"problems"`
-	GenerationState  string     `json:"generation_state"`
-	ReservationAt    *time.Time `json:"reservation_at"`
-	ReservationState *string    `json:"reservation_state"`
-	WaitReason       *string    `json:"wait_reason"`
-	LastRunState     *string    `json:"last_run_state"`
-	LastPublishedAt  *time.Time `json:"last_published_at"`
-	RevisionNumber   int        `json:"revision_number"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID                    string     `json:"id"`
+	Title                 string     `json:"title"`
+	Category              string     `json:"category"`
+	Tags                  []string   `json:"tags"`
+	Source                string     `json:"source"`
+	IsDemo                bool       `json:"is_demo"`
+	Stage                 string     `json:"stage"`
+	Preview               string     `json:"preview"`
+	FeedParts             []FeedPart `json:"feed_parts"`
+	PreviewImageID        *string    `json:"preview_image_id,omitempty"`
+	PreviewImageAlt       string     `json:"preview_image_alt,omitempty"`
+	ReservedOtherRevision bool       `json:"reserved_other_revision"`
+	PartCount             int        `json:"part_count"`
+	ImageMode             string     `json:"image_mode"`
+	ReviewState           string     `json:"review_state"`
+	Publishable           bool       `json:"publishable"`
+	Problems              []string   `json:"problems"`
+	GenerationState       string     `json:"generation_state"`
+	ReservationAt         *time.Time `json:"reservation_at"`
+	ReservationState      *string    `json:"reservation_state"`
+	WaitReason            *string    `json:"wait_reason"`
+	LastRunState          *string    `json:"last_run_state"`
+	LastPublishedAt       *time.Time `json:"last_published_at"`
+	RevisionNumber        int        `json:"revision_number"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
+}
+
+// FeedPart는 목록에서 보여 주는 본문과 첫 답글이다. 긴 내용은 서버에서 제한한다.
+type FeedPart struct {
+	Position int    `json:"position"`
+	Text     string `json:"text"`
 }
 
 type Page struct {
@@ -129,10 +140,21 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM content_overview WHERE `+cond, args...).Scan(&total); err != nil {
 		return Page{}, err
 	}
-	q := `SELECT id, title, category, tags, source, is_demo, stage, left(raw_text, 160), part_count, image_mode, review_state,
+	q := `SELECT id, title, category, tags, source, is_demo, stage, left(raw_text, 600), part_count, image_mode, review_state,
 		publishable, COALESCE(validation->'problems', '[]'::jsonb), generation_state, active_slot_at, reservation_state, wait_reason,
-		last_run_state, last_published_at, revision_number, created_at, updated_at
-		FROM content_overview WHERE ` + cond + ` ORDER BY ` + order + fmt.Sprintf(" LIMIT %d OFFSET %d", f.Limit, f.Offset)
+		last_run_state, last_published_at, revision_number, created_at, updated_at,
+		COALESCE((SELECT jsonb_agg(jsonb_build_object('position', p.position, 'text', p.text) ORDER BY p.position)
+			FROM (SELECT tp.position, left(tp.text, 600) AS text FROM thread_parts tp
+				WHERE tp.revision_id = co.current_revision_id ORDER BY tp.position LIMIT 2) p), '[]'::jsonb),
+		(SELECT m.id::text FROM part_media pm JOIN media_assets m ON m.id = pm.media_id
+			WHERE pm.revision_id = co.current_revision_id AND pm.part_index = 0 AND m.state = 'active' AND co.image_mode <> 'none'
+			ORDER BY pm.position LIMIT 1),
+		COALESCE((SELECT m.alt_text FROM part_media pm JOIN media_assets m ON m.id = pm.media_id
+			WHERE pm.revision_id = co.current_revision_id AND pm.part_index = 0 AND m.state = 'active' AND co.image_mode <> 'none'
+			ORDER BY pm.position LIMIT 1), ''),
+		COALESCE((SELECT res.revision_id IS DISTINCT FROM co.current_revision_id FROM reservations res
+			WHERE res.id = co.active_reservation_id AND res.revision_id IS NOT NULL), false)
+		FROM content_overview co WHERE ` + cond + ` ORDER BY ` + order + fmt.Sprintf(" LIMIT %d OFFSET %d", f.Limit, f.Offset)
 	rows, err = s.pool.Query(ctx, q, args...)
 	if err != nil {
 		return Page{}, err
@@ -142,9 +164,14 @@ func (s *Service) List(ctx context.Context, f Filter) (Page, error) {
 	for rows.Next() {
 		var it Item
 		var problems []string
+		var partsJSON []byte
 		if err := rows.Scan(&it.ID, &it.Title, &it.Category, &it.Tags, &it.Source, &it.IsDemo, &it.Stage, &it.Preview, &it.PartCount,
 			&it.ImageMode, &it.ReviewState, &it.Publishable, &problems, &it.GenerationState, &it.ReservationAt, &it.ReservationState,
-			&it.WaitReason, &it.LastRunState, &it.LastPublishedAt, &it.RevisionNumber, &it.CreatedAt, &it.UpdatedAt); err != nil {
+			&it.WaitReason, &it.LastRunState, &it.LastPublishedAt, &it.RevisionNumber, &it.CreatedAt, &it.UpdatedAt,
+			&partsJSON, &it.PreviewImageID, &it.PreviewImageAlt, &it.ReservedOtherRevision); err != nil {
+			return Page{}, err
+		}
+		if err := json.Unmarshal(partsJSON, &it.FeedParts); err != nil {
 			return Page{}, err
 		}
 		it.Problems = problems

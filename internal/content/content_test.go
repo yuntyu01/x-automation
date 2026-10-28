@@ -142,6 +142,45 @@ func TestListFiltersSearchAndBulk(t *testing.T) {
 	}
 }
 
+func TestListShowsThreadImageAndSchedule(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := context.Background()
+	svc := content.NewService(pool, nil, nil)
+	d, err := svc.Create(ctx, content.NewContent{Title: "타래 예시", RawText: twoParagraphs, ImageMode: "upload"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var imageID string
+	err = pool.QueryRow(ctx, `INSERT INTO media_assets (storage_key, source, content_type, bytes, width, height, sha256, alt_text)
+		VALUES ('test/image', 'upload', 'image/png', 12, 10, 10, 'test-sha', '표지 사진') RETURNING id`).Scan(&imageID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO part_media (revision_id, part_index, media_id, position) VALUES ($1, 0, $2, 0)`, d.Revision.ID, imageID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = pool.Exec(ctx, `INSERT INTO reservations (slot_at, original_slot_at, local_date, content_id, revision_id, state)
+		VALUES (now() + interval '1 hour', now() + interval '1 hour', current_date, $1, $2, 'assigned')`, d.ID, d.Revision.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := svc.List(ctx, content.Filter{})
+	if err != nil || len(page.Items) != 1 {
+		t.Fatalf("list: %+v %v", page, err)
+	}
+	it := page.Items[0]
+	if len(it.FeedParts) != 2 || !strings.Contains(it.FeedParts[0].Text, "편지") || !strings.Contains(it.FeedParts[1].Text, "답장") {
+		t.Fatalf("parts: %+v", it.FeedParts)
+	}
+	if it.PreviewImageID == nil || *it.PreviewImageID != imageID || it.PreviewImageAlt != "표지 사진" {
+		t.Fatalf("image: %+v", it)
+	}
+	if it.ReservationAt == nil || it.ReservedOtherRevision {
+		t.Fatalf("reservation: %+v", it)
+	}
+}
+
 func TestImportPreviewCommitAndExportSafety(t *testing.T) {
 	svc, ctx := newSvc(t)
 	csvData := "\ufeff제목,카테고리,태그,원문\n첫 글,소설,\"단편, 비\",\"첫 문단.\n\n둘째 문단.\"\n,명언,,\n=위험,썰,,\"=SUM(A1) 같은 원문\"\n"

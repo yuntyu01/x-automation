@@ -217,6 +217,10 @@ export interface ContentItem {
   is_demo: boolean;
   stage: Stage;
   preview: string;
+  feed_parts: { position: number; text: string }[];
+  preview_image_id?: string;
+  preview_image_alt?: string;
+  reserved_other_revision: boolean;
   part_count: number;
   image_mode: ImageMode;
   review_state: string;

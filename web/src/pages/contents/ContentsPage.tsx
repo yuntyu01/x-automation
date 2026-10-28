@@ -1,9 +1,10 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, CalendarPlus, CheckSquare, Download, FileText, Filter, ImageIcon, MoreHorizontal, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Archive, CalendarClock, CalendarPlus, CheckSquare, Download, FileText, Filter, Heart, ImageIcon, MessageCircle, MoreHorizontal, Plus, Repeat2, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage, get } from '../../api/client';
 import { contentQueryString, useBulk, useCategories, type ContentQuery } from '../../api/contents';
+import { useIntegrations } from '../../api/queries';
 import { placeContents } from '../../api/schedule';
 import { STAGE_LABEL, type ContentItem, type ContentPage, type Stage } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
@@ -54,6 +55,18 @@ export function ContentsPage() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const counts = list.data?.pages[0]?.counts ?? {};
   const total = list.data?.pages[0]?.total ?? 0;
+  const account = useIntegrations().data?.x.connection.username;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = list;
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage || isFetchingNextPage || isFetchNextPageError || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage();
+    }, { rootMargin: '400px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
 
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -213,12 +226,12 @@ export function ContentsPage() {
           <ul className={styles.list}>
             {items.map((it) => (
               <li key={it.id}>
-                <ContentCard item={it} selecting={selecting} selected={selected.has(it.id)} onToggle={() => toggle(it.id)} />
+                <ContentCard item={it} account={account} selecting={selecting} selected={selected.has(it.id)} onToggle={() => toggle(it.id)} />
               </li>
             ))}
           </ul>
           {list.hasNextPage && (
-            <div className={styles.more}>
+            <div ref={loadMoreRef} className={styles.more}>
               <Button variant="secondary" block busy={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
                 더 보기
               </Button>
@@ -304,7 +317,9 @@ export function ContentsPage() {
   );
 }
 
-function ContentCard({ item, selecting, selected, onToggle }: { item: ContentItem; selecting: boolean; selected: boolean; onToggle: () => void }) {
+export function ContentCard({ item, account, selecting, selected, onToggle }: { item: ContentItem; account?: string; selecting: boolean; selected: boolean; onToggle: () => void }) {
+  const main = item.feed_parts?.[0]?.text || item.preview;
+  const reply = item.feed_parts?.find((part) => part.position === 1)?.text;
   const body = (
     <>
       <div className={styles.cardHead}>
@@ -312,19 +327,38 @@ function ContentCard({ item, selecting, selected, onToggle }: { item: ContentIte
         {item.is_demo && <Badge tone="warning">데모</Badge>}
         {item.source === 'ai' && <Badge tone="info" icon={false}>AI</Badge>}
         {item.category && <span className={styles.category}>{item.category}</span>}
-        <span className={styles.time}>{formatDateTime(item.updated_at)}</span>
       </div>
+      <div className={styles.scheduleLine}>
+        <CalendarClock size={16} aria-hidden />
+        <span>{item.reservation_at ? `게시 예정 ${formatDateTime(item.reservation_at)}` : item.stage === 'published' && item.last_published_at ? `게시 완료 ${formatDateTime(item.last_published_at)}` : '게시 시간 미정'}</span>
+      </div>
+      {item.reserved_other_revision && <p className={styles.revisionNote}>예약은 이전 승인 버전으로 게시돼요. 아래는 현재 편집 내용이에요.</p>}
       <p className={styles.title}>{item.title}</p>
-      <p className={styles.preview}>{item.preview}</p>
+      <div className={styles.feedPost}>
+        <span className={styles.avatar} aria-hidden>{account ? account.charAt(0).toUpperCase() : '나'}</span>
+        <div className={styles.feedBody}>
+          <p className={styles.identity}><strong>{account || '내 계정'}</strong>{account && <span>@{account}</span>}<span>· 본문</span></p>
+          <p className={styles.preview}>{main || '아직 작성된 본문이 없어요.'}</p>
+          {item.preview_image_id && <img className={styles.feedImage} src={`/api/media/${item.preview_image_id}/file?thumb=1`} alt={item.preview_image_alt || '본문에 첨부된 이미지'} loading="lazy" />}
+          <div className={styles.reactions} aria-hidden><MessageCircle size={16} /><Repeat2 size={16} /><Heart size={16} /></div>
+        </div>
+      </div>
+      {reply && <div className={styles.feedReply}>
+        <span className={styles.avatar} aria-hidden>{account ? account.charAt(0).toUpperCase() : '나'}</span>
+        <div className={styles.feedBody}>
+          <p className={styles.identity}><strong>{account || '내 계정'}</strong>{account && <span>@{account}</span>}<span>· 첫 댓글</span></p>
+          <p className={styles.preview}>{reply}</p>
+        </div>
+      </div>}
       <div className={styles.meta}>
         <span>{item.part_count > 1 ? `본문 + 답글 ${item.part_count - 1}` : item.part_count === 1 ? '본문만' : '부분 없음'}</span>
-        {item.image_mode !== 'none' && (
+        {item.image_mode !== 'none' && !item.preview_image_id && (
           <span className={styles.inline}>
             <ImageIcon size={14} aria-hidden /> 이미지
           </span>
         )}
-        {item.reservation_at && <span>예약 {formatDateTime(item.reservation_at)}</span>}
         {item.problems.length > 0 && item.stage !== 'published' && <span className={styles.problem}>문제 {item.problems.length}개</span>}
+        <span className={styles.openDetail}>자세히 보기 →</span>
       </div>
     </>
   );
