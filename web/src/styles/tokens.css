@@ -32,7 +32,7 @@
 
   /* 모서리: 높이에 비례 (약 0.28배). 바깥 면일수록 크고, 카드 안의 상자는 한 단계 작게 */
   --radius-sheet: 24px;        /* 아래 시트·대화상자 */
-  --radius-card: 20px;         /* 카드·목록 묶음·타일 */
+  --radius-card: 22px;         /* 카드·목록 묶음·타일 (토스 실제 화면 약 22pt) */
   --radius-lg: 16px;           /* 큰 버튼 56px·선택 카드 */
   --radius-field: 14px;        /* 입력 칸 52px·버튼 48px */
   --radius-md: 12px;           /* 카드 안 상자·아이콘 상자 40px */
@@ -49,10 +49,14 @@
   --space-7: 28px;
   --space-8: 32px;
 
-  --gutter: 20px;
-  --card-pad: 20px;            /* 카드 안쪽 여백. 카드 안 목록 행도 이 값에 맞춘다 */
-  --box-gap: 8px;              /* 나란히 놓인 카드·상자 사이 (토스처럼 촘촘하게) */
-  --section-gap: 24px;         /* 제목이 있는 영역 사이 */
+  /* 토스 실제 화면(390pt 기준) 측정값: 카드 바깥 여백 13~17, 카드 안쪽 약 22, 카드 사이 11~15,
+     화면 제목 왼쪽 약 22, 카드 안 글자 약 40 */
+  --gutter: 16px;              /* 화면 가장자리 ↔ 카드 */
+  --card-pad: 24px;            /* 카드 안쪽 좌우 여백. 카드 안 글자는 16 + 24 = 40에서 시작 */
+  --card-pad-y: 20px;          /* 카드 안쪽 위아래 여백 */
+  --heading-inset: 6px;        /* 회색 배경 위 제목을 카드 가장자리보다 조금 안쪽으로 (토스 약 22pt) */
+  --box-gap: 12px;             /* 카드·상자 사이 */
+  --section-gap: 24px;         /* 카드 밖 제목이 있는 영역 앞 */
   --content-max: 1100px;
   --tabbar-h: 64px;
   --header-h: 56px;
@@ -60,7 +64,7 @@
 
   /* 글자 크기는 TDS 타이포 단계(t2 26 · t4 20 · t5 17 · t6 15 · t7 13)를 따른다 */
   --fs-display: 34px;
-  --fs-title: 26px;
+  --fs-title: 24px;           /* 실제 토스 탭 화면 제목 약 20~24 */
   --fs-h2: 20px;
   --fs-h3: 17px;
   --fs-body: 17px;
@@ -109,7 +113,7 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 24px;
-    --card-pad: 24px;
+    --card-pad: 28px;
     --fs-title: 28px;
   }
 }

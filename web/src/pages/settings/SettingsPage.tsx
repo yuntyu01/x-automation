@@ -69,7 +69,7 @@ export function SettingsPage() {
       {settings.isError && <ErrorState error={settings.error} onRetry={() => settings.refetch()} />}
       {settings.data && (
         <div className={styles.stack}>
-          <Section title="운영">
+          <Section card title="운영">
             <RowGroup>
               <Row icon={<SlidersHorizontal size={20} />} label="운영 모드" value={MODE_LABEL[settings.data.operation_mode]} onClick={() => setSheet('mode')} />
               <Row icon={<Sparkles size={20} />} label="생성 방식" value={generationSummary(settings.data.policy.generation.timing)} to="/settings/generation" />
@@ -95,18 +95,18 @@ export function SettingsPage() {
               <Row icon={<Send size={20} />} label="게시 기록" description="진행 중·확인 필요·최근 게시" to="/publish" />
             </RowGroup>
           </Section>
-          <Section title="연결">
+          <Section card title="연결">
             <RowGroup>
               <Row icon={<Link2 size={20} />} label="연결 상태" description="X·AI·저장소" value={xValue} to="/settings/connections" />
               <Row icon={<Wallet size={20} />} label="사용량·예산" description="추정 사용량·월 한도·요율표" to="/settings/budget" />
             </RowGroup>
           </Section>
-          <Section title="화면">
+          <Section card title="화면">
             <RowGroup>
               <Row icon={<Moon size={20} />} label="테마" value={THEME_LABEL[theme.pref]} onClick={() => setSheet('theme')} />
             </RowGroup>
           </Section>
-          <Section title="정보">
+          <Section card title="정보">
             <RowGroup>
               <Row
                 icon={<Info size={20} />}

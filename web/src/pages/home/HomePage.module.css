@@ -3,9 +3,11 @@
   flex-direction: column;
   gap: var(--box-gap);
 }
-/* 카드 사이는 8px, 제목이 있는 영역 앞은 24px */
-.stack > section {
-  margin-top: calc(var(--section-gap) - var(--box-gap));
+/* 카드 안 구획을 나누는 가는 선 (카드 양끝까지) */
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--space-5) calc(-1 * var(--card-pad)) var(--space-1);
 }
 .muted {
   color: var(--text-3);
@@ -13,29 +15,37 @@
 }
 
 /* 첫 설정 안내: 화면에서 가장 먼저 할 일 하나 */
+/* 첫 설정 안내: 토스 배너처럼 글은 왼쪽, 작은 버튼은 오른쪽 */
 .setup {
-  background: var(--primary-soft);
-}
-.setupTitle {
-  font-size: var(--fs-h2);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.setupBody {
-  color: var(--text-2);
-  font-size: var(--fs-small);
-  margin-top: 4px;
-}
-.setupCta {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
+}
+.setupText {
+  flex: 1;
+  min-width: 0;
+}
+.setupTitle {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  line-height: 1.45;
+}
+.setupBody {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-top: 2px;
+}
+.setupCta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: var(--space-4);
-  min-height: var(--touch);
-  border-radius: 14px;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
   background: var(--primary);
   color: var(--on-primary);
+  font-size: var(--fs-small);
   font-weight: 600;
   text-decoration: none;
   transition: transform var(--dur) var(--ease);
@@ -113,12 +123,12 @@
 .cardHead {
   font-size: var(--fs-h3);
   font-weight: 700;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5) var(--space-3);
+  gap: var(--space-4) var(--space-3);
   margin: 0;
 }
 .stats dt {
@@ -131,7 +141,7 @@
   color: var(--text-2);
 }
 .stats dd strong {
-  font-size: 22px;
+  font-size: var(--fs-h2);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;

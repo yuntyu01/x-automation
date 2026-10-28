@@ -45,6 +45,7 @@
 .immersive {
   padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-8));
 }
+/* 하단 탭: 토스처럼 위 모서리를 둥글게, 선 대신 옅은 그림자 */
 .tabbar {
   position: fixed;
   left: 0;
@@ -54,9 +55,12 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 0 var(--space-2) env(safe-area-inset-bottom);
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 -4px 16px rgb(0 0 0 / 0.04);
 }
 .tab {
   display: flex;
@@ -67,12 +71,13 @@
   color: var(--text-3);
   text-decoration: none;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   min-height: 48px;
   -webkit-tap-highlight-color: transparent;
 }
 .tabActive {
   color: var(--text);
+  font-weight: 700;
 }
 /* 탭 화면 머리: 제목 줄(제목 ↔ 행동·알림) + 설명 */
 .header {
@@ -101,6 +106,10 @@
 /* 아이콘 버튼의 안쪽 여백만큼 바깥으로 빼서 화살표가 글자 왼쪽 선에 맞게 */
 .navBack {
   margin-left: -10px;
+}
+.title,
+.subtitle {
+  padding-inline: var(--heading-inset);
 }
 .title {
   min-width: 0;

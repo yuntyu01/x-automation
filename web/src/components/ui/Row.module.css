@@ -9,6 +9,12 @@
   padding: var(--group-pad-y, var(--space-2)) 0;
   margin-inline: calc(-1 * var(--row-pad-x, 0px));
 }
+.group:first-child {
+  margin-top: calc(-1 * var(--group-trim, 0px));
+}
+.group:last-child {
+  margin-bottom: calc(-1 * var(--group-trim, 0px));
+}
 .row {
   display: flex;
   align-items: center;

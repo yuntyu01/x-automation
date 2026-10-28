@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarClock, CircleAlert, FilePlus2, Info, Pause, Play, Power, Sparkles, TriangleAlert, Wallet } from 'lucide-react';
+import { CalendarClock, CircleAlert, FilePlus2, Info, Pause, Play, Power, Sparkles, TriangleAlert, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/client';
@@ -31,10 +31,12 @@ export function HomePage() {
         <div className={styles.stack}>
           {settings.data && !settings.data.setup_completed_at && (
             <Card className={styles.setup}>
-              <p className={styles.setupTitle}>처음이라면 설정부터 해요</p>
-              <p className={styles.setupBody}>연결부터 시간표까지 5단계면 끝나요.</p>
-              <Link to="/setup" className={styles.setupCta}>
-                첫 설정 시작 <ArrowRight size={18} aria-hidden />
+              <div className={styles.setupText}>
+                <p className={styles.setupTitle}>처음이라면 설정부터 해요</p>
+                <p className={styles.setupBody}>5단계면 끝나요</p>
+              </div>
+              <Link to="/setup" className={styles.setupCta} aria-label="첫 설정 시작하기">
+                시작하기
               </Link>
             </Card>
           )}
@@ -153,7 +155,7 @@ const SINGLE_STATE = new Set(['x_connection', 'budget', 'pricing']);
 function Actions({ actions }: { actions: HomeAction[] }) {
   if (actions.length === 0) return null;
   return (
-    <Section title="필요한 조치">
+    <Section card title="필요한 조치">
       <RowGroup>
         {actions.map((a) => (
           <Row
@@ -191,9 +193,8 @@ function AutomationCard({ data }: { data: HomeData }) {
   const blockers = a.enabled ? otherBlockers : a.publish_blockers;
   const running = a.enabled && otherBlockers.length === 0;
   return (
-    <Section title="자동 운영">
-      <Card>
-        <div className={styles.autoHead}>
+    <Section card title="자동 운영">
+      <div className={styles.autoHead}>
           <span className={[styles.autoIcon, running ? styles.autoOn : a.enabled ? styles.autoWarn : ''].join(' ')}>
             <Power size={22} aria-hidden />
           </span>
@@ -231,7 +232,7 @@ function AutomationCard({ data }: { data: HomeData }) {
             자동 운영 시작
           </Button>
         )}
-      </Card>
+      <hr className={styles.divider} />
       <RowGroup>
         <Row
           label="생성 일시정지"
@@ -298,11 +299,9 @@ function AutomationCard({ data }: { data: HomeData }) {
 
 function Upcoming({ slots }: { slots: HomeSlot[] }) {
   return (
-    <Section title="가까운 예약" action={<Link to="/schedule" className={styles.more}>예약 전체</Link>}>
+    <Section card title="가까운 예약" action={<Link to="/schedule" className={styles.more}>예약 전체</Link>}>
       {slots.length === 0 ? (
-        <Card>
-          <p className={styles.muted}>앞으로 잡힌 예약이 없어요. 시간표에서 허용 구간을 확인해 보세요.</p>
-        </Card>
+        <p className={styles.muted}>앞으로 잡힌 예약이 없어요. 시간표에서 허용 구간을 확인해 보세요.</p>
       ) : (
         <RowGroup>
           {slots.map((s) => (

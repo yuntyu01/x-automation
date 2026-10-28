@@ -75,8 +75,12 @@ export function AppShell() {
         <nav className={styles.tabbar} aria-label="하단 메뉴">
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => [styles.tab, isActive ? styles.tabActive : ''].join(' ')}>
-              <t.icon size={24} aria-hidden />
-              <span>{t.label}</span>
+              {({ isActive }) => (
+                <>
+                  <t.icon size={26} strokeWidth={isActive ? 2.4 : 1.8} aria-hidden />
+                  <span>{t.label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

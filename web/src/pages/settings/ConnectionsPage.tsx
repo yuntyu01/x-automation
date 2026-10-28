@@ -79,7 +79,7 @@ export function ConnectionsPage() {
               {q.data.r2.dev_url && ' r2.dev 주소는 속도 제한이 있어 운영에는 커스텀 도메인이 좋아요.'}
             </p>
           </Integration>
-          <Section title="실제 게시 조건" description="셋이 모두 갖춰져야 예약 게시가 시작돼요">
+          <Section card title="실제 게시 조건" description="셋이 모두 갖춰져야 예약 게시가 시작돼요">
             <RowGroup>
               <Row
                 label="실제 게시 허용"

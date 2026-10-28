@@ -21,9 +21,10 @@ export function CardTitle({ children, action, id }: { children: ReactNode; actio
   );
 }
 
-export function Section({ title, description, action, children }: { title?: string; description?: string; action?: ReactNode; children: ReactNode }) {
+// card: 제목을 흰 카드 안에 넣는다 (토스 홈의 "최근 서비스"처럼). 내용이 목록·입력 칸 한 묶음일 때 쓴다
+export function Section({ title, description, action, children, card }: { title?: string; description?: string; action?: ReactNode; children: ReactNode; card?: boolean }) {
   return (
-    <section className={styles.section}>
+    <section className={card ? [styles.card, styles.padded, styles.cardSection].join(' ') : styles.section}>
       {(title || action) && (
         <div className={styles.sectionHeader}>
           <div className={styles.sectionHead}>

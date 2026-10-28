@@ -63,9 +63,8 @@ function UsageCard({ u }: { u: UsageSummary }) {
   const used = u.spent_micros + u.held_micros;
   const pct = u.limit_micros > 0 ? Math.min(100, Math.round((used / u.limit_micros) * 100)) : 0;
   return (
-    <Section title={`이번 달 (${u.period}) 추정 사용량`}>
-      <Card>
-        {u.pricing_known ? (
+    <Section card title={`이번 달 (${u.period}) 추정 사용량`}>
+              {u.pricing_known ? (
           <p className={styles.total}>
             <strong>{formatMoney(u.spent_micros, u.currency)}</strong>
             {u.held_micros > 0 && <span className={styles.sub}> + 진행 중 예약 {formatMoney(u.held_micros, u.currency)}</span>}
@@ -101,7 +100,6 @@ function UsageCard({ u }: { u: UsageSummary }) {
         <p className={styles.caption}>
           사용 횟수 × 요율표 단가로 계산했어요. 환율·세금·할인·무료 크레딧은 빠져 있어요. 실제 청구액은 각 서비스 콘솔에서 볼 수 있어요.
         </p>
-      </Card>
     </Section>
   );
 }
@@ -174,9 +172,8 @@ function BudgetForm({ settings }: { settings: Settings }) {
         />
       </Section>
 
-      <Section title="요율표" description="추정 비용에 쓰는 단가예요. 요금은 바뀔 수 있어 확인일과 출처를 같이 적어 둬요">
-        <Card>
-          {!pricing.verified_at && <p className={styles.warn}>확인일이 없으면 금액을 계산하지 않고 "단가 미확인"으로 보여요.</p>}
+      <Section card title="요율표" description="추정 비용에 쓰는 단가예요. 요금은 바뀔 수 있어 확인일과 출처를 같이 적어 둬요">
+                  {!pricing.verified_at && <p className={styles.warn}>확인일이 없으면 금액을 계산하지 않고 "단가 미확인"으로 보여요.</p>}
           <div className={styles.preset}>
             <Button size="sm" variant="soft" onClick={applyPreset}>
               확인된 X 단가 넣기
@@ -202,7 +199,6 @@ function BudgetForm({ settings }: { settings: Settings }) {
           <p className={styles.caption}>
             글 생성 단가는 모델마다 달라요. 쓰는 모델의 공식 요금표를 확인해 넣어 주세요. 확인하지 못한 값은 비워 두면 그 항목은 0으로 계산돼요.
           </p>
-        </Card>
       </Section>
 
       {dirty && (

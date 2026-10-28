@@ -9,6 +9,7 @@
   color: var(--text-2);
   line-height: 1.5;
   margin: 0 0 var(--space-4);
+  padding-inline: var(--heading-inset);
 }
 .toolbar {
   display: flex;
@@ -20,6 +21,7 @@
   color: var(--text-3);
   font-size: var(--fs-small);
   margin: 0 0 var(--space-2);
+  padding-inline: var(--heading-inset);
 }
 .grid {
   list-style: none;

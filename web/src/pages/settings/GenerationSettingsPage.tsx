@@ -71,7 +71,7 @@ function GenerationForm({ settings }: { settings: Settings }) {
   return (
     <div className={styles.stack}>
       {publishOnly && <Card className={styles.note}>지금은 &lsquo;게시만 자동&rsquo; 모드라 글을 생성하지 않아요. 이미지 생성만 쓸 수 있어요. 운영 모드는 설정에서 바꿔요.</Card>}
-      <Section title="무엇을 만들까요" description="글과 이미지는 따로 켜고 끌 수 있어요">
+      <Section card title="무엇을 만들까요" description="글과 이미지는 따로 켜고 끌 수 있어요">
         <RowGroup>
           <Row label="글 생성" description="프롬프트로 본문·답글이 될 글을 만들어요" trailing={<Switch label="글 생성" checked={gen.text_enabled} onChange={(v) => g('text_enabled', v)} />} />
           <Row label="이미지 생성" description="생성 글에 붙이거나, 직접 쓴 글에 이미지만 만들어요" trailing={<Switch label="이미지 생성" checked={gen.image_enabled} onChange={(v) => g('image_enabled', v)} />} />
@@ -161,15 +161,13 @@ function GenerationForm({ settings }: { settings: Settings }) {
         </RowGroup>
       )}
 
-      <Section title="자동 생성에 쓸 프롬프트">
-        <Card>
-          <div className={styles.grid}>
+      <Section card title="자동 생성에 쓸 프롬프트">
+                  <div className={styles.grid}>
             <Select label="기본 프롬프트" value={gen.default_prompt_id} onChange={(e) => g('default_prompt_id', e.target.value)} options={promptOptions} hint="변수는 프롬프트의 기본값이 들어가요" />
             <p className={styles.muted}>
               프롬프트는 <Link to="/prompts">프롬프트 화면</Link>에서 만들고 고쳐요.
             </p>
           </div>
-        </Card>
       </Section>
 
       <Section title="모델·품질" description="비워 두면 서버의 기본 모델을 써요. 쓸 수 있는 이름은 공급자 문서에 있어요">
@@ -224,9 +222,8 @@ function GenerationForm({ settings }: { settings: Settings }) {
         </RowGroup>
       </Section>
 
-      <Section title="한도" description="비용을 아끼기 위한 안전장치예요">
-        <Card>
-          <div className={styles.grid}>
+      <Section card title="한도" description="비용을 아끼기 위한 안전장치예요">
+                  <div className={styles.grid}>
             <TextField label="하루 생성 상한 (묶음)" type="number" inputMode="numeric" value={String(gen.daily_limit)} onChange={(e) => g('daily_limit', num(e.target.value))} error={fields['generation.daily_limit']} />
             <TextField
               label="한 글의 재생성 상한"
@@ -239,7 +236,6 @@ function GenerationForm({ settings }: { settings: Settings }) {
             <TextField label="동시 생성 수" type="number" inputMode="numeric" value={String(gen.max_concurrent)} onChange={(e) => g('max_concurrent', num(e.target.value))} error={fields['generation.max_concurrent']} hint="서버 재시작 후 적용돼요" />
             <TextField label="실패 시 재시도 상한" type="number" inputMode="numeric" value={String(gen.max_attempts)} onChange={(e) => g('max_attempts', num(e.target.value))} error={fields['generation.max_attempts']} />
           </div>
-        </Card>
       </Section>
 
       {dirty && (

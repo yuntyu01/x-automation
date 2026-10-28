@@ -39,6 +39,9 @@ export interface DraftState {
 
 type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict';
 
+const RETRY_MIN_MS = 5_000;
+const RETRY_MAX_MS = 60_000;
+
 function toDraft(d: ContentDetail): DraftState {
   return {
     title: d.title,
@@ -99,6 +102,10 @@ function Editor({ initial }: { initial: ContentDetail }) {
   const editVersion = useRef(initial.edit_version);
   const saving = useRef(false);
   const savePromise = useRef<Promise<void> | null>(null);
+  // 저장에 실패한 내용과 다음 자동 재시도까지 기다릴 시간. 같은 내용을 쉬지 않고 다시 보내지 않는다
+  const failedDraft = useRef<DraftState | null>(null);
+  const retryDelay = useRef(RETRY_MIN_MS);
+  const [retryTick, setRetryTick] = useState(0);
   const draftRef = useRef(draft);
   useEffect(() => {
     draftRef.current = draft;
@@ -148,6 +155,8 @@ function Editor({ initial }: { initial: ContentDetail }) {
         });
         markSaved(d);
         apply(res);
+        failedDraft.current = null;
+        retryDelay.current = RETRY_MIN_MS;
         setStatus('saved');
         setConflict(null);
       } catch (e) {
@@ -155,6 +164,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
           setConflict((e.body as { current?: ContentDetail })?.current ?? null);
           setStatus('conflict');
         } else {
+          failedDraft.current = d;
           setStatus('error');
           if (!(e instanceof ApiError && e.code === 'network')) toast.show(errorMessage(e), 'error');
         }
@@ -172,12 +182,29 @@ function Editor({ initial }: { initial: ContentDetail }) {
     if (!sameDraft(draftRef.current, savedDraft.current)) await save(draftRef.current);
   }, [save]);
 
-  // 자동 저장: 입력이 멈추고 0.9초 뒤
+  // 자동 저장: 입력이 멈추고 0.9초 뒤. 실패한 내용은 새로 고치거나 재시도 시각이 될 때까지 다시 보내지 않는다
   const debounced = useDebounced(draft, 900);
   useEffect(() => {
     if (status === 'conflict') return;
+    if (status === 'error' && failedDraft.current && sameDraft(debounced, failedDraft.current)) return;
     if (!sameDraft(debounced, savedDraft.current) && !saving.current) void save(debounced);
-  }, [debounced, save, status]);
+  }, [debounced, save, status, retryTick]);
+
+  // 저장 실패 뒤: 5초부터 두 배씩(최대 1분) 기다렸다가, 또는 인터넷이 다시 연결되면 바로 다시 시도한다
+  useEffect(() => {
+    if (status !== 'error') return;
+    const retry = () => {
+      failedDraft.current = null;
+      setRetryTick((n) => n + 1);
+    };
+    const timer = window.setTimeout(retry, retryDelay.current);
+    retryDelay.current = Math.min(retryDelay.current * 2, RETRY_MAX_MS);
+    window.addEventListener('online', retry);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('online', retry);
+    };
+  }, [status]);
   const shownStatus: SaveStatus = status === 'saved' && dirty ? 'dirty' : status;
 
   // 저장 전 이탈 경고

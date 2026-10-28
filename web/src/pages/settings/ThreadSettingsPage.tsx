@@ -4,7 +4,7 @@ import { useIntegrations, useSaveSettings, useSettings } from '../../api/queries
 import { SPLIT_LABEL, type Policy, type Settings, type SplitMode } from '../../api/types';
 import { PageHeader } from '../../components/layout/AppShell';
 import { Button } from '../../components/ui/Button';
-import { Card, Section } from '../../components/ui/Card';
+import { Section } from '../../components/ui/Card';
 import { ChoiceList } from '../../components/ui/ChoiceList';
 import { Row, RowGroup } from '../../components/ui/Row';
 import { Sheet } from '../../components/ui/Sheet';
@@ -73,7 +73,7 @@ function ThreadForm({ settings }: { settings: Settings }) {
         />
       </Section>
 
-      <Section title="답글">
+      <Section card title="답글">
         <RowGroup>
           <Row
             label="번호 표기 (1/N)"
@@ -105,7 +105,7 @@ function ThreadForm({ settings }: { settings: Settings }) {
         )}
       </Section>
 
-      <Section title="한 게시물 한도">
+      <Section card title="한 게시물 한도">
         <RowGroup>
           <Row
             label="장문 게시"
@@ -130,16 +130,14 @@ function ThreadForm({ settings }: { settings: Settings }) {
         </p>
       </Section>
 
-      <Section title="글자 수는 이렇게 세요">
-        <Card>
-          <ul className={styles.rules}>
+      <Section card title="글자 수는 이렇게 세요">
+                  <ul className={styles.rules}>
             <li>X와 같은 방식(공식 twitter-text)으로 세요. 한글·한자·일본어는 2자, 영문·숫자·기본 문장부호는 1자예요</li>
             <li>링크는 길이와 관계없이 23자예요. 링크가 있으면 X 게시 단가가 달라질 수 있어요</li>
             <li>이모지는 하나에 2자예요. 아주 최근 이모지 조합은 더 길게 세어질 수 있어요 (한도를 넘지 않는 쪽으로 계산)</li>
             <li>원문은 그대로 보관하고, 게시할 때만 줄 끝 공백·3줄 이상 빈 줄·앞뒤 공백을 정리해요</li>
             <li>문단 → 문장 → 줄 → 공백 순으로 자르고, 링크·이모지·글자 중간에서는 자르지 않아요. AI가 요약하거나 내용을 바꾸지 않아요</li>
           </ul>
-        </Card>
       </Section>
 
       {dirty && (

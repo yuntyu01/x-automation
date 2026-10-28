@@ -1,7 +1,7 @@
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--section-gap);
+  gap: var(--box-gap);
 }
 .run {
   display: flex;

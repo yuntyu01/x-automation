@@ -5,7 +5,7 @@
   min-width: 0;
 }
 .padded {
-  padding: var(--card-pad);
+  padding: var(--card-pad-y) var(--card-pad);
   /* 카드 안 RowGroup은 상자 없이 카드 여백에 글자를 맞춘다 (Row.module.css) */
   --row-pad-x: var(--card-pad);
   --group-bg: transparent;
@@ -13,6 +13,7 @@
   --group-radius: 0px;
   --choice-border: var(--border);
   --choice-pad-x: var(--space-4);
+  --group-trim: 8px;
 }
 .titleRow {
   display: flex;
@@ -33,12 +34,31 @@
   flex-direction: column;
   gap: var(--box-gap);
 }
-/* 제목 ↔ 첫 상자 12px, 상자끼리 8px */
+/* 카드 밖 제목이 있는 영역은 앞 카드와 24px (부모 목록 간격 12px + 12px) */
+.section:not(:first-child) {
+  margin-top: calc(var(--section-gap) - var(--box-gap));
+}
 .sectionHeader {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 4px;
+  padding-inline: var(--heading-inset);
+}
+/* 토스 홈처럼 영역 제목을 흰 카드 안에 넣은 모양 (Section card) */
+.cardSection {
+  display: block;
+}
+.cardSection:not(:first-child) {
+  margin-top: 0;
+}
+.cardSection .sectionHeader {
+  padding-inline: 0;
+  margin-bottom: var(--space-2);
+}
+.cardSection .sectionTitle {
+  font-size: var(--fs-h3);
+  letter-spacing: -0.01em;
 }
 .sectionHead {
   display: flex;

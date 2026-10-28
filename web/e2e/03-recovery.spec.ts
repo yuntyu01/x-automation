@@ -61,8 +61,17 @@ test('편집 중 연결이 끊기면 "저장 실패"로 보이고, 다시 연결
   await page.goto('/contents/' + id);
   const status = page.getByRole('status').filter({ hasText: /저장/ }).first();
   await expect(status).toHaveText(/저장됨/);
-  await page.route(`**/api/contents/${id}`, (r) => (r.request().method() === 'GET' ? r.continue() : r.abort('internetdisconnected')));
+  let failedPuts = 0;
+  await page.route(`**/api/contents/${id}`, (r) => {
+    if (r.request().method() === 'GET') return r.continue();
+    failedPuts++;
+    return r.abort('internetdisconnected');
+  });
   await page.getByLabel('원문', { exact: true }).fill('연결이 끊긴 동안 고친 원문입니다.\n\n두 번째 문단.');
+  await expect(status).toContainText('저장 실패');
+  // 실패한 내용을 쉬지 않고 다시 보내지 않는다 (다음 시도는 몇 초 뒤·연결 회복·새 편집 때)
+  await page.waitForTimeout(1_500);
+  expect(failedPuts, '연결이 끊긴 동안 보낸 저장 요청 수').toBeLessThanOrEqual(2);
   await expect(status).toContainText('저장 실패');
   await page.unroute(`**/api/contents/${id}`);
   // 다시 시도 버튼으로, 또는 다음 편집·자동 재시도로 저장된다
