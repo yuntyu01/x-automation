@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
@@ -11,7 +11,7 @@ function keepDir(): Plugin {
   return {
     name: 'keep-embed-dir',
     closeBundle() {
-      writeFileSync(`${outDir}/.gitkeep`, '');
+      if (existsSync(outDir)) writeFileSync(`${outDir}/.gitkeep`, '');
     },
   };
 }
