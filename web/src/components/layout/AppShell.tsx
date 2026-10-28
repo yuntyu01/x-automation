@@ -97,11 +97,17 @@ function UnreadDot() {
 }
 
 // 화면 상단: 제목·필요한 작업·알림 아이콘
-export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: ReactNode }) {
+// icon: 노션 스타일 화면의 페이지 아이콘(이모지)
+export function PageHeader({ title, subtitle, actions, back, icon }: { title: string; subtitle?: ReactNode; actions?: ReactNode; back?: ReactNode; icon?: string }) {
   return (
-    <header className={styles.header}>
+    <header className={[styles.header, icon ? styles.withIcon : ''].join(' ')}>
       {back}
       <div className={styles.headTitles}>
+        {icon && (
+          <span className={styles.pageIcon} aria-hidden>
+            {icon}
+          </span>
+        )}
         <h1 className={styles.title}>{title}</h1>
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
       </div>

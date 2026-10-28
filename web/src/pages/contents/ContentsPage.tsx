@@ -25,12 +25,19 @@ import { ImportSheet } from './ImportSheet';
 import { GenerateForm } from '../../components/generation/GenerateForm';
 import { GenerationQueue } from '../../components/generation/GenerationQueue';
 import { NewContentSheet } from './NewContentSheet';
+import { useDesignStyle, useNotionScope } from '../../lib/designStyle';
+import n from './NotionContents.module.css';
 import styles from './ContentsPage.module.css';
 
 const STAGES: (Stage | 'all')[] = ['all', 'draft', 'review', 'ready', 'scheduled', 'published', 'problem', 'archived'];
 const INITIAL: ContentQuery = { stage: 'all', q: '', category: '', from: '', to: '', sort: 'updated', limit: 20 };
+// 노션 스타일 보드의 열 (보관은 빼고 흐름 순서대로)
+const BOARD: Stage[] = ['draft', 'review', 'ready', 'scheduled', 'published', 'problem'];
 
 export function ContentsPage() {
+  const notion = useDesignStyle() === 'notion';
+  useNotionScope(notion);
+  const [view, setView] = useState<'table' | 'board'>('table');
   const [filter, setFilter] = useSessionState<ContentQuery>('xa-contents-filter', INITIAL);
   // 알림·홈에서 온 링크: ?stage=problem 은 필터로, ?new=write|generate 는 새 글 시트로 연다 (한 번 쓰고 주소에서 지운다)
   const [params, setParams] = useSearchParams();
@@ -122,6 +129,7 @@ export function ContentsPage() {
     <>
       <PageHeader
         title="콘텐츠"
+        icon={notion ? '📝' : undefined}
         actions={
           selecting ? (
             <Button variant="ghost" size="sm" onClick={exitSelect} icon={<X size={18} />}>
@@ -133,12 +141,30 @@ export function ContentsPage() {
                 <MoreHorizontal size={22} />
               </IconButton>
               <Button size="sm" icon={<Plus size={18} />} onClick={() => setSheet('new')}>
-                새 글
+                {notion ? '새로 만들기' : '새 글'}
               </Button>
             </>
           )
         }
       />
+      {notion && (
+        <div className={n.views}>
+          <Segmented
+            variant="segment"
+            label="보기"
+            value={view}
+            onChange={(v) => {
+              setView(v);
+              if (v === 'board') setFilter((p) => ({ ...p, stage: 'all' }));
+              exitSelect();
+            }}
+            options={[
+              { value: 'table', label: '▦ 표' },
+              { value: 'board', label: '▥ 보드' },
+            ]}
+          />
+        </div>
+      )}
       <div className={styles.toolbar}>
         <div className={styles.searchRow}>
           <TextField
@@ -157,13 +183,15 @@ export function ContentsPage() {
             {activeFilters ? `필터 ${activeFilters}` : '필터'}
           </Button>
         </div>
-        <Segmented
-          label="상태"
-          scroll
-          value={filter.stage}
-          onChange={(v) => setFilter((p) => ({ ...p, stage: v }))}
-          options={STAGES.map((s) => ({ value: s, label: s === 'all' ? '전체' : STAGE_LABEL[s], count: counts[s] ?? 0 }))}
-        />
+        {!(notion && view === 'board') && (
+          <Segmented
+            label="상태"
+            scroll
+            value={filter.stage}
+            onChange={(v) => setFilter((p) => ({ ...p, stage: v }))}
+            options={STAGES.map((s) => ({ value: s, label: s === 'all' ? '전체' : STAGE_LABEL[s], count: counts[s] ?? 0 }))}
+          />
+        )}
       </div>
 
       <GenerationQueue activeOnly />
@@ -199,7 +227,7 @@ export function ContentsPage() {
         <>
           <div className={styles.listHead}>
             <span className={styles.total}>{total}개</span>
-            {!selecting && (
+            {!selecting && !(notion && view === 'board') && (
               <Button variant="ghost" size="sm" icon={<CheckSquare size={18} />} onClick={() => setSelecting(true)}>
                 선택
               </Button>
@@ -210,13 +238,17 @@ export function ContentsPage() {
               </Button>
             )}
           </div>
-          <ul className={styles.list}>
-            {items.map((it) => (
-              <li key={it.id}>
-                <ContentCard item={it} selecting={selecting} selected={selected.has(it.id)} onToggle={() => toggle(it.id)} />
-              </li>
-            ))}
-          </ul>
+          {notion && view === 'table' && <NotionTable items={items} selecting={selecting} selected={selected} onToggle={toggle} onNew={() => setSheet('new')} />}
+          {notion && view === 'board' && <NotionBoard items={items} onNew={() => setSheet('new')} />}
+          {!notion && (
+            <ul className={styles.list}>
+              {items.map((it) => (
+                <li key={it.id}>
+                  <ContentCard item={it} selecting={selecting} selected={selected.has(it.id)} onToggle={() => toggle(it.id)} />
+                </li>
+              ))}
+            </ul>
+          )}
           {list.hasNextPage && (
             <div className={styles.more}>
               <Button variant="secondary" block busy={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>
@@ -340,6 +372,100 @@ function ContentCard({ item, selecting, selected, onToggle }: { item: ContentIte
     <Link to={`/contents/${item.id}`} className={styles.card}>
       <div className={styles.cardBody}>{body}</div>
     </Link>
+  );
+}
+
+// ── 노션 스타일 시험: 데이터베이스 표·보드 보기 ──────────────────────
+function partLabel(it: ContentItem) {
+  return it.part_count > 1 ? `본문 + 답글 ${it.part_count - 1}` : it.part_count === 1 ? '본문만' : '—';
+}
+
+function NotionTable({ items, selecting, selected, onToggle, onNew }: { items: ContentItem[]; selecting: boolean; selected: Set<string>; onToggle: (id: string) => void; onNew: () => void }) {
+  const nav = useNavigate();
+  return (
+    <div className={n.tableWrap}>
+      <table className={n.table}>
+        <thead>
+          <tr>
+            {selecting && (
+              <th scope="col">
+                <span className="sr-only">선택</span>
+              </th>
+            )}
+            <th scope="col">Aa 제목</th>
+            <th scope="col">◎ 상태</th>
+            <th scope="col">≡ 카테고리</th>
+            <th scope="col"># 게시물</th>
+            <th scope="col">◷ 예약</th>
+            <th scope="col">◷ 수정</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it) => (
+            <tr key={it.id} className={selected.has(it.id) ? n.rowOn : undefined} onClick={() => (selecting ? onToggle(it.id) : nav(`/contents/${it.id}`))}>
+              {selecting && (
+                <td>
+                  <input type="checkbox" checked={selected.has(it.id)} onChange={() => onToggle(it.id)} onClick={(e) => e.stopPropagation()} aria-label={`${it.title} 선택`} />
+                </td>
+              )}
+              <td className={n.titleCell}>
+                <Link to={`/contents/${it.id}`} onClick={(e) => e.stopPropagation()} className={n.titleLink}>
+                  <span aria-hidden>📄</span> {it.title}
+                </Link>
+              </td>
+              <td>
+                <StageBadge stage={it.stage} />
+              </td>
+              <td>{it.category ? <span className={n.tag}>{it.category}</span> : ''}</td>
+              <td className={n.nowrap}>{partLabel(it)}</td>
+              <td className={n.nowrap}>{it.reservation_at ? formatDateTime(it.reservation_at) : ''}</td>
+              <td className={n.nowrap}>{formatDateTime(it.updated_at)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <button type="button" className={n.addRow} onClick={onNew}>
+        <Plus size={16} aria-hidden /> 새로 만들기
+      </button>
+    </div>
+  );
+}
+
+// 노션의 "빈 그룹 숨기기"처럼 글이 없는 열은 접어 둔다 (작은 화면에서 첫 열부터 내용이 보이게)
+function NotionBoard({ items, onNew }: { items: ContentItem[]; onNew: () => void }) {
+  const shown = BOARD.filter((st) => items.some((i) => i.stage === st));
+  const hidden = BOARD.filter((st) => !shown.includes(st));
+  if (shown.length === 0) shown.push('draft');
+  return (
+    <>
+      <div className={n.board}>
+        {shown.map((stage) => {
+          const col = items.filter((i) => i.stage === stage);
+          return (
+            <section key={stage} className={n.column} aria-label={`${STAGE_LABEL[stage]} ${col.length}개`}>
+              <header className={n.colHead}>
+                <StageBadge stage={stage} />
+                <span className={n.colCount}>{col.length}</span>
+              </header>
+              {col.map((it) => (
+                <Link key={it.id} to={`/contents/${it.id}`} className={n.card}>
+                  <span className={n.cardTitle}>{it.title}</span>
+                  {it.category && <span className={n.tag}>{it.category}</span>}
+                  <span className={n.cardMeta}>
+                    {partLabel(it)}
+                    {it.reservation_at && ` · ${formatDateTime(it.reservation_at)}`}
+                  </span>
+                </Link>
+              ))}
+              <button type="button" className={n.colAdd} onClick={onNew}>
+                <Plus size={16} aria-hidden /> 새로 만들기
+              </button>
+            </section>
+          );
+        })}
+      </div>
+      {hidden.length > 0 && <p className={n.hidden}>숨긴 빈 그룹: {hidden.map((st) => STAGE_LABEL[st]).join(' · ')}</p>}
+    </>
   );
 }
 

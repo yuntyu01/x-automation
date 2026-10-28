@@ -45,3 +45,28 @@
   color: var(--text-2);
   margin-top: 2px;
 }
+
+/* 노션 스타일 시험: 카드 상자 없이 흰 바탕 위 블록. 영역 제목은 노션 제목 블록처럼 */
+:global([data-style='notion']) .card {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+:global([data-style='notion']) .padded {
+  padding: 0;
+}
+:global([data-style='notion']) .titleRow {
+  margin-bottom: var(--space-2);
+}
+:global([data-style='notion']) .title {
+  font-size: 18px;
+  font-weight: 600;
+}
+:global([data-style='notion']) .sectionHead {
+  padding: 0;
+}
+:global([data-style='notion']) .sectionTitle {
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: 0;
+}

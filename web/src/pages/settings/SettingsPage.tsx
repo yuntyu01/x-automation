@@ -1,4 +1,4 @@
-import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, Send, ShieldCheck, SlidersHorizontal, Sparkles, Tag, Wallet } from 'lucide-react';
+import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Palette, Scissors, Send, ShieldCheck, SlidersHorizontal, Sparkles, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -13,6 +13,7 @@ import { Sheet } from '../../components/ui/Sheet';
 import { ErrorState, LoadingList } from '../../components/ui/States';
 import { TextField } from '../../components/ui/TextField';
 import { useToast } from '../../components/ui/Toast';
+import { setDesignStyle, useDesignStyle } from '../../lib/designStyle';
 import { useTheme, type ThemePref } from '../../lib/theme';
 import { MODE_OPTIONS, generationSummary } from './labels';
 import styles from './SettingsPage.module.css';
@@ -27,7 +28,8 @@ export function SettingsPage() {
   const theme = useTheme();
   const auth = useAuth();
   const toast = useToast();
-  const [sheet, setSheet] = useState<'mode' | 'theme' | 'retention' | null>(null);
+  const designStyle = useDesignStyle();
+  const [sheet, setSheet] = useState<'mode' | 'theme' | 'retention' | 'style' | null>(null);
   const [days, setDays] = useState('');
 
   async function changeMode(mode: OperationMode) {
@@ -104,6 +106,7 @@ export function SettingsPage() {
           <Section title="화면">
             <RowGroup>
               <Row icon={<Moon size={20} />} label="테마" value={THEME_LABEL[theme.pref]} onClick={() => setSheet('theme')} />
+              <Row icon={<Palette size={20} />} label="디자인 스타일 (시험)" value={designStyle === 'notion' ? '노션' : '토스'} onClick={() => setSheet('style')} />
             </RowGroup>
           </Section>
           <Section title="정보">
@@ -143,6 +146,27 @@ export function SettingsPage() {
         }
       >
         <TextField label="보관 일수 (1~365)" type="number" inputMode="numeric" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} suffix="일" />
+      </Sheet>
+      <Sheet
+        open={sheet === 'style'}
+        onClose={() => setSheet(null)}
+        title="디자인 스타일 (시험)"
+        description="비교용이에요. 노션 스타일은 홈·콘텐츠·글 편집 세 화면만 바뀌어요."
+        footer={
+          <Button variant="secondary" onClick={() => setSheet(null)}>
+            닫기
+          </Button>
+        }
+      >
+        <ChoiceList
+          name="디자인 스타일"
+          value={designStyle}
+          onChange={setDesignStyle}
+          options={[
+            { value: 'toss', label: '토스 스타일', description: '회색 배경 위 흰 카드, 큰 글자와 버튼 (기본)' },
+            { value: 'notion', label: '노션 스타일', description: '흰 문서 한 장, 표·보드 보기, 속성 목록' },
+          ]}
+        />
       </Sheet>
       <Sheet
         open={sheet === 'theme'}

@@ -73,3 +73,34 @@
 :global([data-theme='dark']) .segment .active {
   background: var(--surface-pressed);
 }
+
+/* 노션 스타일 시험: 데이터베이스 보기 탭처럼 글자만, 고른 것은 옅은 회색 바탕 */
+:global([data-style='notion']) .item {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-2);
+  font-weight: 500;
+  font-size: var(--fs-small);
+}
+:global([data-style='notion']) .item:hover {
+  background: var(--surface-pressed);
+}
+:global([data-style='notion']) .active,
+:global([data-style='notion']) .segment .active {
+  background: var(--surface-pressed);
+  color: var(--text);
+  box-shadow: none;
+}
+:global([data-style='notion']) .segment {
+  background: transparent;
+  padding: 0 0 6px;
+  border-radius: 0;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+:global([data-style='notion']) .segment .item {
+  flex: none;
+}

@@ -265,3 +265,15 @@ textarea.raw {
   font-size: var(--fs-small);
   white-space: pre-line;
 }
+
+/* 노션 스타일 시험: 두 단 대신 한 단 문서 */
+:global([data-style='notion']) .grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+}
+:global([data-style='notion']) .grid > .col:last-child {
+  position: static;
+}
+:global([data-style='notion']) .col {
+  gap: var(--space-8);
+}

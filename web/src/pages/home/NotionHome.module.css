@@ -1,0 +1,190 @@
+/* 노션 스타일 시험용 홈 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 760px;
+}
+.h2 {
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.muted {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.inlineLink {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+.callout {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.calloutIcon {
+  font-size: 20px;
+  line-height: 1.3;
+}
+.calloutTitle {
+  font-weight: 600;
+}
+.nextLine {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+  padding: var(--space-2);
+  margin: 0 calc(-1 * var(--space-2));
+  border-radius: var(--radius-sm);
+}
+.nextLine:hover {
+  background: var(--surface-pressed);
+}
+.nextTime {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.nextTitle {
+  overflow-wrap: anywhere;
+}
+.nextMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-1);
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.warn {
+  margin-top: var(--space-2);
+  color: var(--warning);
+  font-size: var(--fs-small);
+}
+/* 노션 속성 목록: 왼쪽 회색 이름, 오른쪽 값 */
+.props {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  margin: 0;
+  font-size: var(--fs-small);
+}
+.props dt,
+.props dd {
+  margin: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.props dt {
+  color: var(--text-3);
+}
+.props dd {
+  font-variant-numeric: tabular-nums;
+}
+/* 할 일 목록 */
+.todo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.todo li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+}
+.box {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--text-3);
+  border-radius: 3px;
+  flex: none;
+}
+.todoText {
+  color: inherit;
+  text-decoration: none;
+}
+.todoText:hover {
+  text-decoration: underline;
+}
+/* 인라인 표 */
+.tableWrap {
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.table th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-3);
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.table th + th,
+.table td + td {
+  border-left: 1px solid var(--border);
+}
+.table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+.mono {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cellLink {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.cellLink:hover {
+  text-decoration: underline;
+}
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.quickLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  text-decoration: none;
+}
+.quickLink:hover {
+  background: var(--surface-pressed);
+}

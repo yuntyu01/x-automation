@@ -8,6 +8,7 @@ import { ThemeProvider } from './lib/theme';
 import { ApiError } from './api/client';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/notion.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

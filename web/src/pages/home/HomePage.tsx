@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarClock, CircleAlert, FilePlus2, Info, Pause, Play, Power, Sparkles, TriangleAlert, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarClock, CircleAlert, FilePlus2, Info, Pause, Play, Plus, Power, Sparkles, TriangleAlert, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../../api/client';
@@ -15,11 +15,18 @@ import { ErrorState, LoadingList } from '../../components/ui/States';
 import { Switch } from '../../components/ui/Switch';
 import { useToast } from '../../components/ui/Toast';
 import { dayLabel, formatDate, formatMoney, formatTime, localDate } from '../../lib/format';
+import { useDesignStyle, useNotionScope } from '../../lib/designStyle';
 import styles from './HomePage.module.css';
+import n from './NotionHome.module.css';
 
 // 운영 홈: 다음 게시 → 오늘 수량 → 필요한 조치 → 자동 운영 순으로, 화면마다 지금 알아야 할 것 하나를 먼저 보여 준다.
 // 모든 수치는 서버의 실제 상태다
 export function HomePage() {
+  const style = useDesignStyle();
+  return style === 'notion' ? <NotionHome /> : <TossHome />;
+}
+
+function TossHome() {
   const settings = useSettings();
   const home = useHome();
   return (
@@ -362,5 +369,169 @@ function UsageRow({ data }: { data: HomeData }) {
         to="/settings/budget"
       />
     </RowGroup>
+  );
+}
+
+// ── 노션 스타일 시험 ──────────────────────────────────────────────────
+// 문서 한 장처럼: 페이지 아이콘·제목 → 알림 상자(콜아웃) → 제목 블록과 속성 목록 → 할 일 목록 → 표
+function NotionHome() {
+  useNotionScope(true);
+  const settings = useSettings();
+  const home = useHome();
+  const d = home.data;
+  return (
+    <>
+      <PageHeader title="홈" icon="🏠" subtitle={formatDate(new Date().toISOString())} />
+      {home.isLoading && <LoadingList rows={4} />}
+      {home.isError && <ErrorState error={home.error} onRetry={() => home.refetch()} />}
+      {d && (
+        <div className={n.page}>
+          {settings.data && !settings.data.setup_completed_at && (
+            <div className={n.callout}>
+              <span className={n.calloutIcon} aria-hidden>
+                💡
+              </span>
+              <div>
+                <p className={n.calloutTitle}>처음이라면 설정부터 해요</p>
+                <p className={n.muted}>연결부터 시간표까지 5단계예요.</p>
+                <Link to="/setup" className={n.inlineLink}>
+                  첫 설정 시작 →
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <section>
+            <h2 className={n.h2}>다음 게시</h2>
+            {d.next ? (
+              <Link to={`/schedule?date=${localDate(new Date(d.next.slot_at))}`} className={n.nextLine}>
+                <span className={n.nextTime}>
+                  {localDate(new Date(d.next.slot_at)) !== localDate(new Date(d.now)) && `${dayLabel(localDate(new Date(d.next.slot_at)))} `}
+                  {formatTime(d.next.slot_at)}
+                </span>
+                <span className={n.nextTitle}>{d.next.title || d.next.preview || '제목 없음'}</span>
+                <span className={n.nextMeta}>
+                  <Badge tone={slotTone(d.next)}>{slotLabel(d.next)}</Badge>
+                  {d.next.part_count > 0 && <span>X 게시물 {d.next.part_count}개</span>}
+                </span>
+              </Link>
+            ) : (
+              <p className={n.muted}>예정된 게시가 없어요. 글을 등록하면 빈 예약에 알아서 들어가요.</p>
+            )}
+            {d.next?.block_reason && <p className={n.warn}>⚠️ {d.next.block_reason}</p>}
+          </section>
+
+          <section>
+            <h2 className={n.h2}>오늘</h2>
+            <dl className={n.props}>
+              <dt>게시한 묶음</dt>
+              <dd>
+                {d.today.published} / {d.today.target}묶음
+              </dd>
+              <dt>남은 예약</dt>
+              <dd>
+                {d.today.remaining}개{d.today.in_progress > 0 && ` · 진행 ${d.today.in_progress}`}
+              </dd>
+              <dt>올라간 X 게시물</dt>
+              <dd>{d.today.posts}개</dd>
+              <dt>준비된 글</dt>
+              <dd>
+                <Link to="/contents?stage=ready" className={n.inlineLink}>
+                  {d.stock.ready}개
+                </Link>
+                {d.stock.review > 0 && ` · 검토 ${d.stock.review}`}
+              </dd>
+            </dl>
+          </section>
+
+          {d.actions.length > 0 && (
+            <section>
+              <h2 className={n.h2}>필요한 조치</h2>
+              <ul className={n.todo}>
+                {d.actions.map((a) => (
+                  <li key={a.key}>
+                    <span className={n.box} aria-hidden />
+                    <Link to={a.link} className={n.todoText}>
+                      {a.title}
+                      {!SINGLE_STATE.has(a.key) && <span className={n.muted}> · {a.count}개</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <AutomationCard data={d} />
+
+          <section>
+            <div className={n.headRow}>
+              <h2 className={n.h2}>가까운 예약</h2>
+              <Link to="/schedule" className={n.inlineLink}>
+                전체 보기
+              </Link>
+            </div>
+            {d.upcoming.length === 0 ? (
+              <p className={n.muted}>앞으로 잡힌 예약이 없어요.</p>
+            ) : (
+              <div className={n.tableWrap}>
+                <table className={n.table}>
+                  <thead>
+                    <tr>
+                      <th scope="col">시각</th>
+                      <th scope="col">글</th>
+                      <th scope="col">상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.upcoming.map((s) => (
+                      <tr key={s.id}>
+                        <td className={n.mono}>{formatTime(s.slot_at)}</td>
+                        <td>
+                          <Link to={`/schedule?date=${localDate(new Date(s.slot_at))}`} className={n.cellLink}>
+                            {s.title || (s.content_id ? '제목 없음' : '빈 예약')}
+                          </Link>
+                        </td>
+                        <td>
+                          <Badge tone={slotTone(s)}>{slotLabel(s)}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <div className={n.quick}>
+            <Link to="/contents?new=generate" className={n.quickLink}>
+              <Plus size={16} aria-hidden /> 글 생성
+            </Link>
+            <Link to="/contents?new=write" className={n.quickLink}>
+              <Plus size={16} aria-hidden /> 직접 등록
+            </Link>
+          </div>
+
+          <div className={n.callout}>
+            <span className={n.calloutIcon} aria-hidden>
+              💰
+            </span>
+            <div>
+              <p>
+                이번 달 추정 사용량{' '}
+                <span className={n.muted}>
+                  ·{' '}
+                  {Object.entries(d.usage.counts)
+                    .map(([k, c]) => `${CATEGORY_LABEL[k] ?? k} ${c}건`)
+                    .join(' · ') || '기록 없음'}
+                </span>
+              </p>
+              <Link to="/settings/budget" className={n.inlineLink}>
+                사용량·예산 보기
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

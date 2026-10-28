@@ -256,3 +256,22 @@
 .slotLabel strong {
   font-variant-numeric: tabular-nums;
 }
+
+/* 노션 스타일 시험: 자동 운영 블록을 문서 안의 단락처럼 */
+:global([data-style='notion']) .autoHead {
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+:global([data-style='notion']) .autoIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}
+:global([data-style='notion']) .autoTitle {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+:global([data-style='notion']) .reasonBox {
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+}

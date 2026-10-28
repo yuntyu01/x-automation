@@ -42,3 +42,35 @@
     transform: rotate(360deg);
   }
 }
+
+/* 노션 스타일 시험: 노션 선택 태그처럼 각진 모서리, 글자는 진하게 바탕만 색. 상태 이름은 그대로 글자로 남는다 */
+:global([data-style='notion']) .badge {
+  border-radius: 3px;
+  padding: 0 6px;
+  line-height: 20px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tag-text);
+}
+:global([data-style='notion']) .badge > svg {
+  display: none;
+}
+:global([data-style='notion']) .neutral {
+  background: var(--tag-gray);
+}
+:global([data-style='notion']) .info,
+:global([data-style='notion']) .scheduled {
+  background: var(--tag-blue);
+}
+:global([data-style='notion']) .progress {
+  background: var(--tag-purple);
+}
+:global([data-style='notion']) .success {
+  background: var(--tag-green);
+}
+:global([data-style='notion']) .warning {
+  background: var(--tag-orange);
+}
+:global([data-style='notion']) .danger {
+  background: var(--tag-red);
+}

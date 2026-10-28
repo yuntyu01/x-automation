@@ -1,0 +1,123 @@
+/* 노션 스타일 시험: 편집기를 노션 문서 한 장처럼 (가운데 좁은 단, 큰 제목, 속성 목록, 상자 없는 본문) */
+.notion {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 52px;
+  padding-top: env(safe-area-inset-top);
+  margin-bottom: var(--space-2);
+}
+.crumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.crumb {
+  color: var(--text-2);
+  text-decoration: none;
+  flex: none;
+}
+.crumb:hover {
+  text-decoration: underline;
+}
+.crumbNow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.doc {
+  display: flex;
+  flex-direction: column;
+}
+.docIcon {
+  font-size: 52px;
+  line-height: 1.1;
+  margin: var(--space-4) 0 var(--space-2);
+}
+.docTitle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.2;
+  outline: none;
+}
+.docTitle::placeholder {
+  color: var(--border-strong);
+}
+.props {
+  margin: var(--space-3) 0 0;
+  display: flex;
+  flex-direction: column;
+}
+.prop {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  min-height: 34px;
+  font-size: var(--fs-small);
+}
+.prop dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+}
+.prop dd {
+  margin: 0;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+.prop dd:hover {
+  background: var(--surface-pressed);
+}
+.propInput {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  outline: none;
+}
+.propInput::placeholder {
+  color: var(--text-3);
+}
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--space-3) 0 var(--space-4);
+}
+.body {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  resize: none;
+  font: inherit;
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  outline: none;
+  field-sizing: content; /* 내용만큼 늘어난다 (지원하지 않는 브라우저는 rows 값) */
+  min-height: 7em;
+}
+.body::placeholder {
+  color: var(--text-3);
+}
+.count {
+  margin-top: var(--space-2);
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}

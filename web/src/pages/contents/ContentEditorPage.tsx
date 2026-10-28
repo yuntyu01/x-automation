@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArrowDown, ArrowUp, Check, Copy, CopyPlus, History, MoreHorizontal, Plus, RotateCcw, Scissors, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useBlocker, useNavigate, useParams } from 'react-router';
+import { Archive, ArrowDown, ArrowUp, Check, CircleDot, Clock3, Copy, CopyPlus, Hash, History, ListTree, MoreHorizontal, Plus, RotateCcw, Scissors, Send, ShieldCheck, Tag, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router';
 import { ApiError, errorMessage, get, post, put } from '../../api/client';
 import { useBulk, useCategories, useContent, useRevisions } from '../../api/contents';
 import { useIntegrations, useSettings } from '../../api/queries';
@@ -25,6 +25,8 @@ import { copyText, useDebounced } from '../../lib/hooks';
 import { hasUrl, joinManual, measure, splitManual } from '../../lib/thread';
 import { BackButton } from '../settings/ConnectionsPage';
 import { EditorExtras } from './EditorExtras';
+import { useDesignStyle, useNotionScope } from '../../lib/designStyle';
+import n from './NotionEditor.module.css';
 import styles from './ContentEditorPage.module.css';
 
 export interface DraftState {
@@ -76,6 +78,8 @@ export function ContentEditorPage() {
 }
 
 function Editor({ initial }: { initial: ContentDetail }) {
+  const notion = useDesignStyle() === 'notion';
+  useNotionScope(notion);
   const qc = useQueryClient();
   const toast = useToast();
   const nav = useNavigate();
@@ -268,22 +272,39 @@ function Editor({ initial }: { initial: ContentDetail }) {
   const xName = integrations.data?.x.connection.username;
 
   return (
-    <div className={styles.page}>
-      <PageHeader
-        title={draft.title || '제목 없음'}
-        subtitle={
-          <span className={styles.subline}>
-            <StageBadge stage={server.stage} />
-            <SaveIndicator status={shownStatus} onRetry={() => save(draft)} />
-          </span>
-        }
-        back={<BackButton to="/contents" />}
-        actions={
+    <div className={[styles.page, notion ? n.notion : ''].join(' ')}>
+      {notion ? (
+        <div className={n.topbar}>
+          <BackButton to="/contents" />
+          <nav className={n.crumbs} aria-label="위치">
+            <Link to="/contents" className={n.crumb}>
+              📝 콘텐츠
+            </Link>
+            <span aria-hidden>/</span>
+            <span className={n.crumbNow}>{draft.title || '제목 없음'}</span>
+          </nav>
+          <SaveIndicator status={shownStatus} onRetry={() => save(draft)} />
           <IconButton label="더 보기" onClick={() => setSheet('more')}>
             <MoreHorizontal size={22} />
           </IconButton>
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          title={draft.title || '제목 없음'}
+          subtitle={
+            <span className={styles.subline}>
+              <StageBadge stage={server.stage} />
+              <SaveIndicator status={shownStatus} onRetry={() => save(draft)} />
+            </span>
+          }
+          back={<BackButton to="/contents" />}
+          actions={
+            <IconButton label="더 보기" onClick={() => setSheet('more')}>
+              <MoreHorizontal size={22} />
+            </IconButton>
+          }
+        />
+      )}
 
       {status === 'conflict' && (
         <Card className={styles.conflict} role="alert">
@@ -314,25 +335,82 @@ function Editor({ initial }: { initial: ContentDetail }) {
 
       <div className={styles.grid}>
         <div className={styles.col}>
-          <Card>
-            <div className={styles.form}>
-              <TextField label="관리용 제목" value={draft.title} onChange={(e) => update({ title: e.target.value })} maxLength={120} />
-              <div className={styles.twoCol}>
-                <TextField label="카테고리" value={draft.category} onChange={(e) => update({ category: e.target.value })} list="editor-cats" maxLength={40} />
-                <TextField label="태그 (쉼표로 구분)" value={draft.tags} onChange={(e) => update({ tags: e.target.value })} />
+          {notion ? (
+            <div className={n.doc}>
+              <div className={n.docIcon} aria-hidden>
+                📄
               </div>
+              <label htmlFor="notion-title" className="sr-only">
+                관리용 제목
+              </label>
+              <input id="notion-title" className={n.docTitle} value={draft.title} placeholder="제목 없음" maxLength={120} onChange={(e) => update({ title: e.target.value })} />
+              <dl className={n.props}>
+                <Prop icon={<CircleDot size={16} />} label="상태">
+                  <StageBadge stage={server.stage} />
+                </Prop>
+                <Prop icon={<Tag size={16} />} label="카테고리">
+                  <input className={n.propInput} aria-label="카테고리" placeholder="비어 있음" list="editor-cats" maxLength={40} value={draft.category} onChange={(e) => update({ category: e.target.value })} />
+                </Prop>
+                <Prop icon={<Hash size={16} />} label="태그">
+                  <input className={n.propInput} aria-label="태그 (쉼표로 구분)" placeholder="비어 있음" value={draft.tags} onChange={(e) => update({ tags: e.target.value })} />
+                </Prop>
+                <Prop icon={<ListTree size={16} />} label="나누기">
+                  {SPLIT_LABEL[draft.split_mode]}
+                </Prop>
+                <Prop icon={<Send size={16} />} label="X 게시물">
+                  {result ? `${result.post_count}개` : `${parts.length}개`}
+                </Prop>
+                <Prop icon={<ShieldCheck size={16} />} label="승인">
+                  {isApproved ? `버전 ${server.revision.number} 승인됨` : `버전 ${server.revision.number} 미승인`}
+                </Prop>
+                <Prop icon={<Clock3 size={16} />} label="수정">
+                  {formatDateTime(server.updated_at)}
+                </Prop>
+              </dl>
               <datalist id="editor-cats">{cats.data?.items.map((c) => <option key={c} value={c} />)}</datalist>
+              <hr className={n.divider} />
+              {draft.split_mode === 'manual' ? (
+                <ManualParts raw={draft.raw_text} limit={limit} onChange={(raw) => update({ raw_text: raw })} />
+              ) : (
+                <>
+                  <label htmlFor="notion-body" className="sr-only">
+                    원문
+                  </label>
+                  <textarea
+                    id="notion-body"
+                    className={n.body}
+                    value={draft.raw_text}
+                    placeholder="여기에 올릴 글을 써 주세요"
+                    rows={Math.max(4, draft.raw_text.split('\n').length + 1)}
+                    onChange={(e) => update({ raw_text: e.target.value })}
+                  />
+                </>
+              )}
+              <p className={n.count}>전체 {measure(draft.raw_text).weighted}자 · 원문은 그대로 두고 게시할 때만 정리해 나눠요</p>
             </div>
-          </Card>
+          ) : (
+            <>
+              <Card>
+                <div className={styles.form}>
+                  <TextField label="관리용 제목" value={draft.title} onChange={(e) => update({ title: e.target.value })} maxLength={120} />
+                  <div className={styles.twoCol}>
+                    <TextField label="카테고리" value={draft.category} onChange={(e) => update({ category: e.target.value })} list="editor-cats" maxLength={40} />
+                    <TextField label="태그 (쉼표로 구분)" value={draft.tags} onChange={(e) => update({ tags: e.target.value })} />
+                  </div>
+                  <datalist id="editor-cats">{cats.data?.items.map((c) => <option key={c} value={c} />)}</datalist>
+                </div>
+              </Card>
 
-          <Card>
-            <CardTitle action={<span className={styles.count}>전체 {measure(draft.raw_text).weighted}자</span>}>원문</CardTitle>
-            {draft.split_mode === 'manual' ? (
-              <ManualParts raw={draft.raw_text} limit={limit} onChange={(raw) => update({ raw_text: raw })} />
-            ) : (
-              <TextArea label="원문" hideLabel className={styles.raw} rows={12} value={draft.raw_text} onChange={(e) => update({ raw_text: e.target.value })} hint="원문은 그대로 두고, 게시할 때만 공백·줄바꿈을 정리해 나눠요." />
-            )}
-          </Card>
+              <Card>
+                <CardTitle action={<span className={styles.count}>전체 {measure(draft.raw_text).weighted}자</span>}>원문</CardTitle>
+                {draft.split_mode === 'manual' ? (
+                  <ManualParts raw={draft.raw_text} limit={limit} onChange={(raw) => update({ raw_text: raw })} />
+                ) : (
+                  <TextArea label="원문" hideLabel className={styles.raw} rows={12} value={draft.raw_text} onChange={(e) => update({ raw_text: e.target.value })} hint="원문은 그대로 두고, 게시할 때만 공백·줄바꿈을 정리해 나눠요." />
+                )}
+              </Card>
+            </>
+          )}
 
           <Card>
             <CardTitle>나누기</CardTitle>
@@ -513,6 +591,19 @@ function Editor({ initial }: { initial: ContentDetail }) {
       >
         <p className={styles.muted}>저장 상태: {status === 'error' ? '저장 실패' : '저장 대기'}</p>
       </Sheet>
+    </div>
+  );
+}
+
+// 노션 속성 한 줄: 회색 아이콘·이름, 오른쪽 값
+function Prop({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <div className={n.prop}>
+      <dt>
+        {icon}
+        {label}
+      </dt>
+      <dd>{children}</dd>
     </div>
   );
 }

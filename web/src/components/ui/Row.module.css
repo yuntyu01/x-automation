@@ -92,3 +92,42 @@
   flex: none;
   margin-right: -4px;
 }
+
+/* 노션 스타일 시험: 상자·화살표 없는 목록. 마우스를 올리면 옅은 회색 */
+:global([data-style='notion']) .group {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin: 0 calc(-1 * var(--space-2));
+}
+:global([data-style='notion']) .row {
+  min-height: 44px;
+  padding: 6px var(--space-2);
+  gap: 10px;
+  border-radius: var(--radius-sm);
+}
+:global([data-style='notion']) .icon,
+:global([data-style='notion']) .icon[class*='t-'] {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+}
+:global([data-style='notion']) .icon:not([class*='t-']) {
+  color: var(--text-3);
+}
+:global([data-style='notion']) .icon svg {
+  width: 18px;
+  height: 18px;
+}
+:global([data-style='notion']) .label {
+  font-weight: 400;
+}
+:global([data-style='notion']) .desc {
+  font-size: var(--fs-small);
+}
+:global([data-style='notion']) .interactive:hover {
+  background: var(--surface-pressed);
+}
+:global([data-style='notion']) .chev {
+  display: none;
+}

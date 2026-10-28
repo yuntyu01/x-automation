@@ -96,6 +96,39 @@
   font-size: var(--fs-small);
   margin-top: 2px;
 }
+/* 노션 스타일 페이지 머리: 큰 이모지 아이콘 위, 제목 아래 */
+.withIcon {
+  align-items: flex-end;
+  padding-top: max(var(--space-6), env(safe-area-inset-top));
+}
+.pageIcon {
+  display: block;
+  font-size: 44px;
+  line-height: 1.1;
+  margin-bottom: var(--space-2);
+}
+:global([data-style='notion']) .title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+:global([data-style='notion']) .subtitle {
+  margin-top: 6px;
+}
+/* 노션 스타일 시험: 왼쪽 메뉴는 노션 사이드바처럼 옅은 회색 */
+:global([data-style='notion']) .side {
+  background: var(--surface-2);
+  border-right-color: var(--border);
+}
+:global([data-style='notion']) .sideItem {
+  min-height: 36px;
+  font-weight: 500;
+  font-size: var(--fs-small);
+  border-radius: var(--radius-sm);
+}
+:global([data-style='notion']) .active,
+:global([data-style='notion']) .sideItem:hover {
+  background: var(--surface-pressed);
+}
 .headActions {
   display: flex;
   align-items: center;
