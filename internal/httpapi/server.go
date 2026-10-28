@@ -25,6 +25,7 @@ import (
 // Server는 API 핸들러가 쓰는 서비스 묶음이다. 도메인 규칙은 각 서비스에 있고 여기서는 요청·응답만 다룬다.
 type Server struct {
 	BaseURL        *url.URL
+	FrontendURL    *url.URL
 	SecureCookies  bool
 	TrustedProxies []*net.IPNet
 	Clock          clock.Clock
@@ -106,7 +107,32 @@ func (s *Server) Routes() http.Handler {
 		WriteError(w, r, ErrNotFound)
 	})
 	public.Handle("/api/", s.requireAuth(protected))
-	return public
+	return s.cors(public)
+}
+
+// Only the configured frontend origin may make credentialed cross-origin API calls.
+func (s *Server) cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Origin")
+		origin := r.Header.Get("Origin")
+		allowed := s.FrontendURL != nil && origin == s.FrontendURL.String()
+		if allowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+			if !allowed {
+				http.Error(w, "origin not allowed", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-CSRF-Token")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func isUnsafe(method string) bool {
@@ -131,6 +157,9 @@ func (s *Server) sameOrigin(r *http.Request) bool {
 		return false
 	}
 	if u.Scheme == s.BaseURL.Scheme && u.Host == s.BaseURL.Host {
+		return true
+	}
+	if s.FrontendURL != nil && origin == s.FrontendURL.String() {
 		return true
 	}
 	// 개발 중 Vite 프록시(localhost:5173)는 같은 호스트의 다른 포트로 온다

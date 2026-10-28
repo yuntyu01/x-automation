@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, CalendarPlus, ImagePlus, Send, X } from 'lucide-react';
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { ApiError, errorMessage, get, put } from '../../api/client';
+import { ApiError, apiUrl, errorMessage, get, put } from '../../api/client';
 import { placeContents } from '../../api/schedule';
 import type { MediaAsset } from '../../api/media';
 import type { ContentDetail, ImageMode, PartMedia } from '../../api/types';
@@ -107,7 +107,7 @@ function ImagesCard({ content, draft, update, onChanged, flush, editVersion }: E
                     {list.map((m, j) => (
                       <li key={m.media_id} className={styles.thumb}>
                         <button type="button" className={styles.thumbBtn} onClick={() => openDetail(m.media_id)} aria-label={`이미지 ${j + 1} 자세히 (대체 텍스트·자르기)`}>
-                          {m.state === 'deleted' ? <span className={styles.cleaned}>정리됨</span> : <img src={m.thumb_url} alt={m.alt_text || ''} />}
+                          {m.state === 'deleted' ? <span className={styles.cleaned}>정리됨</span> : <img src={apiUrl(m.thumb_url)} alt={m.alt_text || ''} />}
                         </button>
                         <div className={styles.thumbActions}>
                           <IconButton label={`이미지 ${j + 1} 순서 앞으로`} disabled={busy || j === 0} onClick={() => setPart(i, swap(list.map((x) => x.media_id), j, j - 1))}>

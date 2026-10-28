@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, CalendarClock, CalendarPlus, CheckSquare, Download, FileText, Filter, Heart, ImageIcon, MessageCircle, MoreHorizontal, Plus, Repeat2, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { errorMessage, get } from '../../api/client';
+import { apiUrl, errorMessage, get } from '../../api/client';
 import { contentQueryString, useBulk, useCategories, type ContentQuery } from '../../api/contents';
 import { useIntegrations } from '../../api/queries';
 import { placeContents } from '../../api/schedule';
@@ -286,10 +286,10 @@ export function ContentsPage() {
       </Sheet>
       <Sheet open={sheet === 'export'} onClose={() => setSheet(null)} title="내보내기" description="줄바꿈·한글을 보존하고, 스프레드시트에서 수식으로 실행되지 않게 처리해요. 연결 정보는 포함하지 않아요.">
         <div className={styles.exportBtns}>
-          <a className={styles.exportLink} href={`/api/contents/export?format=csv&${contentQueryString(f)}`} download>
+          <a className={styles.exportLink} href={apiUrl(`/api/contents/export?format=csv&${contentQueryString(f)}`)} download>
             <Download size={18} aria-hidden /> CSV로 내보내기
           </a>
-          <a className={styles.exportLink} href={`/api/contents/export?format=json&${contentQueryString(f)}`} download>
+          <a className={styles.exportLink} href={apiUrl(`/api/contents/export?format=json&${contentQueryString(f)}`)} download>
             <Download size={18} aria-hidden /> JSON으로 내보내기
           </a>
         </div>
@@ -339,7 +339,7 @@ export function ContentCard({ item, account, selecting, selected, onToggle }: { 
         <div className={styles.feedBody}>
           <p className={styles.identity}><strong>{account || '내 계정'}</strong>{account && <span>@{account}</span>}<span>· 본문</span></p>
           <p className={styles.preview}>{main || '아직 작성된 본문이 없어요.'}</p>
-          {item.preview_image_id && <img className={styles.feedImage} src={`/api/media/${item.preview_image_id}/file?thumb=1`} alt={item.preview_image_alt || '본문에 첨부된 이미지'} loading="lazy" />}
+          {item.preview_image_id && <img className={styles.feedImage} src={apiUrl(`/api/media/${item.preview_image_id}/file?thumb=1`)} alt={item.preview_image_alt || '본문에 첨부된 이미지'} loading="lazy" />}
           <div className={styles.reactions} aria-hidden><MessageCircle size={16} /><Repeat2 size={16} /><Heart size={16} /></div>
         </div>
       </div>

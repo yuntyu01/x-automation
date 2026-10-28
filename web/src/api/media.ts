@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ApiError, get } from './client';
+import { ApiError, apiUrl, get } from './client';
 
 export interface MediaAsset {
   id: string;
@@ -49,7 +49,7 @@ export function useMediaUsage(id: string | null) {
 export function uploadMedia(file: File, csrf: string, altText: string, onProgress: (pct: number) => void): Promise<MediaAsset> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/media');
+    xhr.open('POST', apiUrl('/api/media'));
     xhr.withCredentials = true;
     xhr.setRequestHeader('X-CSRF-Token', csrf);
     xhr.setRequestHeader('Accept', 'application/json');

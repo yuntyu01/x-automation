@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { ApiError, errorMessage, get } from '../../api/client';
+import { ApiError, apiUrl, errorMessage, get } from '../../api/client';
 import { applyResult, discardResult, genKeys, newRequestKey, useRegenerate, useResults } from '../../api/generation';
 import { useSettings } from '../../api/queries';
 import type { ContentDetail, GenerationRequest, GenerationResult } from '../../api/types';
@@ -162,7 +162,7 @@ function ResultView({ r, content, busy, onDecide }: { r: GenerationResult; conte
         <span className={styles.muted}>{relativeTime(r.created_at)}</span>
       </div>
       {r.kind === 'image' ? (
-        r.thumb_url ? <img className={styles.img} src={r.thumb_url} alt="생성된 이미지 미리보기" /> : <p className={styles.muted}>이미지를 불러올 수 없어요</p>
+        r.thumb_url ? <img className={styles.img} src={apiUrl(r.thumb_url)} alt="생성된 이미지 미리보기" /> : <p className={styles.muted}>이미지를 불러올 수 없어요</p>
       ) : (
         <div className={styles.compare}>
           <div>

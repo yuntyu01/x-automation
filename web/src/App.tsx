@@ -9,6 +9,7 @@ import { ImagesPage } from './pages/images/ImagesPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { AiCostsPage } from './pages/AiCostsPage';
 import { PromptEditorPage } from './pages/prompts/PromptEditorPage';
 import { PromptsPage } from './pages/prompts/PromptsPage';
 import { ScheduleRulesPage } from './pages/schedule/ScheduleRulesPage';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
           { path: '/settings/thread', element: <ThreadSettingsPage /> },
           { path: '/settings/budget', element: <BudgetSettingsPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
+          { path: '/ai-costs', element: <AiCostsPage /> },
           { path: '/setup', element: <SetupPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],

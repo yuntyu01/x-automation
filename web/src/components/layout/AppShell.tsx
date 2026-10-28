@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, FileText, House, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, CalendarClock, CircleDollarSign, FileText, House, Settings as SettingsIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useNotificationCounts, useRuntime } from '../../api/queries';
@@ -54,6 +54,10 @@ export function AppShell() {
           <Bell size={22} aria-hidden />
           <span>알림</span>
           <UnreadDot />
+        </NavLink>
+        <NavLink to="/ai-costs" className={({ isActive }) => [styles.sideItem, isActive ? styles.active : ''].join(' ')}>
+          <CircleDollarSign size={22} aria-hidden />
+          <span>AI 비용</span>
         </NavLink>
       </nav>
       <div className={styles.main}>

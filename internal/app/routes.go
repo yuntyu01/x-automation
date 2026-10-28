@@ -183,6 +183,7 @@ func (a *App) buildAPI(pool *pgxpool.Pool) http.Handler {
 	a.svc = svc
 	srv := &httpapi.Server{
 		BaseURL:        a.cfg.BaseURL,
+		FrontendURL:    a.cfg.FrontendURL,
 		SecureCookies:  a.cfg.SecureCookies(),
 		TrustedProxies: a.cfg.TrustedProxies,
 		Clock:          a.deps.Clock,

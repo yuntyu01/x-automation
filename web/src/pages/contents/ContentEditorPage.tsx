@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowDown, ArrowUp, BarChart2, Check, Copy, CopyPlus, Heart, History, MessageCircle, MoreHorizontal, Plus, Repeat2, RotateCcw, Scissors, Share, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useParams } from 'react-router';
-import { ApiError, errorMessage, get, post, put } from '../../api/client';
+import { ApiError, apiUrl, errorMessage, get, post, put } from '../../api/client';
 import { useBulk, useCategories, useContent, useRevisions } from '../../api/contents';
 import { useIntegrations, useSettings } from '../../api/queries';
 import { SPLIT_LABEL, type ContentDetail, type ImageMode, type SplitMode, type SplitOptions, type SplitResult, type ThreadPart } from '../../api/types';
@@ -635,7 +635,7 @@ export function ThreadPreview({ parts, limit, account, media }: { parts: ThreadP
                         보관 기간이 지나 정리된 이미지
                       </span>
                     ) : (
-                      <img key={m.media_id} src={m.thumb_url || m.url} alt={m.alt_text || '첨부 이미지'} loading="lazy" />
+                      <img key={m.media_id} src={apiUrl(m.thumb_url || m.url)} alt={m.alt_text || '첨부 이미지'} loading="lazy" />
                     ),
                   )}
                 </div>

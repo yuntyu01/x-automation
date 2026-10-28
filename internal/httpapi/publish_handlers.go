@@ -53,7 +53,11 @@ func connError(err error) error {
 // handleXCallback은 X 인가 뒤 돌아오는 주소다. 결과를 연결 화면 주소의 쿼리로 넘긴다 (토큰·코드는 넘기지 않는다).
 func (s *Server) handleXCallback(w http.ResponseWriter, r *http.Request) {
 	back := func(q url.Values) {
-		http.Redirect(w, r, "/settings/connections?"+q.Encode(), http.StatusSeeOther)
+		target := "/settings/connections?" + q.Encode()
+		if s.FrontendURL != nil {
+			target = s.FrontendURL.String() + target
+		}
+		http.Redirect(w, r, target, http.StatusSeeOther)
 	}
 	if s.XConn == nil {
 		back(url.Values{"x_error": {"X 연결 기능이 준비되지 않았어요"}})

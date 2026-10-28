@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Crop, Download, ImagePlus, Trash2 } from 'lucide-react';
 import { useState, type DragEvent } from 'react';
 import { Link } from 'react-router';
-import { del, errorMessage, patch, post } from '../../api/client';
+import { apiUrl, del, errorMessage, patch, post } from '../../api/client';
 import { formatBytes, useMediaUsage, type MediaAsset } from '../../api/media';
 import { formatDate } from '../../lib/format';
 import { Badge } from '../ui/Badge';
@@ -50,7 +50,7 @@ export function MediaTile({ asset, selectedIndex, onClick }: { asset: MediaAsset
   const selected = selectedIndex !== undefined && selectedIndex >= 0;
   return (
     <button type="button" className={[styles.tile, selected ? styles.tileSelected : ''].join(' ')} onClick={onClick} aria-pressed={selectedIndex !== undefined ? selected : undefined} aria-label={asset.alt_text || `이미지 ${asset.width}×${asset.height}`}>
-      {asset.state === 'deleted' ? <span className={styles.cleaned}>정리된 이미지</span> : <img src={asset.thumb_url} alt="" loading="lazy" />}
+      {asset.state === 'deleted' ? <span className={styles.cleaned}>정리된 이미지</span> : <img src={apiUrl(asset.thumb_url)} alt="" loading="lazy" />}
       <span className={styles.tileBadge}>
         {asset.source === 'ai' && <Badge tone="info" icon={false}>AI</Badge>}
         {asset.usage_count > 0 && <Badge tone="success" icon={false}>사용 중</Badge>}
@@ -104,7 +104,7 @@ export function MediaDetailSheet({ asset, onClose }: { asset: MediaAsset | null;
     <Sheet open onClose={onClose} title="이미지" size="lg" dismissible={!busy}>
       <div className={own.detail}>
         <div className={own.preview}>
-          {asset.state === 'deleted' ? <span className={styles.cleaned}>보관 기간이 지나 정리된 이미지</span> : <img src={asset.url} alt={asset.alt_text || '이미지'} />}
+          {asset.state === 'deleted' ? <span className={styles.cleaned}>보관 기간이 지나 정리된 이미지</span> : <img src={apiUrl(asset.url)} alt={asset.alt_text || '이미지'} />}
         </div>
         <div className={own.side}>
           <p className={own.meta}>
@@ -136,7 +136,7 @@ export function MediaDetailSheet({ asset, onClose }: { asset: MediaAsset | null;
                 </div>
               </div>
               <div className={own.row}>
-                <a className={own.link} href={`/api/media/${asset.id}/download`} download>
+                <a className={own.link} href={apiUrl(`/api/media/${asset.id}/download`)} download>
                   <Download size={16} aria-hidden /> 원본 다운로드
                 </a>
                 <Button

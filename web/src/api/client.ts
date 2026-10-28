@@ -1,4 +1,6 @@
-// API 클라이언트. 같은 origin 쿠키 세션 + 상태 변경 요청에 CSRF 헤더를 붙인다.
+// A separate static frontend can use the configured API origin; same-origin remains the default.
+const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+export const apiUrl = (path: string | undefined) => !path ? '' : path.startsWith('/api/') ? apiBase + path : path;
 
 export type FieldErrors = Record<string, string>;
 
@@ -58,7 +60,7 @@ export async function api<T>(method: Method, path: string, opts: RequestOptions 
   }
   let res: Response;
   try {
-    res = await fetch(path, { method, headers, body, credentials: 'same-origin', signal: opts.signal });
+    res = await fetch(apiUrl(path), { method, headers, body, credentials: 'include', signal: opts.signal });
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
     // 네트워크 단절을 저장 성공으로 오해하지 않게 명확한 오류로 바꾼다

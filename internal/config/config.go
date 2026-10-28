@@ -34,6 +34,7 @@ type Config struct {
 	Env         Env
 	Port        string
 	BaseURL     *url.URL
+	FrontendURL *url.URL // 선택적 별도 정적 프론트 origin
 	LogLevel    string
 	DatabaseURL string
 
@@ -176,6 +177,15 @@ func LoadFrom(lookup Lookup) (*Config, error) {
 		default:
 			u.Path = strings.TrimRight(u.Path, "/")
 			c.BaseURL = u
+		}
+	}
+	if front := get("FRONTEND_URL"); front != "" {
+		u, err := url.Parse(front)
+		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || (c.Env == EnvProduction && u.Scheme != "https") {
+			add("FRONTEND_URL", "프론트 주소는 경로 없는 http(s) origin이어야 하며 운영에서는 https가 필요합니다")
+		} else {
+			u.Path = ""
+			c.FrontendURL = u
 		}
 	}
 

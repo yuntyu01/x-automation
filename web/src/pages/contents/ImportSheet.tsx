@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { CircleAlert, CircleCheck, Download, FileUp } from 'lucide-react';
 import { useState, type ChangeEvent } from 'react';
-import { errorMessage, post } from '../../api/client';
+import { apiUrl, errorMessage, post } from '../../api/client';
 import { SPLIT_LABEL, type SplitMode } from '../../api/types';
 import { Button } from '../../components/ui/Button';
 import { Select, TextArea } from '../../components/ui/Field';
@@ -180,10 +180,10 @@ export function ImportSheet({ open, onClose }: { open: boolean; onClose: () => v
         <div className={styles.stack}>
           <div className={styles.templates}>
             <span>양식 받기</span>
-            <a href="/api/contents/import/template?format=csv" download>
+            <a href={apiUrl('/api/contents/import/template?format=csv')} download>
               <Download size={16} aria-hidden /> CSV 양식
             </a>
-            <a href="/api/contents/import/template?format=json" download>
+            <a href={apiUrl('/api/contents/import/template?format=json')} download>
               <Download size={16} aria-hidden /> JSON 양식
             </a>
           </div>
