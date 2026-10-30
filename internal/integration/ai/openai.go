@@ -258,11 +258,21 @@ func (o *OpenAI) post(ctx context.Context, path, op string, body any, out any) e
 		Error struct {
 			Message string `json:"message"`
 			Type    string `json:"type"`
-			Code    string `json:"code"`
+			Code    string `json:"code"` // Google은 숫자를 넣는다 (그 필드만 건너뛰고 나머지는 읽힌다)
+			Details []struct {
+				Reason string `json:"reason"`
+			} `json:"details"`
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(data, &apiErr)
 	googleNoQuota := o.googleAuth && (res.StatusCode == 402 || (res.StatusCode == 429 && strings.Contains(apiErr.Error.Message, "limit: 0")))
+	// Google은 잘못된 키를 401이 아니라 400 INVALID_ARGUMENT(reason API_KEY_INVALID)로 돌려준다
+	googleBadKey := false
+	if o.googleAuth && res.StatusCode == 400 {
+		for _, d := range apiErr.Error.Details {
+			googleBadKey = googleBadKey || d.Reason == "API_KEY_INVALID"
+		}
+	}
 	if o.googleAuth {
 		// 공급자가 API 키나 요청 내용을 오류에 되돌려도 로그에 남기지 않는다.
 		apiErr.Error.Message = ""
@@ -272,7 +282,7 @@ func (o *OpenAI) post(ctx context.Context, path, op string, body any, out any) e
 	switch {
 	case googleNoQuota:
 		e.Class, e.Message = integration.Config, "Gemini 사용 한도 또는 결제 잔액이 부족해요 (Google AI Studio 확인)"
-	case res.StatusCode == 401:
+	case res.StatusCode == 401 || googleBadKey:
 		e.Class, e.Message = integration.Config, "AI 키가 올바르지 않아요 (AI_API_KEY 확인)"
 	case res.StatusCode == 403:
 		e.Class, e.Message = integration.Config, "AI 키에 이 기능 권한이 없어요"

@@ -53,7 +53,7 @@ go run ./cmd/admin gen-key            # TOKEN_ENCRYPTION_KEY (한 번 만들고 
 | `ADMIN_USERNAME` | 관리자 아이디 |
 | `ADMIN_PASSWORD_HASH` | 위에서 만든 `$argon2id$…` |
 | `TOKEN_ENCRYPTION_KEY` | 위에서 만든 base64 키. **바꾸면 저장된 X 연결을 다시 해야 한다** |
-| `TRUSTED_PROXY_CIDRS` | 앞단 프록시 대역을 알면 지정(로그인 시도 제한이 실제 접속 IP를 쓰도록). 모르면 비움 |
+| `TRUSTED_PROXY_CIDRS` | 앞단 프록시(인그레스) 대역. 지정해야 로그인 시도 제한이 실제 접속 IP로 센다. 비우면 모든 접속이 프록시 IP 하나로 보여, 누군가 틀린 비밀번호를 20번 보내면 15분 동안 모두의 로그인이 막힌다. 클러스터 내부 대역을 모르면 사설 대역 `10.0.0.0/8,172.16.0.0/12,192.168.0.0/16`을 넣는다 |
 | `PUBLISHING_ENABLED` | 처음에는 `false` |
 | `INTEGRATION_MODE` | `live` (이미지 기본값). 키가 없다고 목업으로 바뀌지 않는다 |
 | `SESSION_TTL`, `LOG_LEVEL` | 선택 (기본 720h, info) |

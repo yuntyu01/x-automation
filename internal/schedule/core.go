@@ -375,7 +375,16 @@ func (s *Service) AssignToReservation(ctx context.Context, reservationID, conten
 		if err != nil {
 			return err
 		}
-		return assign(ctx, tx, reservationID, contentID, st.OperationMode == settings.ModeReview)
+		if err := assign(ctx, tx, reservationID, contentID, st.OperationMode == settings.ModeReview); err != nil {
+			return err
+		}
+		// 게시할 때 생성: 예약 시각이 지난 뒤 생성이 끝났으면 지금으로 옮겨 바로 게시한다 (원래 시각은 original_slot_at에 남는다).
+		// 그대로 두면 유예 시간이 지난 예약으로 보고 취소한다
+		now := s.clock.Now()
+		_, err = tx.Exec(ctx, `UPDATE reservations SET slot_at = $2, updated_at = now() WHERE id = $1 AND slot_at < $2
+			AND NOT EXISTS (SELECT 1 FROM reservations o WHERE o.slot_at = $2 AND o.id <> $1
+				AND o.state IN ('open', 'assigned', 'waiting', 'publishing', 'partial', 'unknown', 'published'))`, reservationID, now)
+		return err
 	})
 }
 
@@ -612,7 +621,8 @@ func LockTx(ctx context.Context, tx pgx.Tx) error {
 
 // WindowInfo는 t 시점의 허용 여부·다음 허용 구간 시작·규칙이다.
 type WindowInfo struct {
-	Allowed   bool
+	Allowed   bool // 새 묶음을 시작해도 되는지 (구간 끝 여유 포함)
+	Inside    bool // 허용 구간 안인지. 이미 시작한 묶음의 남은 답글은 이것만 본다
 	Reason    string
 	NextStart time.Time // t 이후 처음으로 새 묶음을 시작할 수 있는 시각 (없으면 zero)
 	Rules     Rules
@@ -627,6 +637,7 @@ func (s *Service) Window(ctx context.Context, t time.Time) (WindowInfo, error) {
 	ivs := Intervals(c.windows, c.loc, t.Add(-48*time.Hour), t.AddDate(0, 0, 8))
 	w := WindowInfo{Rules: c.rules, Loc: c.loc}
 	w.Allowed, w.Reason = Allowed(t, c.rules, ivs, c.excluded, c.loc)
+	w.Inside = Inside(t, ivs, c.excluded, c.loc)
 	for _, iv := range ivs {
 		if next := fit(t, []Interval{iv}, c.rules); !next.IsZero() && !c.excluded[next.In(c.loc).Format(dateLayout)] {
 			w.NextStart = next

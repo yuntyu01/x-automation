@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -254,11 +255,8 @@ func (s *Service) SubmitTx(ctx context.Context, tx pgx.Tx, in SubmitInput) (stri
 			return "", false, err
 		}
 	}
-	if in.ContentID != nil {
-		if _, err := tx.Exec(ctx, `UPDATE contents SET generation_state = 'queued', generation_error = NULL WHERE id = $1`, *in.ContentID); err != nil {
-			return "", false, err
-		}
-	}
+	// 글에 묶인 요청(재생성·이미지 추가)은 제안만 만든다. 진행 상태는 generation_requests에만 두고 글 상태는 건드리지 않는다:
+	// 글을 '생성 중'·'문제'로 바꾸면 그대로 게시할 수 있는 글이 예약에서 빠지고, 실패하면 대체 글을 또 생성한다
 	return id, true, nil
 }
 
@@ -346,9 +344,6 @@ func (s *Service) Cancel(ctx context.Context, id string) (Request, error) {
 			error = COALESCE(error, '사용자가 취소했어요') WHERE id = $1`, id, canceled); err != nil {
 			return r, err
 		}
-		if r.ContentID != nil {
-			_, _ = s.pool.Exec(ctx, `UPDATE contents SET generation_state = 'none' WHERE id = $1 AND generation_state IN ('queued', 'running')`, *r.ContentID)
-		}
 	}
 	return s.Get(ctx, id)
 }
@@ -381,22 +376,20 @@ func (s *Service) HandleItem(ctx context.Context, j *jobs.Job) jobs.Result {
 	}
 	req, err := s.Get(ctx, p.RequestID)
 	if err != nil {
-		return jobs.Result{Outcome: jobs.Failed, Err: err, Class: "review"}
+		// DB가 잠깐 안 될 수도 있다. 끝내 못 읽으면 CloseOrphaned가 요청을 실패로 닫는다
+		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
 	}
 	if req.State == "canceled" {
 		return jobs.OK()
 	}
 	st, err := s.settings.Get(ctx)
 	if err != nil {
-		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
+		return s.retryLater(ctx, j, req, err)
 	}
 	if st.GenerationPaused {
 		return jobs.Result{Outcome: jobs.Snoozed, At: s.clock.Now().Add(5 * time.Minute), Err: errors.New("생성 일시정지")}
 	}
 	_, _ = s.pool.Exec(ctx, `UPDATE generation_requests SET state = 'running', started_at = COALESCE(started_at, now()) WHERE id = $1 AND state = 'queued'`, req.ID)
-	if req.ContentID != nil {
-		_, _ = s.pool.Exec(ctx, `UPDATE contents SET generation_state = 'running' WHERE id = $1`, *req.ContentID)
-	}
 
 	// 하루 생성 상한과 재생성 상한
 	if used, err := s.usedToday(ctx, st); err == nil && used >= st.Policy.Generation.DailyLimit {
@@ -417,10 +410,13 @@ func (s *Service) HandleItem(ctx context.Context, j *jobs.Job) jobs.Result {
 	estimate := s.estimate(st, req)
 	if err := s.budget.Reserve(ctx, refKey, budget.AIText, estimate); err != nil {
 		if budget.IsExceeded(err) {
-			s.notifyState(ctx, notification.Critical, "budget:exceeded", err.Error(), "/settings/budget")
+			s.notifyState(ctx, notification.Critical, budget.NoticeGroup(err), err.Error(), "/settings/budget")
 			return s.itemFailed(ctx, j, req, err, "config")
 		}
-		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
+		return s.retryLater(ctx, j, req, err)
+	}
+	if s.notify != nil && estimate > 0 {
+		_ = s.notify.Resolve(ctx, budget.NoticeInsufficient) // 다시 확보됐다 (한도를 올렸거나 새 달)
 	}
 	// 외부 호출 전에 아직 이 작업의 소유자인지 확인한다
 	if ok, err := s.queue.StillOwner(ctx, j); err != nil || !ok {
@@ -454,9 +450,6 @@ func (s *Service) HandleItem(ctx context.Context, j *jobs.Job) jobs.Result {
 		finished_at = CASE WHEN produced + 1 + failed >= quantity THEN now() ELSE finished_at END WHERE id = $1`, req.ID); err != nil {
 		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
 	}
-	if req.ContentID != nil {
-		_, _ = s.pool.Exec(ctx, `UPDATE contents SET generation_state = 'succeeded', generation_error = NULL WHERE id = $1`, *req.ContentID)
-	}
 	if res.warn != "" {
 		s.notifyOnce(ctx, notification.Warning, "generation:image", res.warn, "/contents?stage=draft")
 	}
@@ -478,14 +471,35 @@ func userMessage(err error) string {
 	return err.Error()
 }
 
+// retryLater는 잠깐의 오류로 다시 시도한다. 시도 횟수를 다 썼으면 큐가 작업을 실패로 끝내므로 요청에도 실패로 센다
+// (그러지 않으면 요청이 '진행 중'에 남아 부족분 계산과 예약 대기가 계속 어긋난다)
+func (s *Service) retryLater(ctx context.Context, j *jobs.Job, req Request, err error) jobs.Result {
+	if j.Attempts >= j.MaxAttempts {
+		return s.itemFailed(ctx, j, req, err, "retryable")
+	}
+	return jobs.Result{Outcome: jobs.RetryLater, Err: err}
+}
+
+// CloseOrphaned는 작업이 모두 끝났는데 '대기'·'진행 중'으로 남은 요청을 닫는다.
+// 작업이 실행 중에 끊겨 시도 횟수를 다 쓰고 실패로 끝나면 핸들러가 요청 개수를 세지 못한다.
+func (s *Service) CloseOrphaned(ctx context.Context) (int64, error) {
+	tag, err := s.pool.Exec(ctx, `UPDATE generation_requests r SET failed = r.quantity - r.produced,
+		state = CASE WHEN r.produced = 0 THEN 'failed' ELSE 'partial' END,
+		error = COALESCE(r.error, '작업이 중간에 끝나 결과를 만들지 못했어요'), finished_at = now()
+		WHERE r.state IN ('queued', 'running') AND r.produced + r.failed < r.quantity
+		AND EXISTS (SELECT 1 FROM jobs j WHERE j.kind = $1 AND j.unique_key LIKE r.id::text || ':%')
+		AND NOT EXISTS (SELECT 1 FROM jobs j WHERE j.kind = $1 AND j.unique_key LIKE r.id::text || ':%' AND j.state IN ('queued', 'running'))`, JobKind)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 func (s *Service) itemFailed(ctx context.Context, j *jobs.Job, req Request, err error, class string) jobs.Result {
 	msg := userMessage(err)
 	_, _ = s.pool.Exec(ctx, `UPDATE generation_requests SET failed = failed + 1, error = $2,
 		state = CASE WHEN produced + failed + 1 >= quantity THEN (CASE WHEN produced = 0 THEN 'failed' ELSE 'partial' END) ELSE state END,
 		finished_at = CASE WHEN produced + failed + 1 >= quantity THEN now() ELSE finished_at END WHERE id = $1`, req.ID, msg)
-	if req.ContentID != nil {
-		_, _ = s.pool.Exec(ctx, `UPDATE contents SET generation_state = 'failed', generation_error = $2 WHERE id = $1`, *req.ContentID, msg)
-	}
 	if class == "" {
 		class = "config"
 	}
@@ -550,16 +564,34 @@ func (s *Service) Estimate(ctx context.Context, quantity int, o Options) (micros
 	return per * int64(max(quantity, 0)), budget.PricingKnown(st.Policy.Pricing), st.Policy.Pricing.Currency, nil
 }
 
-// estimate는 생성 전 예약할 추정 비용이다 (요율표가 비어 있으면 0).
+// 글 생성 한 번의 출력 상한과, 생성 전 예약에 쓰는 입력(지시문 + 프롬프트) 토큰 추정
+const (
+	textMaxOutput  = 2500
+	textInputGuess = 3000
+)
+
+// estimate는 생성 전 예약할 추정 비용이다 (요율표가 비어 있으면 0). 출력은 상한까지 나올 수 있어 상한으로 잡는다.
 func (s *Service) estimate(st settings.Settings, req Request) int64 {
 	var m int64
 	if req.Options.Text && req.Options.Target != "image" {
-		m += budget.TextMicros(st.Policy.Pricing, 1500, 1500)
+		m += budget.TextMicros(st.Policy.Pricing, textInputGuess, textMaxOutput)
 	}
 	if req.Options.Image || req.Options.Target == "image" {
 		m += budget.ImageMicros(st.Policy.Pricing, max(req.Options.ImageCount, 1))
 	}
 	return m
+}
+
+// textEntry는 글 생성 한 번의 사용량 기록이다. 요청이 끊겨 과금 여부를 모르는데 사용량을 못 받았으면
+// 0이 아니라 입력 길이와 출력 상한으로 잡은 추정치를 '불명확'으로 남긴다 (재시도마다 0이 쌓이지 않게)
+func textEntry(st settings.Settings, refKey string, usage ai.Usage, err error, input string, units map[string]any) budget.Entry {
+	uncertain := err != nil && integration.ClassOf(err) == integration.Retryable
+	micros := budget.TextMicros(st.Policy.Pricing, usage.InputTokens, usage.OutputTokens)
+	if uncertain && micros == 0 {
+		micros = budget.TextMicros(st.Policy.Pricing, int64(utf8.RuneCountInString(input)), textMaxOutput)
+	}
+	units["input_tokens"], units["output_tokens"] = usage.InputTokens, usage.OutputTokens
+	return budget.Entry{Category: budget.AIText, RefKey: refKey + ":text", Units: units, Micros: micros, Uncertain: uncertain}
 }
 
 type runResult struct {
@@ -600,6 +632,10 @@ func (s *Service) run(ctx context.Context, st settings.Settings, req Request, n 
 	if dm := thread.Mode(p.Version.Defaults.SplitMode); dm.Valid() && dm != thread.ModeManual {
 		mode = dm
 	}
+	// AI에게는 구분선을 넣지 말라고 하므로 직접 나누기면 긴 글 하나가 되어 게시할 수 없다. AI 글은 두 부분으로 나눈다
+	if !mode.Valid() || mode == thread.ModeManual {
+		mode = thread.ModeTwoParts
+	}
 	instr := instructionsBase + lengthHint(length)
 	if mode == thread.ModeTwoParts {
 		instr += "\n- body는 본문과 첫 답글의 두 문단으로 쓰고, 의도한 전환점에서 빈 줄 하나로 분리한다. 제목이나 본문·답글 같은 표지는 body에 넣지 않는다."
@@ -612,10 +648,9 @@ func (s *Service) run(ctx context.Context, st settings.Settings, req Request, n 
 		instr += fmt.Sprintf("\n- 같은 조건으로 여러 편을 만드는 중이다. 이번은 %d번째이니 앞선 편과 다른 소재·전개로 쓴다.", n+1)
 	}
 	model := firstNonEmpty(req.Options.TextModel, p.Version.Defaults.Model, st.Policy.Generation.TextModel)
-	draft, usage, err := s.provider.GenerateThread(ctx, ai.ThreadRequest{Model: model, Instructions: instr, Prompt: userPrompt, MaxOutput: 2500})
-	_ = s.budget.Record(ctx, budget.Entry{Category: budget.AIText, RefKey: refKey + ":text",
-		Units:  map[string]any{"input_tokens": usage.InputTokens, "output_tokens": usage.OutputTokens, "model": model, "provider": s.provider.Name()},
-		Micros: budget.TextMicros(st.Policy.Pricing, usage.InputTokens, usage.OutputTokens), Uncertain: err != nil && integration.ClassOf(err) == integration.Retryable}, refKey)
+	draft, usage, err := s.provider.GenerateThread(ctx, ai.ThreadRequest{Model: model, Instructions: instr, Prompt: userPrompt, MaxOutput: textMaxOutput})
+	// 예약은 이미지까지 끝난 뒤 HandleItem이 닫는다. 여기서 닫으면 이미지 호출이 확보 없이 돌아 한도를 넘을 수 있다
+	_ = s.budget.Record(ctx, textEntry(st, refKey, usage, err, instr+userPrompt, map[string]any{"model": model, "provider": s.provider.Name()}), "")
 	if err != nil {
 		return runResult{err: err}
 	}
@@ -697,9 +732,14 @@ func (s *Service) makeImages(ctx context.Context, st settings.Settings, req Requ
 	count := max(req.Options.ImageCount, 1)
 	imgs, usage, err := s.provider.GenerateImages(ctx, ai.ImageRequest{Model: model, Prompt: imagePrompt,
 		Size: firstNonEmpty(req.Options.ImageSize, st.Policy.Image.Size), Quality: firstNonEmpty(req.Options.ImageQuality, st.Policy.Image.Quality), Count: count})
+	uncertain := err != nil && integration.ClassOf(err) == integration.Retryable
+	micros := budget.ImageMicros(st.Policy.Pricing, usage.Images)
+	if uncertain && micros == 0 {
+		micros = budget.ImageMicros(st.Policy.Pricing, count) // 끊긴 요청도 과금됐을 수 있다
+	}
 	_ = s.budget.Record(ctx, budget.Entry{Category: budget.AIImage, RefKey: refKey + ":image",
 		Units:  map[string]any{"images": usage.Images, "input_tokens": usage.InputTokens, "output_tokens": usage.OutputTokens, "model": model},
-		Micros: budget.ImageMicros(st.Policy.Pricing, usage.Images), Uncertain: err != nil}, "")
+		Micros: micros, Uncertain: uncertain}, "")
 	if err != nil {
 		return nil, err
 	}
@@ -754,7 +794,7 @@ func (s *Service) regenerate(ctx context.Context, st settings.Settings, req Requ
 		if req.Options.PartIndex < 0 || req.Options.PartIndex >= len(d.Revision.Parts) {
 			return runResult{err: &ValidationError{Fields: map[string]string{"part_index": "고칠 부분이 없어요"}}}
 		}
-		source = d.Revision.Parts[req.Options.PartIndex].Text
+		source = thread.PartTexts(partTexts(d.Revision.Parts))[req.Options.PartIndex]
 		target = "part"
 	}
 	instruction := strings.TrimSpace(req.Options.Instruction)
@@ -763,10 +803,8 @@ func (s *Service) regenerate(ctx context.Context, st settings.Settings, req Requ
 	}
 	instr := instructionsBase + "\n- 아래 글을 사용자의 수정 요청대로 고친다. 요청하지 않은 결말·사실·등장인물은 바꾸지 않고 요약하지 않는다.\n- 수정 요청: " + instruction
 	model := firstNonEmpty(req.Options.TextModel, st.Policy.Generation.TextModel)
-	draft, usage, err := s.provider.GenerateThread(ctx, ai.ThreadRequest{Model: model, Instructions: instr, Prompt: source, MaxOutput: 2500})
-	_ = s.budget.Record(ctx, budget.Entry{Category: budget.AIText, RefKey: refKey + ":text",
-		Units:  map[string]any{"input_tokens": usage.InputTokens, "output_tokens": usage.OutputTokens, "model": model, "regenerate": true},
-		Micros: budget.TextMicros(st.Policy.Pricing, usage.InputTokens, usage.OutputTokens), Uncertain: err != nil}, refKey)
+	draft, usage, err := s.provider.GenerateThread(ctx, ai.ThreadRequest{Model: model, Instructions: instr, Prompt: source, MaxOutput: textMaxOutput})
+	_ = s.budget.Record(ctx, textEntry(st, refKey, usage, err, instr+source, map[string]any{"model": model, "regenerate": true}), "")
 	if err != nil {
 		return runResult{err: err}
 	}
@@ -862,6 +900,14 @@ func (s *Service) result(ctx context.Context, contentID, resultID string) (Resul
 	return r, err
 }
 
+func partTexts(parts []thread.Part) []string {
+	out := make([]string, len(parts))
+	for i, p := range parts {
+		out[i] = p.Text
+	}
+	return out
+}
+
 // ApplyResult는 결과를 현재 글에 적용한다. 승인된 글이면 새 revision이 되어 승인이 풀린다 (content.SaveDraft 규칙).
 // 부분 결과는 다른 부분을 그대로 두기 위해 수동 분할(---)로 바꿔 적용한다.
 func (s *Service) ApplyResult(ctx context.Context, contentID, resultID string, editVersion int) (content.Detail, error) {
@@ -898,10 +944,8 @@ func (s *Service) ApplyResult(ctx context.Context, contentID, resultID string, e
 			if *r.PartIndex >= len(d.Revision.Parts) {
 				return d, &ValidationError{Fields: map[string]string{"part_index": "글이 바뀌어 이 부분이 없어요. 다시 생성하세요"}}
 			}
-			parts := make([]string, len(d.Revision.Parts))
-			for i, p := range d.Revision.Parts {
-				parts[i] = p.Text
-			}
+			// 저장된 부분 글에는 번호 표기가 붙어 있다. 그대로 이으면 다시 나눌 때 번호가 두 번 붙는다
+			parts := thread.PartTexts(partTexts(d.Revision.Parts))
 			parts[*r.PartIndex] = strings.TrimSpace(*r.Text)
 			draft.RawText, draft.SplitMode = thread.JoinManual(parts), thread.ModeManual
 		}

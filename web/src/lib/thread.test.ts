@@ -26,6 +26,12 @@ describe('manual parts', () => {
     const parts = ['본문', '답글 하나', '답글 둘'];
     expect(splitManual(joinManual(parts))).toEqual(parts);
     expect(splitManual('a\n  ---  \nb')).toEqual(['a', 'b']);
+    expect(splitManual('a\n---\n---\nb')).toEqual(['a', '', 'b']);
+  });
+  it('keeps trailing spaces and newlines while typing', () => {
+    const typed = splitManual(joinManual(['안녕 ', '답글\n']));
+    expect(typed).toEqual(['안녕 ', '답글\n']);
+    expect(joinManual(splitManual('안녕').map((p) => p + ' '))).toBe('안녕 ');
   });
 });
 

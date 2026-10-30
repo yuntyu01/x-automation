@@ -187,7 +187,7 @@ func TestBodySucceedsReplyFailsRestartResumesOnlyReply(t *testing.T) {
 	e := newEnv(t, 5*time.Second)
 	e.connect()
 	cid := e.newContent(threeParts)
-	e.fake.RejectReplies = 403 // 답글 거부 (대화 제한 등)
+	e.fake.Configure(func(f *xfake.Server) { f.RejectReplies = 403 }) // 답글 거부 (대화 제한 등)
 
 	runID, err := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid})
 	if err != nil {
@@ -211,7 +211,7 @@ func TestBodySucceedsReplyFailsRestartResumesOnlyReply(t *testing.T) {
 
 	// 서버 재시작 → 답글 거부가 풀림 → 실패한 답글부터 다시
 	e.restart()
-	e.fake.RejectReplies = 0
+	e.fake.Configure(func(f *xfake.Server) { f.RejectReplies = 0 })
 	if err := e.pub.Retry(e.ctx, runID, false); err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +236,7 @@ func TestTimeoutAfterSendIsUnknownAndNeverResent(t *testing.T) {
 	e := newEnv(t, 300*time.Millisecond)
 	e.connect()
 	cid := e.newContent("본문만 있는 글입니다.\n---\n답글 하나.")
-	e.fake.HangAfterPost = time.Second // X는 게시했지만 응답이 늦어 클라이언트가 시간 초과
+	e.fake.Configure(func(f *xfake.Server) { f.HangAfterPost = time.Second }) // X는 게시했지만 응답이 늦어 클라이언트가 시간 초과
 
 	runID, err := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid})
 	if err != nil {
@@ -247,7 +247,7 @@ func TestTimeoutAfterSendIsUnknownAndNeverResent(t *testing.T) {
 		t.Fatalf("results = %+v", res)
 	}
 	time.Sleep(800 * time.Millisecond) // 가짜 서버 응답 대기 정리
-	e.fake.HangAfterPost = 0
+	e.fake.Configure(func(f *xfake.Server) { f.HangAfterPost = 0 })
 	v := e.run(runID)
 	if v.State != "unknown" || e.partStates(v) != "unknown,pending" {
 		t.Fatalf("state = %s %s", v.State, e.partStates(v))
@@ -566,8 +566,8 @@ func TestTokenRefreshAndExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.drain(time.Hour)
-	if v := e.run(runID); v.State != "completed" || e.fake.Refreshes != 1 || len(e.fake.Posts()) != 2 {
-		t.Fatalf("refresh path: %s refreshes=%d posts=%d", v.State, e.fake.Refreshes, len(e.fake.Posts()))
+	if v := e.run(runID); v.State != "completed" || e.fake.RefreshCount() != 1 || len(e.fake.Posts()) != 2 {
+		t.Fatalf("refresh path: %s refreshes=%d posts=%d", v.State, e.fake.RefreshCount(), len(e.fake.Posts()))
 	}
 	// 갱신 토큰도 무효 → 연결 만료 + 알림, 게시는 막힘
 	bad, _ := e.box.Seal([]byte("revoked-token"), "x:refresh")
@@ -626,7 +626,7 @@ func TestAbandonHoldsContent(t *testing.T) {
 	e := newEnv(t, 5*time.Second)
 	e.connect()
 	cid := e.newContent(threeParts)
-	e.fake.RejectReplies = 403
+	e.fake.Configure(func(f *xfake.Server) { f.RejectReplies = 403 })
 	runID, _ := e.pub.PostNow(e.ctx, publish.PostNowInput{ContentID: cid})
 	e.drain(time.Hour)
 	if err := e.pub.Abandon(e.ctx, runID); err != nil {
@@ -697,7 +697,8 @@ func TestBudgetPolicyStopAllBlocksNewPosts(t *testing.T) {
 		t.Fatalf("block reason = %v", reason)
 	}
 	list, _ := e.notify.List(e.ctx, notification.ListOptions{})
-	if len(list) == 0 || list[0].GroupKey != "budget:exceeded" {
+	// 남은 예산(0.01)이 이번 게시(0.03)에 모자란 경우: 한도 도달과 구분해 따로 알린다
+	if len(list) == 0 || list[0].GroupKey != "budget:insufficient" {
 		t.Fatalf("budget notification = %+v", list)
 	}
 	// "생성만 중지" 정책이면 게시는 계속된다 (한도를 넘어도 게시 비용은 기록)

@@ -494,7 +494,7 @@ func TestBudgetLimitBlocksGenerationBeforeCall(t *testing.T) {
 	r, _, _ := e.gen.Submit(e.ctx, generation.SubmitInput{IdempotencyKey: "b-1", PromptID: e.promptID, Quantity: 3, Options: generation.Options{Text: true}})
 	e.drain()
 	got, _ := e.gen.Get(e.ctx, r.ID)
-	// 추정 15,000 µ$ > 한도 10,000 µ$ → 외부 호출 없이 실패
+	// 추정 27,500 µ$ (입력 3,000 + 출력 상한 2,500 토큰) > 한도 10,000 µ$ → 외부 호출 없이 실패
 	if calls != 0 || got.Failed != 3 || got.State != "failed" {
 		t.Fatalf("budget = %+v calls %d", got, calls)
 	}

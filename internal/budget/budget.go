@@ -42,7 +42,27 @@ type ExceededError struct {
 }
 
 func (e *ExceededError) Error() string {
+	if e.SpentMicros+e.HeldMicros < e.LimitMicros {
+		return fmt.Sprintf("이번 달 남은 예산이 이번 작업 추정 비용보다 적어요 (남음 %s / 필요 %s)",
+			money(e.LimitMicros-e.SpentMicros-e.HeldMicros, e.Currency), money(e.NeedMicros, e.Currency))
+	}
 	return fmt.Sprintf("이번 달 예산 한도에 도달했어요 (추정 사용 %s / 한도 %s)", money(e.SpentMicros+e.HeldMicros, e.Currency), money(e.LimitMicros, e.Currency))
+}
+
+// 예산 알림 묶음 키. 한도에 닿았으면 홈 감시(Watch)가 계속 열어 두는 exceeded를, 남은 돈이 작업 하나에 모자랄 뿐이면
+// insufficient를 쓴다 (Watch는 사용액만 보므로 exceeded로 올리면 1분마다 닫았다가 다음 시도에 다시 연다)
+const (
+	NoticeExceeded     = "budget:exceeded"
+	NoticeInsufficient = "budget:insufficient"
+)
+
+// NoticeGroup은 예약 실패에 맞는 알림 묶음 키다.
+func NoticeGroup(err error) string {
+	var e *ExceededError
+	if errors.As(err, &e) && e.SpentMicros+e.HeldMicros < e.LimitMicros {
+		return NoticeInsufficient
+	}
+	return NoticeExceeded
 }
 
 func money(micros int64, cur string) string {

@@ -45,7 +45,11 @@ export function Sheet({ open, onClose, title, description, children, footer, siz
         if (!items.length) return;
         const a = items[0]!;
         const b = items[items.length - 1]!;
-        if (e.shiftKey && document.activeElement === a) {
+        // 포커스가 목록 밖(시트 자체·막 비활성이 된 버튼·body)에 있으면 시트 안 첫·끝 항목으로 데려온다
+        if (!items.includes(document.activeElement as HTMLElement)) {
+          e.preventDefault();
+          (e.shiftKey ? b : a).focus();
+        } else if (e.shiftKey && document.activeElement === a) {
           e.preventDefault();
           b.focus();
         } else if (!e.shiftKey && document.activeElement === b) {

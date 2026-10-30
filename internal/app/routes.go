@@ -266,6 +266,9 @@ func (a *App) startWorkers(ctx context.Context, _ *pgxpool.Pool) {
 		if err != nil {
 			return err
 		}
+		if _, err := svc.generation.CloseOrphaned(ctx); err != nil {
+			return err
+		}
 		_, err = svc.budget.ReleaseStale(ctx, 6*time.Hour)
 		return err
 	})

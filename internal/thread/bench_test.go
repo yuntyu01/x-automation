@@ -21,7 +21,7 @@ func TestParseIsFastOnLongAndAdversarialInput(t *testing.T) {
 		start := time.Now()
 		_ = Parse(in, V3)
 		r := Split(in, Options{Mode: ModeTwoParts})
-		if d := time.Since(start); d > 2*time.Second {
+		if d := time.Since(start); d > 2*time.Second && !raceEnabled {
 			t.Errorf("%s took %v (%d parts)", name, d, len(r.Parts))
 		} else {
 			t.Logf("%s %v parts=%d", name, d, len(r.Parts))

@@ -415,3 +415,27 @@ func TestSwapAndMove(t *testing.T) {
 		t.Fatalf("moved to %s", date)
 	}
 }
+
+// 게시할 때 생성: 생성이 예약 시각보다 늦게 끝나도 지금으로 옮겨 게시 대상이 되고, 지난 예약으로 취소되지 않는다
+func TestLateGeneratedContentIsDueNow(t *testing.T) {
+	e := newEnv(t, kst(10, 27, 13, 0))
+	slot := e.clk.Now().Add(-15 * time.Minute)
+	var rid string
+	if err := e.pool.QueryRow(e.ctx, `INSERT INTO reservations (slot_at, original_slot_at, local_date) VALUES ($1, $1, $2::date) RETURNING id`,
+		slot, slot.In(seoul).Format("2006-01-02")).Scan(&rid); err != nil {
+		t.Fatal(err)
+	}
+	cid := e.ready(1)[0]
+	if err := e.svc.AssignToReservation(e.ctx, rid, cid); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.Tick(e.ctx); err != nil { // 지난 예약 정리 + 상태 갱신
+		t.Fatal(err)
+	}
+	var state string
+	var at, original time.Time
+	_ = e.pool.QueryRow(e.ctx, `SELECT state, slot_at, original_slot_at FROM reservations WHERE id = $1`, rid).Scan(&state, &at, &original)
+	if state != "assigned" || !at.Equal(e.clk.Now()) || !original.Equal(slot) {
+		t.Fatalf("state=%s slot=%v original=%v", state, at.In(seoul), original.In(seoul))
+	}
+}

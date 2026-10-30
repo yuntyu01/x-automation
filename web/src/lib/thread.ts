@@ -27,12 +27,14 @@ export function hasUrl(text: string): boolean {
   return twitter.extractUrls(text).length > 0;
 }
 
-// 직접 나누기 원문 ↔ 부분 목록
-const manualRe = /^[ \t]*-{3,}[ \t]*$/m;
+// 직접 나누기 원문 ↔ 부분 목록. 구분선 줄의 앞뒤 줄바꿈까지 구분선으로 본다.
+// 부분 글은 다듬지 않는다: 입력할 때마다 원문을 다시 만들므로 다듬으면 끝에 친 공백·줄바꿈이 바로 사라진다
+// (게시할 때 서버가 앞뒤 공백을 정리한다)
+const manualRe = /\n?^[ \t]*-{3,}[ \t]*$\n?/m;
 export function splitManual(raw: string): string[] {
-  return raw.replace(/\r\n/g, '\n').split(new RegExp(manualRe.source, 'm')).map((p) => p.trim());
+  return raw.replace(/\r\n/g, '\n').split(manualRe);
 }
 
 export function joinManual(parts: string[]): string {
-  return parts.map((p) => p.trim()).join(MANUAL_SEPARATOR);
+  return parts.join(MANUAL_SEPARATOR);
 }

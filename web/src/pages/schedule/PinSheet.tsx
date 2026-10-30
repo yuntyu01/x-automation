@@ -14,6 +14,12 @@ export function PinSheet({ open, onClose, defaultDate }: { open: boolean; onClos
   const act = useScheduleAction();
   const toast = useToast();
   const [date, setDate] = useState(defaultDate);
+  // 시트는 계속 마운트돼 있다. 열 때마다 지금 보고 있는 날짜로 맞춘다
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDate(defaultDate);
+  }
   const [time, setTime] = useState('12:00');
   const [content, setContent] = useState<{ id: string } | null>(null);
   const [picker, setPicker] = useState(false);

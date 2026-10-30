@@ -17,8 +17,8 @@ func ClientIP(r *http.Request, trusted []*net.IPNet) string {
 	if ip == nil || !inNets(ip, trusted) {
 		return host
 	}
-	// 오른쪽부터 신뢰하지 않는 첫 주소가 실제 클라이언트다
-	parts := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+	// 오른쪽부터 신뢰하지 않는 첫 주소가 실제 클라이언트다. 프록시가 헤더를 덧붙이지 않고 줄을 새로 달 수도 있어 모든 줄을 이어 본다
+	parts := strings.Split(strings.Join(r.Header.Values("X-Forwarded-For"), ","), ",")
 	for i := len(parts) - 1; i >= 0; i-- {
 		p := strings.TrimSpace(parts[i])
 		pip := net.ParseIP(p)

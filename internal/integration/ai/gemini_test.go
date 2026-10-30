@@ -92,3 +92,18 @@ func TestGeminiZeroQuotaIsConfigurationError(t *testing.T) {
 		}
 	}
 }
+
+// Google은 잘못된 키를 400으로 돌려준다. 내용 거절이 아니라 설정 오류로 알려야 한다
+func TestGeminiInvalidKeyIsConfigError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT",
+			"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com"}]}}`))
+	}))
+	defer srv.Close()
+	g, _ := NewGemini("bad-key", srv.URL, "text", "image", nil)
+	_, _, err := g.GenerateThread(context.Background(), ThreadRequest{Prompt: "소설"})
+	if integration.ClassOf(err) != integration.Config || !strings.Contains(err.Error(), "AI_API_KEY") {
+		t.Fatalf("err = %v (class %s)", err, integration.ClassOf(err))
+	}
+}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/gif"
+	_ "image/gif" // GIF 디코더 등록
 	"image/jpeg"
 	"image/png"
 	"net/http"
@@ -38,12 +38,27 @@ type Processed struct {
 	Thumb       []byte
 }
 
+// decodeSlot은 한 번에 하나의 이미지만 픽셀로 푼다. 2,000만 화소 사진 하나를 풀고 줄이는 데 수백 MB가 들어
+// 동시에 여럿을 처리하면 컨테이너 메모리 한도(256Mi)를 넘는다
+var decodeSlot = make(chan struct{}, 1)
+
+func lockDecode() func() {
+	decodeSlot <- struct{}{}
+	return func() { <-decodeSlot }
+}
+
 // Process는 업로드·생성 이미지를 검사하고 저장용으로 정리한다.
 //   - 실제 내용으로 형식을 판별한다 (확장자·선언 형식은 믿지 않는다)
-//   - JPEG의 EXIF·XMP(위치 정보 등)를 지우고 회전 정보는 픽셀에 반영한다
+//   - JPEG의 EXIF·XMP, PNG의 텍스트·EXIF 청크(위치 정보 등)를 지우고 회전 정보는 픽셀에 반영한다.
+//     구조를 확실히 읽지 못하면 원본을 두지 않고 픽셀만 다시 인코딩한다. 메타데이터가 있는 WebP도 다시 인코딩한다
 //   - 너무 크면 줄이고, X 첨부 상한(5MB)을 넘으면 JPEG로 다시 압축한다
 //   - 썸네일(최대 480px JPEG)을 만든다
 func Process(data []byte) (Processed, error) {
+	defer lockDecode()()
+	return process(data)
+}
+
+func process(data []byte) (Processed, error) {
 	if len(data) == 0 {
 		return Processed{}, &ImageError{"빈 파일이에요"}
 	}
@@ -63,34 +78,48 @@ func Process(data []byte) (Processed, error) {
 	if cfg.Width < MinSide || cfg.Height < MinSide {
 		return Processed{}, &ImageError{fmt.Sprintf("이미지가 너무 작아요 (최소 %dpx)", MinSide)}
 	}
+	switch cfg.ColorModel {
+	case color.RGBA64Model, color.NRGBA64Model, color.Gray16Model, color.Alpha16Model:
+		// 16비트 이미지는 화소당 메모리가 두 배다 (파일은 작아도 풀면 커진다)
+		if 2*cfg.Width*cfg.Height > MaxPixels {
+			return Processed{}, &ImageError{"해상도가 너무 커요 (16비트 이미지는 1,000만 화소 이하)"}
+		}
+	}
 	if cfg.Width*cfg.Height > MaxPixels {
 		return Processed{}, &ImageError{"해상도가 너무 커요 (2,000만 화소 이하)"}
 	}
 	if format == "gif" {
-		g, err := gif.DecodeAll(bytes.NewReader(data))
-		if err != nil {
+		// 모든 프레임을 풀지 않고 개수만 센다 (압축이 잘 되는 프레임 수천 장으로 메모리를 다 쓰게 할 수 있다)
+		switch n := gifFrames(data); {
+		case n < 1:
 			return Processed{}, &ImageError{"GIF를 읽을 수 없어요"}
-		}
-		if len(g.Image) > 1 {
+		case n > 1:
 			return Processed{}, &ImageError{"움직이는 GIF는 지원하지 않아요. 정지 이미지로 올려 주세요"}
 		}
 	}
 
 	out := Processed{ContentType: ct, Width: cfg.Width, Height: cfg.Height, Data: data}
 	orientation := 1
-	if format == "jpeg" {
+	clean := true // 원본 바이트를 그대로 둬도 메타데이터가 없는지
+	switch format {
+	case "jpeg":
 		orientation = jpegOrientation(data)
-		out.Data = stripJPEGMetadata(data)
+		out.Data, clean = stripJPEGMetadata(data)
+	case "png":
+		out.Data, clean = stripPNGMetadata(data)
+	case "webp":
+		clean = !webpHasMetadata(data)
 	}
 
-	needDecode := orientation != 1 || cfg.Width > MaxSide || cfg.Height > MaxSide || len(out.Data) > MaxPostBytes
+	needDecode := !clean || orientation != 1 || cfg.Width > MaxSide || cfg.Height > MaxSide || len(out.Data) > MaxPostBytes
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return Processed{}, &ImageError{"이미지를 읽을 수 없어요"}
 	}
 	if needDecode {
-		img = applyOrientation(img, orientation)
+		// 먼저 줄이고 돌린다: 큰 원본을 통째로 한 번 더 복사하지 않게 (돌려도 긴 변 상한은 같다)
 		img = fit(img, MaxSide)
+		img = applyOrientation(img, orientation)
 		b := img.Bounds()
 		out.Width, out.Height = b.Dx(), b.Dy()
 		// PNG(투명도 가능)는 PNG로, 나머지는 JPEG로 다시 만든다
@@ -184,6 +213,8 @@ func flatten(img image.Image) image.Image {
 
 // Crop은 픽셀 영역을 잘라 원본 형식(JPEG/PNG)으로 다시 만든다.
 func Crop(data []byte, r image.Rectangle) (Processed, error) {
+	unlock := lockDecode()
+	defer unlock()
 	img, format, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return Processed{}, &ImageError{"이미지를 읽을 수 없어요"}
@@ -202,7 +233,7 @@ func Crop(data []byte, r image.Rectangle) (Processed, error) {
 	} else if err := jpeg.Encode(&buf, flatten(dst), &jpeg.Options{Quality: 92}); err != nil {
 		return Processed{}, err
 	}
-	return Process(buf.Bytes())
+	return process(buf.Bytes())
 }
 
 // ── JPEG 메타데이터 ────────────────────────────────────────────────────
@@ -268,32 +299,146 @@ func findAPP1Exif(data []byte) []byte {
 }
 
 // stripJPEGMetadata는 APP1(EXIF·XMP)·APP13(IPTC)·주석 세그먼트를 픽셀 손실 없이 지운다.
-func stripJPEGMetadata(data []byte) []byte {
+// 구조를 끝까지 읽지 못하면 ok=false: 호출하는 쪽이 픽셀만 다시 인코딩한다 (원본에 위치 정보가 남지 않게).
+func stripJPEGMetadata(data []byte) (out []byte, ok bool) {
 	if len(data) < 4 || data[0] != 0xFF || data[1] != 0xD8 {
-		return data
+		return data, false
 	}
-	var out bytes.Buffer
-	out.Write(data[:2])
+	var buf bytes.Buffer
+	buf.Write(data[:2])
 	i := 2
 	for i+4 <= len(data) {
 		if data[i] != 0xFF {
-			return data // 예상 밖 구조면 원본 유지
+			return data, false
+		}
+		if data[i+1] == 0xFF { // 마커 앞 채움 바이트
+			i++
+			continue
 		}
 		marker := data[i+1]
 		if marker == 0xDA { // 스캔 시작: 나머지는 그대로
-			out.Write(data[i:])
-			return out.Bytes()
+			buf.Write(data[i:])
+			return buf.Bytes(), true
 		}
 		l := int(binary.BigEndian.Uint16(data[i+2 : i+4]))
 		if l < 2 || i+2+l > len(data) {
-			return data
+			return data, false
 		}
 		if marker != 0xE1 && marker != 0xED && marker != 0xFE {
-			out.Write(data[i : i+2+l])
+			buf.Write(data[i : i+2+l])
 		}
 		i += 2 + l
 	}
-	return data
+	return data, false
+}
+
+// ── PNG·WebP·GIF 구조 ─────────────────────────────────────────────────
+
+// pngKeep은 그대로 두는 PNG 보조 청크다 (색·투명도·해상도). 텍스트(tEXt·zTXt·iTXt)·eXIf·tIME 등은 지운다.
+var pngKeep = map[string]bool{"tRNS": true, "gAMA": true, "cHRM": true, "sRGB": true, "iCCP": true, "sBIT": true, "pHYs": true, "bKGD": true}
+
+// stripPNGMetadata는 필수 청크(이름 첫 글자가 대문자)와 pngKeep만 남긴다. 청크는 통째로 옮기므로 CRC는 그대로 맞다.
+func stripPNGMetadata(data []byte) (out []byte, ok bool) {
+	const sig = "\x89PNG\r\n\x1a\n"
+	if len(data) < len(sig) || string(data[:len(sig)]) != sig {
+		return data, false
+	}
+	var buf bytes.Buffer
+	buf.Write(data[:len(sig)])
+	i := len(sig)
+	for i+12 <= len(data) {
+		n := int(binary.BigEndian.Uint32(data[i : i+4]))
+		end := i + 12 + n
+		if n < 0 || end > len(data) || end < i {
+			return data, false
+		}
+		name := string(data[i+4 : i+8])
+		if name[0] >= 'A' && name[0] <= 'Z' || pngKeep[name] {
+			buf.Write(data[i:end])
+		}
+		if name == "IEND" {
+			return buf.Bytes(), true
+		}
+		i = end
+	}
+	return data, false
+}
+
+// webpHasMetadata는 RIFF 청크에 EXIF·XMP가 있거나 구조를 읽을 수 없으면 true다.
+func webpHasMetadata(data []byte) bool {
+	if len(data) < 12 || string(data[:4]) != "RIFF" || string(data[8:12]) != "WEBP" {
+		return true
+	}
+	i := 12
+	for i+8 <= len(data) {
+		name := string(data[i : i+4])
+		n := int(binary.LittleEndian.Uint32(data[i+4 : i+8]))
+		if name == "EXIF" || name == "XMP " {
+			return true
+		}
+		next := i + 8 + n + n%2
+		if n < 0 || next < i || next > len(data)+1 {
+			return true
+		}
+		i = next
+	}
+	return false
+}
+
+// gifFrames는 GIF의 프레임(이미지 설명자) 수를 픽셀을 풀지 않고 센다. 구조가 잘못됐으면 -1.
+func gifFrames(data []byte) int {
+	if len(data) < 13 || (string(data[:6]) != "GIF87a" && string(data[:6]) != "GIF89a") {
+		return -1
+	}
+	i := 13
+	if data[10]&0x80 != 0 { // 전역 색상표
+		i += 3 << (int(data[10]&0x07) + 1)
+	}
+	// 데이터 하위 블록(길이 바이트 + 내용, 0으로 끝)을 건너뛴다
+	skipBlocks := func(i int) int {
+		for i < len(data) {
+			n := int(data[i])
+			i++
+			if n == 0 {
+				return i
+			}
+			i += n
+		}
+		return -1
+	}
+	frames := 0
+	for i < len(data) {
+		switch data[i] {
+		case 0x3B: // 끝
+			return frames
+		case 0x21: // 확장 블록
+			if i+2 > len(data) {
+				return -1
+			}
+			if i = skipBlocks(i + 2); i < 0 {
+				return -1
+			}
+		case 0x2C: // 이미지 설명자
+			frames++
+			if frames > 1 {
+				return frames
+			}
+			if i+10 > len(data) {
+				return -1
+			}
+			flags := data[i+9]
+			i += 10
+			if flags&0x80 != 0 { // 지역 색상표
+				i += 3 << (int(flags&0x07) + 1)
+			}
+			if i = skipBlocks(i + 1); i < 0 { // LZW 최소 코드 크기 1바이트 뒤 데이터
+				return -1
+			}
+		default:
+			return -1
+		}
+	}
+	return frames // 끝 표시 없이 끝난 파일도 디코더처럼 받아 준다
 }
 
 func applyOrientation(img image.Image, o int) image.Image {

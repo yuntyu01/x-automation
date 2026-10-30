@@ -262,7 +262,7 @@ func (s *Service) Dispatch(ctx context.Context) (string, error) {
 		return block(w.Reason)
 	}
 	var last *time.Time
-	if err := s.Pool.QueryRow(ctx, `SELECT max(body_started_at) FROM publish_runs WHERE body_started_at IS NOT NULL`).Scan(&last); err != nil {
+	if err := s.Pool.QueryRow(ctx, lastBodyStartSQL).Scan(&last); err != nil {
 		return "", err
 	}
 	if last != nil && now.Sub(*last) < time.Duration(w.Rules.BaseIntervalMin)*time.Minute {
@@ -285,22 +285,41 @@ func (s *Service) Dispatch(ctx context.Context) (string, error) {
 	var ve *ValidationError
 	switch {
 	case errors.As(err, &ve):
+		// 게시 직전 검사(지금 한도·정리된 이미지)는 예약 상태 계산이 보지 않는 조건이라, 대기로만 두면 다음 갱신에
+		// 다시 준비 완료로 돌아가 예약을 하나씩 태운다. 글을 예약에서 빼고(다시 넣기 전까지 자동 배치 안 함) 알린다
+		var cid *string
+		_ = s.Pool.QueryRow(ctx, `SELECT content_id FROM reservations WHERE id = $1`, resID).Scan(&cid)
+		if err := s.Schedule.Unassign(ctx, resID); err != nil {
+			return "", err
+		}
+		msg := ""
 		for _, v := range ve.Fields {
-			_, _ = s.Pool.Exec(ctx, `UPDATE reservations SET state = 'waiting', wait_reason = $2 WHERE id = $1 AND state = 'assigned'`, resID, "수정 필요: "+v)
+			msg = v
+		}
+		if s.Notify != nil && cid != nil {
+			_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Warning, Category: "publish", GroupKey: "publish:invalid:" + *cid,
+				Title: "예약 글을 게시할 수 없어 예약에서 뺐어요", Body: msg + ". 고친 뒤 다시 예약에 넣어 주세요", Link: "/contents/" + *cid})
 		}
 		return "", nil
 	case errors.Is(err, ErrBusy):
 		return block("다른 묶음을 게시하는 중이라 끝나면 시작해요")
 	case budget.IsExceeded(err):
 		if s.Notify != nil {
-			_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Critical, Category: "budget", GroupKey: "budget:exceeded",
-				Title: "월 예산 한도에 도달해 새 게시를 멈췄어요", Body: err.Error(), Link: "/settings/budget"})
+			title := "월 예산 한도에 도달해 새 게시를 멈췄어요"
+			if budget.NoticeGroup(err) == budget.NoticeInsufficient {
+				title = "남은 예산이 모자라 새 게시를 멈췄어요"
+			}
+			_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Critical, Category: "budget", GroupKey: budget.NoticeGroup(err),
+				Title: title, Body: err.Error(), Link: "/settings/budget"})
 		}
 		return block(err.Error())
 	case err != nil:
 		return "", err
 	}
 	if runID != "" {
+		if s.Notify != nil {
+			_ = s.Notify.Resolve(ctx, budget.NoticeInsufficient)
+		}
 		s.kick()
 	}
 	return runID, nil
@@ -336,7 +355,7 @@ func (s *Service) PostNow(ctx context.Context, in PostNowInput) (string, error) 
 		warnings = append(warnings, w.Reason+" (수동 예외로 기록돼요)")
 	}
 	var last *time.Time
-	_ = s.Pool.QueryRow(ctx, `SELECT max(body_started_at) FROM publish_runs WHERE body_started_at IS NOT NULL`).Scan(&last)
+	_ = s.Pool.QueryRow(ctx, lastBodyStartSQL).Scan(&last)
 	if last != nil && now.Sub(*last) < time.Duration(w.Rules.BaseIntervalMin)*time.Minute {
 		warnings = append(warnings, fmt.Sprintf("직전 게시와 %d분밖에 떨어지지 않았어요 (기본 간격 %d분)", int(now.Sub(*last).Minutes()), w.Rules.BaseIntervalMin))
 	}
@@ -475,6 +494,11 @@ func userMessage(err error) string {
 	return err.Error()
 }
 
+// lastBodyStartSQL은 간격 계산에 쓰는 마지막 본문 시작 시각이다. 본문이 올라갔거나 올라갔을 수 있는 실행만 센다
+// (바로 거절된 실행까지 세면 아무것도 안 올라갔는데 다음 예약이 간격에 막혀 지나간다)
+const lastBodyStartSQL = `SELECT max(pr.body_started_at) FROM publish_runs pr WHERE pr.body_started_at IS NOT NULL
+	AND EXISTS (SELECT 1 FROM publish_parts pp WHERE pp.run_id = pr.id AND pp.position = 0 AND pp.state IN ('sending', 'succeeded', 'unknown'))`
+
 // HandleRun은 게시 실행 작업이다 (jobs.Handler). 부분을 순서대로, 이미 성공한 부분은 건너뛰며 보낸다.
 func (s *Service) HandleRun(ctx context.Context, j *jobs.Job) jobs.Result {
 	var payload struct {
@@ -496,6 +520,20 @@ func (s *Service) HandleRun(ctx context.Context, j *jobs.Job) jobs.Result {
 		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
 	}
 	bodyDone := len(parts) > 0 && parts[0].state == "succeeded"
+	// 끊긴 전송은 시작 조건보다 먼저 '결과 확인 필요'로 돌린다 (외부 호출 없음). 게시가 막혀 있는 동안 숨겨진 채
+	// 실행이 계속 미뤄지면 알림도 없고 다른 게시도 모두 막힌다
+scan:
+	for i := range parts {
+		switch parts[i].state {
+		case "succeeded":
+			continue
+		case "unknown":
+			return s.finishUnknown(ctx, r, &parts[i], errors.New("이전 시도의 결과가 불명확해요"))
+		case "sending":
+			return s.finishUnknown(ctx, r, &parts[i], errors.New("보내는 중에 작업이 끊겨 결과를 알 수 없어요"))
+		}
+		break scan
+	}
 	if reason, err := s.blockReason(ctx, st, r.trigger == "schedule"); err != nil {
 		return jobs.Result{Outcome: jobs.RetryLater, Err: err}
 	} else if reason != "" {
@@ -533,10 +571,11 @@ func (s *Service) HandleRun(ctx context.Context, j *jobs.Job) jobs.Result {
 			if err != nil {
 				return jobs.Result{Outcome: jobs.RetryLater, Err: err}
 			}
-			if !w.Allowed {
-				if p.position == 0 {
-					return s.blocked(ctx, r, parts, w.Reason)
-				}
+			// 구간 끝 여유는 새 묶음 시작에만 적용한다. 이미 올라간 본문의 답글은 구간 안이면 바로 이어 올린다
+			if p.position == 0 && !w.Allowed {
+				return s.blocked(ctx, r, parts, w.Reason)
+			}
+			if p.position > 0 && !w.Inside {
 				if w.NextStart.IsZero() {
 					return jobs.Result{Outcome: jobs.Snoozed, At: now.Add(time.Hour), Err: errors.New("남은 답글: 다음 허용 구간 없음")}
 				}
@@ -563,17 +602,25 @@ func (s *Service) HandleRun(ctx context.Context, j *jobs.Job) jobs.Result {
 		if ok, err := s.Queue.StillOwner(ctx, j); err != nil || !ok {
 			return jobs.Result{Outcome: jobs.RetryLater, Err: errors.New("작업 소유권을 잃어 새 요청을 시작하지 않아요")}
 		}
-		// 전송 의도를 먼저 남긴다. 이 뒤로 끊기면 결과 불명확으로 다룬다
-		tag, err := s.Pool.Exec(ctx, `UPDATE publish_parts SET state = 'sending', intent_at = $3, attempts = attempts + 1, in_reply_to = NULLIF($4, '')
-			WHERE run_id = $1 AND position = $2 AND state = 'pending'`, r.id, p.position, now, prevID)
-		if err != nil || tag.RowsAffected() == 0 {
-			return jobs.Result{Outcome: jobs.RetryLater, Err: fmt.Errorf("의도 기록 실패: %v", err)}
-		}
-		if p.position == 0 {
-			if _, err := s.Pool.Exec(ctx, `UPDATE publish_runs SET state = 'running', started_at = COALESCE(started_at, $2), body_started_at = $2, note = NULL, updated_at = now() WHERE id = $1`,
-				r.id, now); err != nil {
-				return jobs.Result{Outcome: jobs.RetryLater, Err: err}
+		// 전송 의도를 먼저 남긴다. 이 뒤로 끊기면 결과 불명확으로 다룬다. 실행 상태도 같은 트랜잭션에 쓴다:
+		// 따로 쓰다 두 번째가 실패하면 X에 보내지도 않은 부분이 'sending'으로 남아 결과 불명확이 된다
+		err = store.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
+			tag, err := tx.Exec(ctx, `UPDATE publish_parts SET state = 'sending', intent_at = $3, attempts = attempts + 1, in_reply_to = NULLIF($4, '')
+				WHERE run_id = $1 AND position = $2 AND state = 'pending'`, r.id, p.position, now, prevID)
+			if err != nil {
+				return err
 			}
+			if tag.RowsAffected() == 0 {
+				return errors.New("보낼 부분이 이미 바뀌었어요")
+			}
+			if p.position == 0 {
+				_, err = tx.Exec(ctx, `UPDATE publish_runs SET state = 'running', started_at = COALESCE(started_at, $2), body_started_at = $2, note = NULL, updated_at = now() WHERE id = $1`,
+					r.id, now)
+			}
+			return err
+		})
+		if err != nil {
+			return jobs.Result{Outcome: jobs.RetryLater, Err: fmt.Errorf("의도 기록 실패: %v", err)}
 		}
 		req := xapi.PostRequest{Text: p.text, MediaIDs: p.xMedia, ReplyToID: prevID, MadeWithAI: p.madeWithAI && len(p.xMedia) > 0}
 		post, err := s.Conn.Client().CreatePost(ctx, cred.AccessToken, req)

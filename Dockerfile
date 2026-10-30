@@ -46,7 +46,9 @@ COPY --from=server /out/server /app/server
 COPY --from=server /out/admin /app/admin
 # 개발·목업용 로컬 파일 위치. 운영 이미지는 R2를 쓰고, 컨테이너 디스크에 영속 데이터를 두지 않는다
 COPY --from=server --chown=1000:1000 /out/data /data
+# GOMEMLIMIT: 메모리 한도(256Mi) 전에 GC가 먼저 돌게 한다. 한도를 늘렸으면 그 80% 정도로 바꾼다
 ENV APP_ENV=production \
+    GOMEMLIMIT=200MiB \
     PORT=8080 \
     DATA_DIR=/data \
     INTEGRATION_MODE=live \

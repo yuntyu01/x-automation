@@ -61,14 +61,17 @@ function sameDraft(a: DraftState, b: DraftState) {
 export function ContentEditorPage() {
   const { id } = useParams();
   const q = useContent(id);
-  if (q.isLoading)
+  // 캐시에 남은 예전 내용으로 편집을 시작하지 않는다 (다른 곳에서 바뀐 뒤면 첫 저장부터 충돌난다).
+  // 한 번 받은 뒤에는 다시 받기가 실패해도 편집 화면과 저장 안 된 내용을 그대로 둔다
+  const ready = !!q.data && q.isFetchedAfterMount;
+  if (!ready && q.isFetching)
     return (
       <>
         <PageHeader title="편집" back={<BackButton to="/contents" />} />
         <LoadingList rows={3} />
       </>
     );
-  if (q.isError || !q.data)
+  if (!q.data)
     return (
       <>
         <PageHeader title="편집" back={<BackButton to="/contents" />} />
@@ -100,8 +103,10 @@ function Editor({ initial }: { initial: ContentDetail }) {
     setSaved(d);
   }, []);
   const editVersion = useRef(initial.edit_version);
+  // 승인할 revision: 저장으로 새 revision이 생길 수 있어 렌더 때 값이 아니라 마지막 서버 응답을 따른다
+  const currentRevision = useRef(initial.current_revision_id);
   const saving = useRef(false);
-  const savePromise = useRef<Promise<void> | null>(null);
+  const savePromise = useRef<Promise<boolean> | null>(null);
   // 저장에 실패한 내용과 다음 자동 재시도까지 기다릴 시간. 같은 내용을 쉬지 않고 다시 보내지 않는다
   const failedDraft = useRef<DraftState | null>(null);
   const retryDelay = useRef(RETRY_MIN_MS);
@@ -118,6 +123,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
     (d: ContentDetail) => {
       setServer(d);
       editVersion.current = d.edit_version;
+      currentRevision.current = d.current_revision_id;
       qc.setQueryData(['contents', 'detail', d.id], d);
       void qc.invalidateQueries({ queryKey: ['contents', 'list'] });
     },
@@ -135,12 +141,14 @@ function Editor({ initial }: { initial: ContentDetail }) {
     [apply, markSaved],
   );
 
+  // 저장했으면 true. 충돌·실패면 false (화면에 상태를 보여 주고, 이어지는 동작은 멈춰야 한다)
   const save = useCallback(
-    async (d: DraftState, force?: number) => {
-      if (saving.current) return savePromise.current ?? undefined;
+    async (d: DraftState, force?: number): Promise<boolean> => {
+      if (saving.current) return savePromise.current ?? false;
       saving.current = true;
-      let done: () => void = () => {};
-      savePromise.current = new Promise<void>((r) => (done = r));
+      let done: (ok: boolean) => void = () => {};
+      savePromise.current = new Promise<boolean>((r) => (done = r));
+      let ok = false;
       setStatus('saving');
       try {
         const res = await put<ContentDetail>(`/api/contents/${server.id}`, {
@@ -159,6 +167,7 @@ function Editor({ initial }: { initial: ContentDetail }) {
         retryDelay.current = RETRY_MIN_MS;
         setStatus('saved');
         setConflict(null);
+        ok = true;
       } catch (e) {
         if (e instanceof ApiError && e.status === 409) {
           setConflict((e.body as { current?: ContentDetail })?.current ?? null);
@@ -170,22 +179,28 @@ function Editor({ initial }: { initial: ContentDetail }) {
         }
       } finally {
         saving.current = false;
-        done();
+        done(ok);
       }
+      return ok;
     },
     [server.id, apply, toast, markSaved],
   );
 
-  // 다른 저장(이미지 연결 등) 전에 진행 중·대기 중인 자동 저장을 마친다
+  // 다른 저장(이미지 연결·승인·재생성) 전에 진행 중·대기 중인 자동 저장을 마친다.
+  // 저장하지 못했으면 던진다: 화면과 다른 서버 내용으로 이어서 진행하지 않게
   const flush = useCallback(async () => {
-    if (savePromise.current) await savePromise.current;
-    if (!sameDraft(draftRef.current, savedDraft.current)) await save(draftRef.current);
+    if (saving.current && savePromise.current) await savePromise.current;
+    if (!sameDraft(draftRef.current, savedDraft.current) && !(await save(draftRef.current))) {
+      throw new Error('바뀐 내용을 저장하지 못했어요. 저장 상태를 확인한 뒤 다시 해 주세요');
+    }
   }, [save]);
 
-  // 자동 저장: 입력이 멈추고 0.9초 뒤. 실패한 내용은 새로 고치거나 재시도 시각이 될 때까지 다시 보내지 않는다
+  // 자동 저장: 입력이 멈추고 0.9초 뒤. 실패한 내용은 새로 고치거나 재시도 시각이 될 때까지 다시 보내지 않는다.
+  // 기다리는 동안 편집 내용이 바뀌었으면(충돌 해결로 서버 내용을 불러옴·승인 전 저장 등) 지난 값을 다시 보내지 않는다
   const debounced = useDebounced(draft, 900);
   useEffect(() => {
     if (status === 'conflict') return;
+    if (!sameDraft(debounced, draftRef.current)) return;
     if (status === 'error' && failedDraft.current && sameDraft(debounced, failedDraft.current)) return;
     if (!sameDraft(debounced, savedDraft.current) && !saving.current) void save(debounced);
   }, [debounced, save, status, retryTick]);
@@ -218,7 +233,12 @@ function Editor({ initial }: { initial: ContentDetail }) {
   const blocker = useBlocker(({ currentLocation, nextLocation }) => (dirty || status === 'error') && currentLocation.pathname !== nextLocation.pathname);
 
   // 입력 중 즉시 미리보기 (서버 분할 규칙)
-  const previewInput = useDebounced({ raw: draft.raw_text, mode: draft.split_mode, opts: draft.split_options }, 250);
+  // 객체를 렌더마다 새로 만들면 지연 타이머가 계속 다시 걸려 250ms마다 다시 그린다
+  const previewSource = useMemo(
+    () => ({ raw: draft.raw_text, mode: draft.split_mode, opts: draft.split_options }),
+    [draft.raw_text, draft.split_mode, draft.split_options],
+  );
+  const previewInput = useDebounced(previewSource, 250);
   const preview = useQuery({
     queryKey: ['split-preview', previewInput],
     queryFn: () => post<{ result: SplitResult }>('/api/contents/split-preview', { raw_text: previewInput.raw, split_mode: previewInput.mode, split_options: previewInput.opts }),
@@ -245,9 +265,9 @@ function Editor({ initial }: { initial: ContentDetail }) {
   }
 
   async function review(action: 'approve' | 'reject') {
-    if (dirty || saving.current) await save(draft);
     try {
-      const d = await post<ContentDetail>(`/api/contents/${server.id}/${action}`, { revision_id: server.current_revision_id });
+      await flush();
+      const d = await post<ContentDetail>(`/api/contents/${server.id}/${action}`, { revision_id: currentRevision.current });
       apply(d);
       toast.show(action === 'approve' ? `버전 ${d.revision.number}을 승인했어요` : '반려했어요', 'success');
     } catch (e) {
@@ -565,7 +585,7 @@ function ManualParts({ raw, limit, onChange }: { raw: string; limit: number; onC
   return (
     <div className={styles.manual}>
       {parts.map((p, i) => {
-        const m = measure(p, limit);
+        const m = measure(p.trim(), limit); // 게시할 때처럼 앞뒤 공백은 빼고 센다
         return (
           <div key={i} className={styles.manualPart}>
             <div className={styles.manualHead}>

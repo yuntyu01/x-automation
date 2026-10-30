@@ -67,7 +67,11 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 // WriteError는 오류를 일관된 형식으로 쓴다. 모르는 오류는 내부 정보를 숨기고 기록만 한다.
 func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	var e *Error
-	if !errors.As(err, &e) {
+	if !errors.As(err, &e) && errors.Is(err, context.Canceled) && r.Context().Err() != nil {
+		// 브라우저가 화면을 옮겨 요청을 끊었다. 서버 오류가 아니니 오류 로그를 남기지 않는다 (응답은 아무도 받지 않는다)
+		e = NewError(499, "canceled", "요청이 취소됐어요")
+	}
+	if e == nil && !errors.As(err, &e) {
 		slog.ErrorContext(r.Context(), "unhandled error", "err", err.Error(), "path", r.URL.Path, "request_id", RequestID(r.Context()))
 		e = NewError(http.StatusInternalServerError, "internal", "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요")
 	}

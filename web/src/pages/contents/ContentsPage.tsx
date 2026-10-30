@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, CalendarClock, CalendarPlus, CheckSquare, Download, FileText, Filter, Heart, ImageIcon, MessageCircle, MoreHorizontal, Plus, Repeat2, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { apiUrl, errorMessage, get } from '../../api/client';
 import { contentQueryString, useBulk, useCategories, type ContentQuery } from '../../api/contents';
@@ -52,7 +52,11 @@ export function ContentsPage() {
     initialPageParam: 0,
     getNextPageParam: (last) => (last.offset + last.items.length < last.total ? last.offset + last.items.length : undefined),
   });
-  const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  // 쪽 단위로 받는 동안 글이 추가·수정되면 앞쪽 글이 다음 쪽에 또 올 수 있다. 같은 글은 한 번만 보여 준다
+  const items = useMemo(() => {
+    const seen = new Set<string>();
+    return (list.data?.pages.flatMap((p) => p.items) ?? []).filter((it) => !seen.has(it.id) && !!seen.add(it.id));
+  }, [list.data]);
   const counts = list.data?.pages[0]?.counts ?? {};
   const total = list.data?.pages[0]?.total ?? 0;
   const account = useIntegrations().data?.x.connection.username;
@@ -83,6 +87,10 @@ export function ContentsPage() {
     if (linkStage || linkNew) setParams({}, { replace: true });
   }, [linkStage, linkNew, setParams]);
 
+  // 탭·검색을 바꾸면 고른 글이 화면에서 사라질 수 있다. 보이지 않는 글은 일괄 작업에 넣지 않는다
+  // (고른 순서는 그대로: 예약에 고른 순서대로 넣는다)
+  const visibleIds = new Set(items.map((it) => it.id));
+  const chosen = [...selected].filter((id) => visibleIds.has(id));
   const toggle = (id: string) =>
     setSelected((s) => {
       const n = new Set(s);
@@ -100,14 +108,14 @@ export function ContentsPage() {
   async function placeSelected() {
     setPlacing(true);
     try {
-      const r = await placeContents([...selected]);
+      const r = await placeContents(chosen);
       const skipped = Object.keys(r.skipped).length;
       const parts = [`${r.placed.length}개를 다음 빈 시간에 배치했어요`];
       if (r.placed[0]) parts[0] += ` (첫 예약 ${formatDateTime(r.placed[0].slot_at)})`;
       if (skipped) parts.push(`${skipped}개는 건너뜀: ${Object.values(r.skipped)[0]}`);
       if (r.left.length) parts.push(`빈 예약이 모자라 ${r.left.length}개는 남겼어요`);
       toast.show(parts.join(' · '), r.placed.length && !r.left.length ? 'success' : 'info');
-      await qc.invalidateQueries({ queryKey: ['contents'] });
+      await Promise.all(['contents', 'schedule', 'home'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
       exitSelect();
     } catch (e) {
       toast.show(errorMessage(e), 'error');
@@ -117,7 +125,7 @@ export function ContentsPage() {
   }
 
   async function runBulk(action: 'archive' | 'unarchive' | 'category' | 'delete', category?: string) {
-    const ids = [...selected];
+    const ids = chosen;
     try {
       const r = await bulk.mutateAsync({ action, ids, category });
       const skipped = Object.keys(r.skipped).length;
@@ -240,9 +248,9 @@ export function ContentsPage() {
         </>
       )}
 
-      {selecting && selected.size > 0 && (
+      {selecting && chosen.length > 0 && (
         <div className={styles.bulkBar} role="toolbar" aria-label="선택한 글 작업">
-          <span className={styles.bulkCount}>{selected.size}개 선택</span>
+          <span className={styles.bulkCount}>{chosen.length}개 선택</span>
           {filter.stage === 'archived' ? (
             <Button size="sm" variant="secondary" onClick={() => runBulk('unarchive')}>
               보관 해제
@@ -294,11 +302,11 @@ export function ContentsPage() {
           </a>
         </div>
       </Sheet>
-      <CategorySheet open={sheet === 'category'} onClose={() => setSheet(null)} count={selected.size} onApply={(c) => runBulk('category', c)} busy={bulk.isPending} />
+      <CategorySheet open={sheet === 'category'} onClose={() => setSheet(null)} count={chosen.length} onApply={(c) => runBulk('category', c)} busy={bulk.isPending} />
       <Sheet
         open={sheet === 'delete'}
         onClose={() => setSheet(null)}
-        title={`${selected.size}개를 삭제할까요?`}
+        title={`${chosen.length}개를 삭제할까요?`}
         description="여기 기록만 지워요. X에 올라간 게시물은 그대로예요. 예약·게시 기록이 있는 글은 건너뛰니 보관을 써 주세요."
         footer={
           <>

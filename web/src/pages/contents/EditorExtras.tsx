@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, CalendarPlus, ImagePlus, Send, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { ApiError, apiUrl, errorMessage, get, put } from '../../api/client';
@@ -25,7 +26,7 @@ export interface ExtrasProps {
   update: (p: Partial<DraftState>) => void;
   onChanged: (d: ContentDetail) => void;
   onReplaced: (d: ContentDetail) => void; // 원문까지 바뀐 경우 (재생성 결과 적용)
-  flush: () => Promise<void>; // 진행 중인 자동 저장을 마친다 (버전 충돌 방지)
+  flush: () => Promise<void>; // 진행 중인 자동 저장을 마친다 (버전 충돌 방지). 저장하지 못했으면 던진다
   editVersion: () => number;
 }
 
@@ -33,7 +34,7 @@ export interface ExtrasProps {
 export function EditorExtras(props: ExtrasProps) {
   return (
     <>
-      <ScheduleCard content={props.content} onChanged={props.onChanged} />
+      <ScheduleCard content={props.content} onChanged={props.onChanged} flush={props.flush} />
       <ImagesCard {...props} />
       <RegenerateCard content={props.content} onReplaced={props.onReplaced} flush={props.flush} editVersion={props.editVersion} />
     </>
@@ -175,10 +176,23 @@ function swap<T>(arr: T[], a: number, b: number): T[] {
 }
 
 // 예약 카드: 이 글의 예약 시각, 또는 다음 빈 예약에 넣기 ("지금 게시"와 다르다)
-function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChanged: (d: ContentDetail) => void }) {
+function ScheduleCard({ content, onChanged, flush }: { content: ContentDetail; onChanged: (d: ContentDetail) => void; flush: () => Promise<void> }) {
   const toast = useToast();
+  const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [postNow, setPostNow] = useState(false);
+  // 서버는 저장된 글을 게시한다. 방금 입력한 내용이 아직 저장 전이면 먼저 저장해야 화면과 같은 글이 올라간다
+  async function openPostNow() {
+    setBusy(true);
+    try {
+      await flush();
+      setPostNow(true);
+    } catch (e) {
+      toast.show(errorMessage(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
   if (content.archived_at) return null;
   const inFlight = content.last_run_state === 'pending' || content.last_run_state === 'running';
   const needsCheck = content.last_run_state === 'partial' || content.last_run_state === 'unknown' || content.last_run_state === 'failed';
@@ -188,6 +202,8 @@ function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChange
       const r = await placeContents([content.id]);
       if (r.placed[0]) toast.show(`${formatDateTime(r.placed[0].slot_at)} 예약에 넣었어요`, 'success');
       else toast.show(Object.values(r.skipped)[0] ?? '빈 예약이 없어요. 시간표에서 시간을 지정해 넣을 수 있어요', 'info');
+      void qc.invalidateQueries({ queryKey: ['schedule'] });
+      void qc.invalidateQueries({ queryKey: ['home'] });
       onChanged(await get<ContentDetail>(`/api/contents/${content.id}`));
     } catch (e) {
       toast.show(errorMessage(e), 'error');
@@ -218,7 +234,7 @@ function ScheduleCard({ content, onChanged }: { content: ContentDetail; onChange
           </>
         )}
         {!inFlight && !needsCheck && (
-          <Button variant="soft" icon={<Send size={16} />} disabled={!content.revision.publishable} onClick={() => setPostNow(true)}>
+          <Button variant="soft" icon={<Send size={16} />} disabled={!content.revision.publishable} busy={busy} onClick={openPostNow}>
             지금 게시
           </Button>
         )}

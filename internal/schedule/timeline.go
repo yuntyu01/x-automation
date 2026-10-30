@@ -262,6 +262,19 @@ func Allowed(t time.Time, rules Rules, intervals []Interval, excluded map[string
 	return false, "허용 시간 구간 밖이에요"
 }
 
+// Inside는 t가 쉬는 날이 아닌 허용 구간 안인지다. 구간 끝 여유는 새 묶음 시작에만 쓰므로 여기서는 보지 않는다.
+func Inside(t time.Time, intervals []Interval, excluded map[string]bool, loc *time.Location) bool {
+	if excluded[t.In(loc).Format(dateLayout)] {
+		return false
+	}
+	for _, iv := range intervals {
+		if !t.Before(iv.Start) && t.Before(iv.End) {
+			return true
+		}
+	}
+	return false
+}
+
 // Capacity는 하루 허용 구간에 넣을 수 있는 묶음 수의 범위다 (추가 지연이 최대일 때 ~ 최소일 때).
 func Capacity(rules Rules, windows []Window, loc *time.Location, day time.Time) (minN, maxN int) {
 	from := startOfDay(day.In(loc))

@@ -51,6 +51,20 @@ func New() *Server {
 	return s
 }
 
+// Configure는 동작 조절 값을 잠금 안에서 바꾼다. 처리 중인 요청이 같은 값을 읽으므로 테스트는 필드를 직접 쓰지 않는다
+func (s *Server) Configure(f func(*Server)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f(s)
+}
+
+// RefreshCount는 지금까지 처리한 토큰 갱신 횟수다
+func (s *Server) RefreshCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Refreshes
+}
+
 func (s *Server) Posts() []Post {
 	s.mu.Lock()
 	defer s.mu.Unlock()

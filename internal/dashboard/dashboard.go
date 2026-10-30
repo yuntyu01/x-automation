@@ -354,6 +354,7 @@ func (s *Service) Watch(ctx context.Context) error {
 		_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Critical, Category: "budget", GroupKey: "budget:exceeded",
 			Title: title, Body: "추정 사용량 기준이에요. 한도를 올리거나 다음 달까지 기다리면 다시 시작해요", Link: "/settings/budget"})
 		_ = s.Notify.Resolve(ctx, "budget:warn")
+		_ = s.Notify.Resolve(ctx, "budget:insufficient") // 한도 도달 알림 하나로 충분하다
 	case u.LimitMicros > 0 && float64(u.SpentMicros+u.HeldMicros) >= budgetWarnRatio*float64(u.LimitMicros):
 		_ = s.Notify.Resolve(ctx, "budget:exceeded")
 		_ = s.Notify.Upsert(ctx, notification.New{Severity: notification.Warning, Category: "budget", GroupKey: "budget:warn",
@@ -361,6 +362,9 @@ func (s *Service) Watch(ctx context.Context) error {
 	default:
 		_ = s.Notify.Resolve(ctx, "budget:exceeded")
 		_ = s.Notify.Resolve(ctx, "budget:warn")
+		if u.LimitMicros <= 0 {
+			_ = s.Notify.Resolve(ctx, "budget:insufficient") // 한도를 없앴다
+		}
 	}
 	return nil
 }

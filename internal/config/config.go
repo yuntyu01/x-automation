@@ -184,7 +184,12 @@ func LoadFrom(lookup Lookup) (*Config, error) {
 		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || (c.Env == EnvProduction && u.Scheme != "https") {
 			add("FRONTEND_URL", "프론트 주소는 경로 없는 http(s) origin이어야 하며 운영에서는 https가 필요합니다")
 		} else {
+			// 브라우저는 Origin 헤더를 소문자 호스트, 기본 포트 생략으로 보낸다. 같은 꼴로 맞춰야 CORS 비교가 맞는다
 			u.Path = ""
+			u.Host = strings.ToLower(u.Host)
+			if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") {
+				u.Host = strings.TrimSuffix(u.Host, ":"+u.Port())
+			}
 			c.FrontendURL = u
 		}
 	}

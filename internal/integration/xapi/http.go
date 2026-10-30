@@ -84,17 +84,22 @@ type tokenResponse struct {
 	TokenType    string `json:"token_type"`
 }
 
-func (h *HTTP) token(ctx context.Context, form url.Values, op string) (Token, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.c.TokenURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return Token{}, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+// clientAuth는 기밀 클라이언트면 Basic 인증을 달고, 공개 클라이언트면 본문에 client_id를 넣는다 (본문을 만들기 전에 불러야 한다).
+func (h *HTTP) clientAuth(req *http.Request, form url.Values) {
 	if h.c.ClientSecret != "" {
-		req.SetBasicAuth(url.QueryEscape(h.c.ClientID), url.QueryEscape(h.c.ClientSecret)) // 기밀 클라이언트
+		req.SetBasicAuth(url.QueryEscape(h.c.ClientID), url.QueryEscape(h.c.ClientSecret))
 	} else {
 		form.Set("client_id", h.c.ClientID)
 	}
+}
+
+func (h *HTTP) token(ctx context.Context, form url.Values, op string) (Token, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.c.TokenURL, nil)
+	if err != nil {
+		return Token{}, err
+	}
+	h.clientAuth(req, form)
+	setForm(req, form)
 	res, err := h.c.HTTP.Do(req)
 	if err != nil {
 		return Token{}, &integration.Error{Class: integration.Retryable, Provider: "x", Op: op, Message: "X에 연결할 수 없어요", Err: err}
@@ -137,20 +142,27 @@ func (h *HTTP) Refresh(ctx context.Context, refreshToken string) (Token, error) 
 // Revoke는 토큰을 해제한다 (연결 해제 때. 실패해도 앱에서는 지운다).
 func (h *HTTP) Revoke(ctx context.Context, token string) error {
 	u := strings.Replace(h.c.TokenURL, "/oauth2/token", "/oauth2/revoke", 1)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(url.Values{"token": {token}}.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if h.c.ClientSecret != "" {
-		req.SetBasicAuth(url.QueryEscape(h.c.ClientID), url.QueryEscape(h.c.ClientSecret))
-	}
+	form := url.Values{"token": {token}}
+	h.clientAuth(req, form)
+	setForm(req, form)
 	res, err := h.c.HTTP.Do(req)
 	if err != nil {
 		return err
 	}
 	res.Body.Close()
 	return nil
+}
+
+func setForm(req *http.Request, form url.Values) {
+	body := form.Encode()
+	req.Body = io.NopCloser(strings.NewReader(body))
+	req.ContentLength = int64(len(body))
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader(body)), nil }
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 }
 
 // problem은 X 오류 응답(Problem JSON 또는 errors 배열)이다.

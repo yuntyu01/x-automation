@@ -117,3 +117,19 @@ func TestKoDeployS3Fallback(t *testing.T) {
 		t.Fatalf("s3 fallback = %+v err=%v", c.R2, err)
 	}
 }
+
+func TestFrontendURLMatchesBrowserOrigin(t *testing.T) {
+	m := valid()
+	m["FRONTEND_URL"] = "https://App.Example.com:443/"
+	c, err := LoadFrom(env(m))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := c.FrontendURL.String(); got != "https://app.example.com" {
+		t.Fatalf("frontend = %s", got)
+	}
+	m["FRONTEND_URL"] = "https://app.example.com/app"
+	if _, err := LoadFrom(env(m)); err == nil {
+		t.Fatal("path in FRONTEND_URL should be rejected")
+	}
+}

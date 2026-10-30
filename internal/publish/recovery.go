@@ -11,6 +11,7 @@ import (
 	"github.com/yuntyu01/x-automation/internal/budget"
 	"github.com/yuntyu01/x-automation/internal/integration/xapi"
 	"github.com/yuntyu01/x-automation/internal/jobs"
+	"github.com/yuntyu01/x-automation/internal/settings"
 	"github.com/yuntyu01/x-automation/internal/store"
 )
 
@@ -144,6 +145,25 @@ func (s *Service) resume(ctx context.Context, tx pgx.Tx, r run) error {
 	return err
 }
 
+// resumeGate는 사용자가 이어 보내기를 눌렀을 때 워커와 같은 기준으로 막힌 이유를 미리 알려 준다.
+// 기준이 다르면 요청은 받아 놓고 워커가 계속 미루거나(남은 답글 대기), 아무것도 안 보낸 실행을 취소하고 예약을 되돌린다
+func (s *Service) resumeGate(ctx context.Context, st settings.Settings, r run, bodyPending bool) (string, error) {
+	automatic := r.trigger == "schedule"
+	if reason, err := s.blockReason(ctx, st, automatic); err != nil || reason != "" {
+		return reason, err
+	}
+	if automatic && bodyPending {
+		w, err := s.Schedule.Window(ctx, s.Clock.Now())
+		if err != nil {
+			return "", err
+		}
+		if !w.Allowed {
+			return w.Reason + ". 허용 구간에 다시 시도하거나 콘텐츠 화면에서 지금 게시를 써 주세요", nil
+		}
+	}
+	return "", nil
+}
+
 func (s *Service) lockRun(ctx context.Context, tx pgx.Tx, id string) (run, []part, error) {
 	if _, err := tx.Exec(ctx, `SELECT 1 FROM publish_runs WHERE id = $1 FOR UPDATE`, id); err != nil {
 		return run{}, nil, err
@@ -178,13 +198,6 @@ func (s *Service) Resolve(ctx context.Context, runID string, in ResolveInput) er
 	if err != nil {
 		return err
 	}
-	if !in.Posted {
-		if reason, err := s.blockReason(ctx, st, false); err != nil {
-			return err
-		} else if reason != "" {
-			return &ValidationError{Fields: map[string]string{"run": reason}}
-		}
-	}
 	ref := fmt.Sprintf("%s:%d", runID, in.Position)
 	completed := false
 	err = store.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -203,6 +216,13 @@ func (s *Service) Resolve(ctx context.Context, runID string, in ResolveInput) er
 		}
 		if p == nil || p.state != "unknown" {
 			return &ValidationError{Fields: map[string]string{"position": "결과 확인이 필요한 부분이 아니에요"}}
+		}
+		if !in.Posted {
+			if reason, err := s.resumeGate(ctx, st, r, in.Position == 0); err != nil {
+				return err
+			} else if reason != "" {
+				return &ValidationError{Fields: map[string]string{"run": reason}}
+			}
 		}
 		if in.Posted {
 			if _, err := tx.Exec(ctx, `UPDATE publish_parts SET state = 'succeeded', x_post_id = $3, x_url = $4, succeeded_at = COALESCE(intent_at, now()),
@@ -275,11 +295,6 @@ func (s *Service) Retry(ctx context.Context, runID string, acceptDuplicateRisk b
 	if err != nil {
 		return err
 	}
-	if reason, err := s.blockReason(ctx, st, false); err != nil {
-		return err
-	} else if reason != "" {
-		return &ValidationError{Fields: map[string]string{"run": reason}}
-	}
 	err = store.InTx(ctx, s.Pool, func(tx pgx.Tx) error {
 		r, parts, err := s.lockRun(ctx, tx, runID)
 		if err != nil {
@@ -287,6 +302,11 @@ func (s *Service) Retry(ctx context.Context, runID string, acceptDuplicateRisk b
 		}
 		if r.state != "partial" && r.state != "failed" && r.state != "unknown" {
 			return &ValidationError{Fields: map[string]string{"run": "다시 시도할 수 있는 상태가 아니에요"}}
+		}
+		if reason, err := s.resumeGate(ctx, st, r, len(parts) > 0 && parts[0].state != "succeeded"); err != nil {
+			return err
+		} else if reason != "" {
+			return &ValidationError{Fields: map[string]string{"run": reason}}
 		}
 		for _, p := range parts {
 			if p.state == "unknown" && !acceptDuplicateRisk {

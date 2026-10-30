@@ -16,12 +16,15 @@ import (
 
 const CookieName = "xa_session"
 
-// 로그인 시도 제한 (15분 창)
+// 로그인 시도 제한 (15분 창). 아이디 기준 제한은 접속 IP별로 센다: 아이디만으로 세면
+// 아무나 틀린 비밀번호를 열 번 보내 관리자 로그인을 계속 막을 수 있다
 const (
 	attemptWindow     = 15 * time.Minute
 	maxFailuresPerIP  = 20
 	maxFailuresPerUsr = 10
 	lastSeenThrottle  = 5 * time.Minute
+	// Argon2id 확인 한 번이 64MiB를 쓴다. 동시에 하나만 돌리고, 자리를 못 잡으면 이만큼 기다린 뒤 거절한다
+	verifyWait = 5 * time.Second
 )
 
 var (
@@ -30,9 +33,15 @@ var (
 )
 
 // RateLimitedError는 시도 제한에 걸렸을 때 다시 시도할 수 있는 시각을 알려 준다.
-type RateLimitedError struct{ RetryAfter time.Duration }
+type RateLimitedError struct {
+	RetryAfter time.Duration
+	Busy       bool // 다른 로그인 확인이 끝나기를 기다리다 시간이 다 됨
+}
 
 func (e *RateLimitedError) Error() string {
+	if e.Busy {
+		return "로그인 요청이 몰려 있습니다. 잠시 후 다시 시도하세요"
+	}
 	mins := int(e.RetryAfter.Minutes()) + 1
 	return fmt.Sprintf("로그인 시도가 너무 많습니다. %d분 후 다시 시도하세요", mins)
 }
@@ -53,10 +62,11 @@ type Config struct {
 }
 
 type Service struct {
-	db    store.DB
-	cfg   Config
-	clock clock.Clock
-	dummy string // 없는 사용자에도 같은 시간 동안 해시 검증을 돌려 응답 시간 차이를 줄인다
+	db     store.DB
+	cfg    Config
+	clock  clock.Clock
+	dummy  string        // 없는 사용자에도 같은 시간 동안 해시 검증을 돌려 응답 시간 차이를 줄인다
+	verify chan struct{} // 비밀번호 확인 자리 (한 번에 하나)
 }
 
 func NewService(db store.DB, cfg Config, c clock.Clock) *Service {
@@ -64,7 +74,7 @@ func NewService(db store.DB, cfg Config, c clock.Clock) *Service {
 		c = clock.System{}
 	}
 	dummy, _ := HashPassword("dummy-password-for-timing", DefaultParams)
-	return &Service{db: db, cfg: cfg, clock: c, dummy: dummy}
+	return &Service{db: db, cfg: cfg, clock: c, dummy: dummy, verify: make(chan struct{}, 1)}
 }
 
 func randomToken(n int) string {
@@ -81,6 +91,18 @@ func hashID(raw string) []byte {
 // Login은 자격 증명을 확인하고 새 세션을 만든다. 성공·실패 모두 시도 기록을 남긴다.
 // 반환하는 raw는 쿠키에만 싣는다 (DB에는 해시만 저장).
 func (s *Service) Login(ctx context.Context, username, password, ip, ua string) (raw string, sess Session, err error) {
+	// 자리를 잡은 뒤에 시도 제한을 확인한다. 동시에 몰려온 요청이 같은 실패 횟수를 보고 한꺼번에 통과하지 못하게 하고,
+	// 해시 메모리가 겹쳐 컨테이너 한도(256Mi)를 넘지 않게 한다
+	wait := time.NewTimer(verifyWait)
+	defer wait.Stop()
+	select {
+	case s.verify <- struct{}{}:
+		defer func() { <-s.verify }()
+	case <-wait.C:
+		return "", sess, &RateLimitedError{RetryAfter: verifyWait, Busy: true}
+	case <-ctx.Done():
+		return "", sess, ctx.Err()
+	}
 	now := s.clock.Now()
 	if wait, err := s.blocked(ctx, ip, username, now); err != nil {
 		return "", sess, err
@@ -123,7 +145,7 @@ func (s *Service) blocked(ctx context.Context, ip, username string, now time.Tim
 		return 0, err
 	}
 	if err := s.db.QueryRow(ctx, `SELECT count(*), min(created_at) FROM login_attempts
-		WHERE username = $1 AND NOT success AND created_at > $2`, truncate(username, 64), since).Scan(&userFails, &userOldest); err != nil {
+		WHERE username = $1 AND ip = $2 AND NOT success AND created_at > $3`, truncate(username, 64), ip, since).Scan(&userFails, &userOldest); err != nil {
 		return 0, err
 	}
 	var wait time.Duration

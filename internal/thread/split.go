@@ -71,6 +71,15 @@ func NormalizeForPost(s string) string {
 
 func numberSuffix(i, n int) string { return fmt.Sprintf("\n(%d/%d)", i, n) }
 
+// PartTexts는 부분 글에서 번호 표기 "(i/N)"를 뺀 원문 조각이다. 조각을 다시 이어 나눌 때 번호가 겹치지 않게 한다.
+func PartTexts(parts []string) []string {
+	out := make([]string, len(parts))
+	for i, t := range parts {
+		out[i] = strings.TrimSuffix(t, numberSuffix(i+1, len(parts)))
+	}
+	return out
+}
+
 // Split은 원문을 본문·답글로 나눈다. 원문의 글자를 빼거나 더하지 않는다 (번호 표기 제외).
 func Split(raw string, o Options) Result {
 	if o.Limit <= 0 {

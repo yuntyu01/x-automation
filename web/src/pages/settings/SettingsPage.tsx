@@ -119,7 +119,7 @@ export function SettingsPage() {
             </RowGroup>
           </Section>
           <RowGroup>
-            <Row icon={<LogOut size={20} />} label="로그아웃" tone="danger" onClick={() => void auth.logout()} />
+            <Row icon={<LogOut size={20} />} label="로그아웃" tone="danger" onClick={() => auth.logout().catch((e) => toast.show(`로그아웃하지 못했어요: ${errorMessage(e)}`, 'error'))} />
           </RowGroup>
         </div>
       )}
