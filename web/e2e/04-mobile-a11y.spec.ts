@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { expectNoHorizontalOverflow, login, shot } from './helpers';
 
-const ROUTES = ['/', '/contents', '/schedule', '/schedule/rules', '/publish', '/images', '/settings', '/settings/connections', '/settings/generation', '/settings/thread', '/settings/budget', '/notifications', '/prompts', '/setup'];
+const ROUTES = ['/', '/contents', '/schedule', '/schedule/rules', '/publish', '/images', '/settings', '/settings/connections', '/settings/generation', '/settings/thread', '/settings/budget', '/notifications', '/prompts', '/setup', '/ai-costs'];
 const WIDTHS = [360, 390, 768, 1440];
 
 test('주요 화면: 4개 폭 × 라이트·다크에서 가로 넘침 없음', async ({ page }, info) => {

@@ -1,0 +1,234 @@
+/* API 키 받는 방법: 번호가 붙은 단계 목록 (토스 안내 화면처럼 한 단계에 제목 한 줄 + 설명 한두 줄) */
+.wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--box-gap);
+}
+.head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: var(--space-3) var(--heading-inset) var(--space-1);
+  color: var(--primary-text);
+}
+.head h2 {
+  color: var(--text);
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.head p {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: var(--card-pad-y) var(--card-pad);
+}
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.cardHead h3 {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+}
+.cardHead p {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-top: 2px;
+}
+.open {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-decoration: none;
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+.step {
+  position: relative;
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  counter-increment: step;
+}
+.step:last-child {
+  padding-bottom: 0;
+}
+/* 단계 사이 세로 선 */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+}
+.num::after {
+  content: counter(step);
+}
+.stepBody {
+  flex: 1;
+  min-width: 0;
+}
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.optional {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+.stepText {
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.stepText a {
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.stepText b {
+  color: var(--text);
+  font-weight: 600;
+}
+.stepText code,
+.field code {
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.stepText > code {
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+/* 콘솔에 넣을 값: 이름 ↔ 값, 필요한 값은 복사 버튼 */
+.fields {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+/* 이름은 위, 값은 아래 한 줄 전체 (주소가 좁은 칸에서 한 글자씩 접히지 않게) */
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 8px 0;
+}
+.field + .field {
+  border-top: 1px solid var(--border);
+}
+.field dt {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+}
+.field dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text);
+}
+.field dd code {
+  flex: 1;
+  min-width: 0;
+}
+.env {
+  position: relative;
+  margin-top: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.env pre {
+  margin: 0;
+  padding: var(--space-3) 88px var(--space-3) var(--space-3);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.env .copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  cursor: pointer;
+}
+.copy:hover {
+  color: var(--text);
+}
+.caution {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 0 var(--heading-inset);
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+}
+.caution svg {
+  flex: none;
+  margin-top: 2px;
+}
