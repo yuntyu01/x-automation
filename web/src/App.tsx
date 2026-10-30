@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AiCostsPage } from './pages/AiCostsPage';
+import { KeysPage } from './pages/settings/KeysPage';
 import { PromptEditorPage } from './pages/prompts/PromptEditorPage';
 import { PromptsPage } from './pages/prompts/PromptsPage';
 import { ScheduleRulesPage } from './pages/schedule/ScheduleRulesPage';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
           { path: '/settings/generation', element: <GenerationSettingsPage /> },
           { path: '/settings/thread', element: <ThreadSettingsPage /> },
           { path: '/settings/budget', element: <BudgetSettingsPage /> },
+          { path: '/settings/keys', element: <KeysPage /> },
           { path: '/notifications', element: <NotificationsPage /> },
           { path: '/ai-costs', element: <AiCostsPage /> },
           { path: '/setup', element: <SetupPage /> },

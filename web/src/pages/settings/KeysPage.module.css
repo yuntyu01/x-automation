@@ -1,0 +1,130 @@
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--section-gap);
+}
+
+/* 이 화면 바로 가기: 작은 칩 두 개 */
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: calc(var(--box-gap) - var(--section-gap));
+}
+.jump button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+.jump button:hover {
+  color: var(--text);
+}
+
+.trouble {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--box-gap);
+  scroll-margin-top: var(--space-4);
+}
+.head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: var(--space-3) var(--heading-inset) var(--space-1);
+  color: var(--primary-text);
+}
+.head h2 {
+  color: var(--text);
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.head p {
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* 증상 목록: 접힌 줄을 누르면 원인·해결이 펼쳐진다 */
+.issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.issues > li + li {
+  border-top: 1px solid var(--border);
+}
+.issue summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: var(--space-3) 0;
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  -webkit-tap-highlight-color: transparent;
+}
+.issue summary::-webkit-details-marker {
+  display: none;
+}
+.chevron {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--dur) var(--ease);
+}
+.issue[open] .chevron {
+  transform: rotate(180deg);
+}
+.body {
+  padding: 0 0 var(--space-4);
+}
+.label {
+  margin-top: var(--space-2);
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+.label:first-child {
+  margin-top: 0;
+}
+.why {
+  margin: 4px 0 0;
+  padding-left: 1.1em;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.why li + li {
+  margin-top: 2px;
+}
+.fix {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.body code {
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.body b {
+  font-weight: 600;
+}

@@ -5,7 +5,7 @@ import { apiUrl } from '../api/client';
 import { copyText } from '../lib/hooks';
 import styles from './ApiKeyGuide.module.css';
 
-// API 키 받는 방법: X 개발자 콘솔(console.x.com)과 Google AI Studio. 단계마다 해당 화면·공식 안내로 가는 링크를 단다.
+// 키 받는 방법(설정 → API 키 연결): X 개발자 콘솔(console.x.com)과 Google AI Studio. 단계마다 해당 화면·공식 안내로 가는 링크를 단다.
 // 메뉴 이름과 링크는 2026-10 기준 공식 문서(docs.x.com, ai.google.dev)를 따랐고, 콘솔 화면은 바뀔 수 있다.
 export function ApiKeyGuide() {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
@@ -17,7 +17,7 @@ export function ApiKeyGuide() {
       <div className={styles.head}>
         <KeyRound size={20} aria-hidden />
         <div>
-          <h2 id="key-guide">API 키 받는 방법</h2>
+          <h2 id="key-guide">키 받는 방법</h2>
           <p>단계마다 바로 가는 링크를 달았어요. 받은 키는 이 화면이나 채팅에 붙여 넣지 마세요.</p>
         </div>
       </div>

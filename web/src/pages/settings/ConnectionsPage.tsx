@@ -1,4 +1,4 @@
-import { AtSign, ChevronLeft, Cloud, ImageIcon, Sparkles } from 'lucide-react';
+import { AtSign, ChevronLeft, Cloud, ImageIcon, KeyRound, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useHome } from '../../api/home';
@@ -93,6 +93,11 @@ export function ConnectionsPage() {
                 value={home.data ? <Badge tone={home.data.automation.enabled ? 'success' : 'neutral'}>{home.data.automation.enabled ? '켜짐' : '꺼짐'}</Badge> : undefined}
                 to="/"
               />
+            </RowGroup>
+          </Section>
+          <Section card title="도움말">
+            <RowGroup>
+              <Row icon={<KeyRound size={20} />} label="API 키 연결" description="키 받는 방법과 연결이 안 될 때 확인할 것" to="/settings/keys" />
             </RowGroup>
           </Section>
         </div>

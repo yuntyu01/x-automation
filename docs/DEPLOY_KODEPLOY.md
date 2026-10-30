@@ -72,7 +72,8 @@ go run ./cmd/admin gen-key            # TOKEN_ENCRYPTION_KEY (한 번 만들고 
 - 환경변수 `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI`(위 콜백과 정확히 같게) → 저장(재시작)
 - 앱 → 설정 → 연결 → **X 계정 연결** → X에서 허용 → 계정·구독 등급·이미지 업로드 권한 확인
 - AI: `AI_API_KEY`, `AI_TEXT_MODEL`, `AI_IMAGE_MODEL`(공급자 콘솔에서 쓸 수 있는 모델 이름). 없어도 직접 쓴 글 게시는 된다
-- Gemini는 `AI_PROVIDER=gemini`와 Google API 키를 지정한다. 텍스트와 이미지 모델의 등급·할당량은 별개이며, 무료 키의 텍스트가 동작해도 이미지 생성은 유료일 수 있다. `AI_BASE_URL`을 바꿨다면 Google 기본 주소를 쓰도록 비운다.
+- Gemini는 `AI_PROVIDER=gemini`와 Google API 키를 지정한다. 텍스트와 이미지 모델의 등급·할당량은 별개이며, 무료 키의 텍스트가 동작해도 이미지 생성은 유료일 수 있다. `AI_BASE_URL`을 바꿨다면 Google 기본 주소를 쓰도록 비운다. `AI_PROVIDER`를 빼면 기본값 openai로 보내 "AI 키가 올바르지 않아요"가 된다.
+- 단계별 링크와 연결이 안 될 때의 증상·원인·해결은 앱의 **설정 → API 키 연결**(`/settings/keys`)에 있다 (`web/src/pages/settings/connectIssues.tsx`)
 
 ### 8. 운영 전 확인
 - 프롬프트 등록·기본 프롬프트, 운영 모드, 시간표(구간·하루 수량·간격), 예산·요율표(확인일·출처), 이미지 보관 일수

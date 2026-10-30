@@ -1,4 +1,4 @@
-import { Archive, CalendarClock, FileText, ImageIcon, Info, Link2, LogOut, Moon, Scissors, Send, ShieldCheck, SlidersHorizontal, Sparkles, Tag, Wallet } from 'lucide-react';
+import { Archive, CalendarClock, FileText, ImageIcon, Info, KeyRound, Link2, LogOut, Moon, Scissors, Send, ShieldCheck, SlidersHorizontal, Sparkles, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
 import { errorMessage } from '../../api/client';
@@ -98,6 +98,7 @@ export function SettingsPage() {
           <Section card title="연결">
             <RowGroup>
               <Row icon={<Link2 size={20} />} label="연결 상태" description="X·AI·저장소" value={xValue} to="/settings/connections" />
+              <Row icon={<KeyRound size={20} />} label="API 키 연결" description="키 받는 방법·연결 문제 해결" to="/settings/keys" />
               <Row icon={<Wallet size={20} />} label="사용량·예산" description="추정 사용량·월 한도·요율표" to="/settings/budget" />
               <Row icon={<Wallet size={20} />} label="AI 비용" description="Gemini와 GPT 무료 한도·요금 비교" to="/ai-costs" />
             </RowGroup>

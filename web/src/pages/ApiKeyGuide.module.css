@@ -12,6 +12,7 @@
   color: var(--primary-text);
 }
 .head h2 {
+  scroll-margin-top: var(--space-4);
   color: var(--text);
   font-size: var(--fs-h2);
   font-weight: 700;

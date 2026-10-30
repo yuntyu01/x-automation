@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Calculator, ExternalLink, Image, Sparkles } from 'lucide-react';
+import { Calculator, ChevronRight, ExternalLink, Image, KeyRound, Sparkles } from 'lucide-react';
+import { Link } from 'react-router';
 import { PageHeader } from '../components/layout/AppShell';
 import { Segmented } from '../components/ui/Segmented';
 import { TextField } from '../components/ui/TextField';
-import { ApiKeyGuide } from './ApiKeyGuide';
 import styles from './AiCostsPage.module.css';
 
 // Standard API rates, checked against provider documentation on 2026-10-29.
@@ -177,7 +177,13 @@ export function AiCostsPage() {
             <a href="https://platform.openai.com/usage" target="_blank" rel="noreferrer">OpenAI 사용량 확인 <ExternalLink size={15} /></a>
           </div>
         </section>
-        <ApiKeyGuide />
+        <Link className={styles.keysLink} to="/settings/keys">
+          <KeyRound size={18} aria-hidden />
+          <span>
+            <strong>API 키 받는 방법·연결 문제 해결</strong>은 설정 → API 키 연결에 있어요
+          </span>
+          <ChevronRight size={18} aria-hidden />
+        </Link>
       </div>
     </>
   );
