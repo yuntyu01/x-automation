@@ -275,6 +275,7 @@
 - 맨 위 "간단 계산": 글·이미지 개수를 넣으면 지금 쓰는 모델(Gemini 3.5 Flash-Lite 글, 3.1 Flash Lite Image 이미지) 기준 예상 비용과 내역을 보여 준다. 글 개수는 아래 비교표와 같은 값을 쓰고, 토큰 수는 글 생성 표에서 바꾼다
 - 금액 표시 달러/원화 전환. 원화는 환율 입력칸(기본 1,400원, 숫자가 아니면 1,400원으로 계산하고 안내)으로 바꾸고, 통화·환율은 이 브라우저에만 기억한다. 표의 단가·합계 모두 같은 통화로 표시
 - 맨 아래 "API 키 받는 방법": X(console.x.com — 크레딧 충전 → 앱 → User authentication settings(Read and write · Web App · Callback URI · Website URL) → OAuth 2.0 Client ID·Secret → 환경변수 → 계정 연결)와 Gemini(Google AI Studio — Get API key → Create API key → 복사 → 이미지용 결제 연결(선택) → 환경변수 → 확인). Callback URI는 지금 접속한 서버 주소로 계산(`VITE_API_BASE_URL`이 있으면 그 주소)하고 복사 버튼을 둔다. 콘솔 메뉴 이름은 2026-10 기준 공식 문서·안내를 따랐고 바뀔 수 있다
+- 후속(사용자 요청 "환경변수는 내가 넣으니 AI Studio 같은 링크를 넣어 줘"): 환경변수 입력 단계를 빼고 "넣을 곳"만 한 줄로 남김. 단계마다 바로 가기 링크 — X: console.x.com, 콘솔 안내(docs.x.com/fundamentals/developer-portal), 요금·크레딧(docs.x.com/x-api/getting-started/pricing), 앱 설정(docs.x.com/fundamentals/developer-apps). Gemini: AI Studio API 키(aistudio.google.com/apikey), 키 안내, 결제 안내(ai.google.dev/gemini-api/docs/billing, 선불 $5 이상 가능), Google Cloud 결제, 한도·요금표. 계정 연결·확인은 설정 → 연결로
 - 고친 것: 이 화면에서 720px 비교표가 격자 칸을 넓혀 가로로 약 400px 넘치던 문제. E2E 가로 넘침 검사 경로에 `/ai-costs` 추가
 - 검증: `make lint`, `make test`, `make e2e` 12/12, 390·360px 라이트·다크 캡처
 
